@@ -1,0 +1,50 @@
+# frozen_string_literal: true
+
+# Сгенерировано paygen <%= paygen_version %>.
+
+module <%= module_name %>
+  class Error < StandardError; end
+
+  # Сеть/таймаут — запрос до провайдера не дошёл или ответ не получен.
+  class ConnectionError < Error; end
+
+  class ApiError < Error
+    attr_reader :status, :body, :request_id
+
+    def initialize(status:, body:, request_id: nil)
+      @status = status
+      @body = body
+      @request_id = request_id
+      super("HTTP #{status}: #{summary}")
+    end
+
+    def summary
+      return body["message"] || body["error"] || body.to_s if body.is_a?(Hash)
+
+      body.to_s[0, 300]
+    end
+
+    # Маппинг HTTP-статуса на класс ошибки: платёжные API почти всегда
+    # различают «не авторизован», «не найдено», «валидация» и «повторить позже».
+    def self.from_response(status, body, request_id: nil)
+      klass =
+        case status
+        when 400, 422 then ValidationError
+        when 401, 403 then AuthenticationError
+        when 404 then NotFoundError
+        when 409 then ConflictError
+        when 429 then RateLimitError
+        when 500..599 then ServerError
+        else self
+        end
+      klass.new(status: status, body: body, request_id: request_id)
+    end
+  end
+
+  class ValidationError < ApiError; end
+  class AuthenticationError < ApiError; end
+  class NotFoundError < ApiError; end
+  class ConflictError < ApiError; end
+  class RateLimitError < ApiError; end
+  class ServerError < ApiError; end
+end

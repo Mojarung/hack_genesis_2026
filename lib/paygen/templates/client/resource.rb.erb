@@ -1,0 +1,38 @@
+# frozen_string_literal: true
+
+# Сгенерировано paygen <%= paygen_version %>.
+
+module <%= module_name %>
+  module Resources
+<%= doc_comment(resource.description || resource.name, indent: 4).join("\n") %>
+    class <%= resource.class_name %>
+      def initialize(client)
+        @client = client
+      end
+<% resource.operations.each do |op| -%>
+
+      # <%= op.http_method.upcase %> <%= op.path %>
+<%= doc_comment(op.summary || op.description, indent: 6).join("\n") %>
+<% op.path_params.each do |p| -%>
+      # @param <%= p.ruby_name %> [<%= p.type %>] <%= p.description %>
+<% end -%>
+<% if op.body? -%>
+      # @param body [Hash] тело запроса<%= op.body.schema_name ? " (#{op.body.schema_name})" : "" %>
+<% end -%>
+<% op.query_params.each do |p| -%>
+      # @param <%= p.ruby_name %> [<%= p.type %>]<%= p.required? ? " (обязателен)" : "" %> <%= p.description %>
+<% end -%>
+      # @return [Hash] ответ <%= op.success_status %>
+      def <%= op.method_name %>(<%= signature(op) %>)
+        @client.request(
+          :<%= op.http_method %>,
+          "<%= op.path_template %>",
+          query: <%= query_literal(op) %>,
+          body: <%= op.body? ? "body" : "nil" %>,
+          headers: headers
+        )
+      end
+<% end -%>
+    end
+  end
+end

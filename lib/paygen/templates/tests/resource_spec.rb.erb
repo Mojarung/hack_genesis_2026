@@ -1,0 +1,42 @@
+# frozen_string_literal: true
+
+# Сгенерировано paygen <%= paygen_version %>. Дымовые тесты: проверяют, что клиент
+# ходит по правильному методу/пути и разбирает ответ. Бизнес-кейсы дописывайте рядом.
+
+require_relative "spec_helper"
+
+RSpec.describe <%= module_name %>::Resources::<%= resource.class_name %> do
+  let(:base_url) { <%= module_name %>::Client::DEFAULT_BASE_URL }
+  let(:client) { <%= client_init %> }
+
+  subject(:resource) { client.<%= resource.method_name %> }
+<% resource.operations.each do |op| -%>
+
+  describe "#<%= op.method_name %>" do
+    it "<%= op.http_method.upcase %> <%= op.path %>" do
+      stub = stub_request(:<%= op.http_method %>, "#{base_url}<%= sample_path(op) %>")
+<% unless op.query_params.empty? -%>
+             .with(query: hash_including({}))
+<% end -%>
+             .to_return(status: <%= success_code(op) %>, body: "{}",
+                        headers: { "Content-Type" => "application/json" })
+
+      resource.<%= op.method_name %>(<%= sample_args(op) %>)
+
+      expect(stub).to have_been_requested
+    end
+
+    it "поднимает типизированную ошибку на 4xx" do
+      stub_request(:<%= op.http_method %>, "#{base_url}<%= sample_path(op) %>")
+<% unless op.query_params.empty? -%>
+        .with(query: hash_including({}))
+<% end -%>
+        .to_return(status: 422, body: '{"message":"invalid"}',
+                   headers: { "Content-Type" => "application/json" })
+
+      expect { resource.<%= op.method_name %>(<%= sample_args(op) %>) }
+        .to raise_error(<%= module_name %>::ValidationError, /invalid/)
+    end
+  end
+<% end -%>
+end

@@ -1,0 +1,11 @@
+/.bundle/
+/vendor/bundle/
+/pkg/
+/tmp/
+/out/
+/coverage/
+*.gem
+*.log
+.env
+.rspec_status
+.DS_Store

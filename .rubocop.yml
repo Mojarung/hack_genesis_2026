@@ -1,0 +1,57 @@
+AllCops:
+  TargetRubyVersion: 3.4
+  NewCops: enable
+  SuggestExtensions: false
+  Exclude:
+    - "out/**/*"
+    - "vendor/**/*"
+    - "lib/paygen/templates/**/*"   # это .erb-шаблоны, не Ruby-код проекта
+
+# Стиль
+Style/Documentation:
+  Enabled: false
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+  Exclude:
+    # тут в одинарных кавычках лежит СГЕНЕРИРОВАННЫЙ код, кавычки значимы
+    - "spec/paygen/generator_spec.rb"
+    - "spec/paygen/analyzer_spec.rb"
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: double_quotes
+Style/FormatStringToken:
+  EnforcedStyle: unannotated
+
+# Репозиторий держим в LF, даже когда работаем из Windows.
+Layout/EndOfLine:
+  EnforcedStyle: lf
+Layout/LineLength:
+  Max: 120
+
+# Мэппинг OpenAPI → IR по природе ветвистый: это таблица соответствий,
+# дробить её на методы только ради метрики — хуже читается.
+Metrics/MethodLength:
+  Max: 30
+Metrics/AbcSize:
+  Max: 35
+Metrics/CyclomaticComplexity:
+  Max: 12
+Metrics/PerceivedComplexity:
+  Max: 12
+Metrics/ClassLength:
+  Max: 200
+Metrics/BlockLength:
+  Exclude:
+    - "spec/**/*"
+    - "Rakefile"
+
+Naming/MethodParameterName:
+  AllowedNames: [op, id, f, p, e, to, at]
+
+# В тестах генератора #{} внутри одинарных кавычек — данные, не забытая интерполяция.
+Lint/InterpolationCheck:
+  Exclude:
+    - "spec/**/*"
+
+# RSpec-хелперы вида `def generate(**opts)` читаются лучше именованных.
+Style/ArgumentsForwarding:
+  Enabled: false
