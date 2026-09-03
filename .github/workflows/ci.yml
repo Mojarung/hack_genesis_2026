@@ -19,4 +19,4 @@ jobs:
       - name: Роутинг публичной очереди и автопроверка организаторов
         run: bundle exec rake validate
       - name: Бэктест на истории
-        run: ruby -Ilib bin/payout_router backtest --policy config/policies/conversion_first.yml --out out
+        run: bundle exec ruby -Ilib bin/payout_router backtest --policy config/policies/conversion_first.yml --out out
