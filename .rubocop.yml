@@ -11,8 +11,13 @@ AllCops:
     - "out/**/*"
     - "coverage/**/*"
     - "scripts/validate_10.rb"   # скрипт организаторов — оставляем как есть
+    - "СТАРТ ХАКАТОНА*/**/*"     # исходная выгрузка организаторов рядом с репозиторием
 
 Style/Documentation:
+  Enabled: false
+# `class X < Data.define(...)` вместо блока: внутри нужны константы и вложенные классы,
+# а лишний анонимный предок в цепочке наследования ничего не стоит.
+Style/DataInheritance:
   Enabled: false
 Style/StringLiterals:
   EnforcedStyle: double_quotes
@@ -25,10 +30,19 @@ Layout/EndOfLine:
 Layout/LineLength:
   Max: 120
 
+Style/FormatStringToken:
+  EnforcedStyle: unannotated
+
+# Правила рекомендаций и сериализация собирают длинные сообщения из многих полей:
+# по ABC это «сложно», по факту — линейный список интерполяций.
 Metrics/MethodLength:
   Max: 20
 Metrics/AbcSize:
-  Max: 25
+  Max: 32
+Metrics/CyclomaticComplexity:
+  Max: 9
+Metrics/PerceivedComplexity:
+  Max: 10
 Metrics/ClassLength:
   Max: 180
 Metrics/BlockLength:
@@ -41,6 +55,9 @@ Metrics/ParameterLists:
 Naming/MethodParameterName:
   AllowedNames: [op, id, at, to, by, rng]
 
+# Часть спеков описывает подсистему (загрузчики, аналитика, интеграция), а не один класс.
+RSpec/DescribeClass:
+  Enabled: false
 RSpec/ExampleLength:
   Max: 15
 RSpec/MultipleExpectations:

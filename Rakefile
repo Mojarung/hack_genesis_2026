@@ -13,14 +13,22 @@ task :route do
   sh "#{CLI} route --queue data/operations_queue_10.json --out out"
 end
 
-desc "Проверить out/routing_decisions.json скриптом организаторов"
+desc "Проверить out/routing_decisions.json скриптом организаторов и нашим валидатором"
 task validate: :route do
   sh "ruby scripts/validate_10.rb out/routing_decisions.json"
+  sh "#{CLI} validate out/routing_decisions.json --reference data/reference_decisions.json"
 end
 
-desc "Итоговые файлы для жюри: routing_decisions_test.json и routing_report_test.json в корне"
+desc "Файлы по публичной очереди в корне репозитория: routing_decisions.json + routing_report.json"
+task :public do
+  sh "#{CLI} route --queue data/operations_queue_10.json --out . --quiet"
+  sh "ruby scripts/validate_10.rb routing_decisions.json"
+end
+
+desc "Итоговые файлы для жюри из data/operations_queue_test.json (routing_*_test.json в корне)"
 task :submit do
   sh "#{CLI} route --queue data/operations_queue_test.json --out . --suffix _test"
+  sh "#{CLI} validate routing_decisions_test.json --queue data/operations_queue_test.json"
 end
 
 desc "Бенчмарк: синтетическая очередь на N заявок (N=BENCH_N, по умолчанию 50000)"
