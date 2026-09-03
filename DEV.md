@@ -60,3 +60,24 @@ bundle exec rspec
 - вебхуки: подпись и верификация не генерируются;
 - другие языки: шаблоны привязаны к Ruby, `templates/<lang>/` пока один;
 - валидация спеки: падаем на кривом `$ref`, но полноценного линта OpenAPI нет.
+
+## Кейс «Умный роутинг выплат»
+
+Данные организаторов и ТЗ — см. `docs/data.md` и `docs/tz.md`. `ruby` в этой
+машине лежит в `C:\Ruby34-x64\bin`; если PATH его не подхватил:
+
+```powershell
+$env:PATH = "C:\Ruby34-x64\bin;$env:PATH"
+```
+
+```powershell
+# официальный валидатор организаторов — им будут проверять наш ответ
+ruby scripts/validate_10.rb data/sample_routing_decisions.json
+
+# калибровка по истории: доли count/volume, конверсия, латентность
+ruby scripts/history_stats.rb           # сводка в stdout
+ruby scripts/history_stats.rb --json    # + data/derived/history_stats.json
+```
+
+`scripts/validate_10.rb` ищет данные как `../data`, поэтому `scripts/` и `data/`
+должны оставаться соседями в корне. Файл организаторский, из-под rubocop выведен.
