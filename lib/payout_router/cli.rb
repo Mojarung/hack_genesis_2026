@@ -148,6 +148,22 @@ module PayoutRouter
       fail_with(e)
     end
 
+    desc "serve", "HTTP-сервис: POST /route принимает заявку и сразу отдаёт решение; GET /report, /state, /metrics"
+    option :host, type: :string, default: "127.0.0.1", desc: "адрес"
+    option :port, type: :numeric, default: 8080, desc: "порт"
+    option :simulation, type: :string, enum: %w[optimistic conversion]
+    option :seed, type: :numeric
+    def serve
+      PayoutRouter.eager_load!
+      server = Server.new(Server::Service.new(runner), host: options[:host], port: options[:port])
+      say "PayoutRouter слушает http://#{options[:host]}:#{server.port} — POST /route (заявка или массив), " \
+          "GET /report, /state, /metrics, /health, POST /reset. Ctrl+C для остановки.", :green
+      trap("INT") { server.stop }
+      server.start
+    rescue PayoutRouter::Error => e
+      fail_with(e)
+    end
+
     desc "bench", "Бенчмарк: синтетическая очередь на N заявок через полный конвейер"
     option :operations, type: :numeric, default: 50_000, desc: "число заявок"
     option :seed, type: :numeric, default: 1, desc: "seed генератора очереди"

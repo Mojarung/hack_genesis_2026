@@ -1,0 +1,22 @@
+name: ci
+
+on:
+  push:
+    branches: [main, kirill_backend2]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "4.0"
+          bundler-cache: true
+      - name: Тесты и линтер
+        run: bundle exec rake
+      - name: Роутинг публичной очереди и автопроверка организаторов
+        run: bundle exec rake validate
+      - name: Бэктест на истории
+        run: ruby -Ilib bin/payout_router backtest --policy config/policies/conversion_first.yml --out out

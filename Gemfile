@@ -6,6 +6,7 @@ ruby "~> 4.0"
 
 gem "csv", "~> 3.3"       # с Ruby 3.4 — bundled gem, без явной строки не загрузится
 gem "thor", "~> 1.5"      # CLI
+gem "webrick", "~> 1.9"   # HTTP-сервис (serve): чистый Ruby, без нативных расширений
 gem "zeitwerk", "~> 2.8"  # автозагрузка lib/ по соглашению об именах
 
 group :development, :test do

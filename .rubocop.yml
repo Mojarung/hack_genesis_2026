@@ -45,6 +45,8 @@ Metrics/PerceivedComplexity:
   Max: 10
 Metrics/ClassLength:
   Max: 180
+  Exclude:
+    - "lib/payout_router/cli.rb"   # Thor: описания команд и опций — это документация, не логика
 Metrics/BlockLength:
   Exclude:
     - "spec/**/*"

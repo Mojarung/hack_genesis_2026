@@ -2,8 +2,8 @@
 
 Hack.Genesis 2026, задача 2 «Умный роутинг выплат» (основной этап 3–6 сентября 2026, ТЗ в
 `docs/case/task.md`). Решение — гем `payout_router` на Ruby 4.0: hard-constraints → взвешенный
-скоринг по soft-goals → каскад попыток с fallback → отчёт с рекомендациями. Нейросети в проекте
-запрещены правилами кейса; почти весь код должен быть на Ruby.
+скоринг по soft-goals → каскад попыток с fallback → отчёт с рекомендациями, плюс что-если анализ
+и HTTP-сервис. Нейросети в проекте запрещены правилами кейса; почти весь код должен быть на Ruby.
 
 ## Окружение
 
@@ -12,36 +12,38 @@ Hack.Genesis 2026, задача 2 «Умный роутинг выплат» (о
 - Гемы в `vendor/bundle` (`bundle install`), запуск всего через `bundle exec`.
 - `bundle exec rake` = rspec + rubocop. `rubocop -a` на Windows пишет CRLF — после автокоррекции
   прогнать `sed -i 's/\r$//'` по изменённым файлам; репозиторий в LF (`.gitattributes`).
-- Рабочая ветка `kirill_backend2`, коммиты — conventional на русском, без co-author trailer.
+- Рабочая ветка `kirill_backend2`, коммиты — conventional на русском, без co-author trailer; `main`
+  обновляется fast-forward. `git push` из обычных команд виснет (sandbox), пушить фоновой командой.
 
 ## Пайплайн и якоря
 
 | Слой | Файлы | Что искать |
 |---|---|---|
 | Входы | `lib/payout_router/inputs/*` | `Fields` — проверка полей с адресом ошибки; `PolicyLoader` валидирует ключи по реестрам |
-| Домен | `lib/payout_router/domain/*` | `Provider` (Data + дефолты), `Policy#apply` накладывает overrides и fallback |
-| Hard-правила | `lib/payout_router/constraints/*` | `Base#call → pass/violation`, `Registry::ALL`, `Pipeline#evaluate` собирает все нарушения |
-| Состояние | `lib/payout_router/state/*` | `Ledger#dispatch!/settle_due` — виртуальные часы; `ProviderState#requests_within` — окно интенсивности |
-| Цели | `lib/payout_router/strategies/*` | `Base#evaluate → signal(score, note)`, формула долей `0.5 + (цель − факт)/100` |
+| Домен | `lib/payout_router/domain/*` | `Provider` (Data + дефолты), `Policy#apply`, `Policy#with_goals`, `Policy#to_h_document` |
+| Hard-правила | `lib/payout_router/constraints/*` | `Base#call → pass/violation`, `Registry::ALL`, `CircuitBreaker` (со состоянием) |
+| Состояние | `lib/payout_router/state/*` | `Ledger#dispatch!/settle_due` — виртуальные часы; `ProviderState#record_failure` — предохранитель |
+| Цели | `lib/payout_router/strategies/*` | `Base#evaluate → signal(score, note)`; `BankAffinity`/`ExpectedValue`; формула долей `0.5 + (цель − факт)/100` |
 | Скоринг | `lib/payout_router/scoring/*` | `CompositeScorer#rank`, `TieBreaker#sort_key` |
 | Роутинг | `lib/payout_router/routing/*` | `Router#route` → `try_ranked` → `fallback` → `unrouted`; коды причин в `Reasons` |
 | Симуляция | `lib/payout_router/simulation/*` | `optimistic` (сдача) / `conversion` (seed, демо каскада) |
-| Аналитика | `lib/payout_router/analytics/*` | `RoutingStats` (один проход), `ReportBuilder`, `recommendations/engine.rb` → `RULES` |
-| Выход/CLI | `lib/payout_router/output/*`, `cli.rb`, `runner.rb` | `Runner#call` — весь сценарий; CLI только опции и печать |
+| Аналитика | `lib/payout_router/analytics/*` | `ApprovalModel` (пара × банк, LOO), `Backtest`, `PolicyComparison`, `MonteCarlo`, `WeightTuner`, `recommendations/engine.rb` |
+| Выход/CLI | `lib/payout_router/output/*`, `cli.rb`, `runner.rb`, `server.rb` | `Runner` — весь сценарий; `HtmlReport` + `templates/report.html.erb`; `Server::Service` |
 | Проверка | `lib/payout_router/validation/decisions_validator.rb` | повторяет `scripts/validate_10.rb` + инвариант «один selected» |
 
 ## Правила
 
-- Новая сущность = класс-наследник `Base` + строка в реестре + ключ в `config/policy.yml`. Логику
-  в YAML не тащим, параметры в код — тоже.
+- Новая сущность = класс-наследник `Base` + строка в реестре + ключ в `config/policy.yml`.
 - В `attempts` допустимы только `selected`/`skipped` (валидатор жюри); реальная отправка с отказом —
   `skipped` + `provider_rejected`/`provider_timeout` + `simulated_result`.
-- Для сдачи используем `simulation.mode: optimistic`: эталонные кейсы жюри требуют единственного
-  допустимого провайдера, случайные отказы их сломают.
-- Проверка «всё живо»: `bundle exec rake validate` (роутинг публичной очереди + скрипт организаторов).
-- Сдача: `operations_queue_test.json` в `data/`, `bundle exec rake submit`, файлы в корне `main`.
+- Для сдачи используем `simulation.mode: optimistic`; дефолтная политика `balanced` должна давать
+  vipay 4 / payflow 3 / quickpay 3 на публичной очереди (спек `spec/integration`).
+- Zeitwerk: аббревиатуры в именах файлов (`json_file`, `yaml_writer`) требуют инфлексии в `lib/payout_router.rb`;
+  константы верхнего уровня — по одной на файл.
+- Проверка «всё живо»: `bundle exec rake validate`. Сдача: `operations_queue_test.json` в `data/`,
+  `bundle exec rake submit`, файлы в корне `main`.
 
 ## Состояние
 
-111 спеков зелёные (покрытие строк 98%), rubocop чист, бенчмарк ≈3 400 заявок/с. Дальнейшие шаги
-по дням — `docs/plan.md`.
+138 спеков зелёные (покрытие строк 98%), rubocop чист, бэктест conversion_first +6.9%, бенчмарк ≈3 400 заявок/с.
+Дальнейшие шаги по дням — `docs/plan.md`, сценарий защиты — `docs/pitch.md`.

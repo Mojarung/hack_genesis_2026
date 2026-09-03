@@ -8,8 +8,8 @@
         "provider": "vipay",
         "decision": "selected",
         "reason": "best_score",
-        "details": "score 0.6833; decisive: traffic_share (+0.27), conversion (+0.131)",
-        "score": 0.6833,
+        "details": "score 0.6798; decisive: traffic_share (+0.27), cascade_priority (+0.1)",
+        "score": 0.6798,
         "breakdown": {
           "traffic_share": {
             "score": 0.9,
@@ -37,9 +37,15 @@
           },
           "conversion": {
             "score": 0.87,
-            "weight": 0.15,
-            "weighted": 0.1305,
+            "weight": 0.1,
+            "weighted": 0.087,
             "note": "conversion_24h 0.87"
+          },
+          "bank_affinity": {
+            "score": 0.8,
+            "weight": 0.05,
+            "weighted": 0.04,
+            "note": "sberbank via vipay: 8 in history, smoothed approval 80.0%"
           },
           "load": {
             "score": 0.36,
@@ -67,8 +73,8 @@
         "provider": "payflow",
         "decision": "skipped",
         "reason": "lower_score",
-        "details": "score 0.6625 < 0.6833 (vipay)",
-        "score": 0.6625,
+        "details": "score 0.657 < 0.6798 (vipay)",
+        "score": 0.657,
         "breakdown": {
           "traffic_share": {
             "score": 0.85,
@@ -96,9 +102,15 @@
           },
           "conversion": {
             "score": 0.91,
-            "weight": 0.15,
-            "weighted": 0.1365,
+            "weight": 0.1,
+            "weighted": 0.091,
             "note": "conversion_24h 0.91"
+          },
+          "bank_affinity": {
+            "score": 0.8,
+            "weight": 0.05,
+            "weighted": 0.04,
+            "note": "sberbank via payflow: 3 in history, smoothed approval 80.0%"
           },
           "load": {
             "score": 0.0333,
@@ -124,8 +136,8 @@
         "provider": "quickpay",
         "decision": "skipped",
         "reason": "lower_score",
-        "details": "score 0.603 < 0.6833 (vipay)",
-        "score": 0.603,
+        "details": "score 0.5778 < 0.6798 (vipay)",
+        "score": 0.5778,
         "breakdown": {
           "traffic_share": {
             "score": 0.75,
@@ -153,9 +165,15 @@
           },
           "conversion": {
             "score": 0.79,
-            "weight": 0.15,
-            "weighted": 0.1185,
+            "weight": 0.1,
+            "weighted": 0.079,
             "note": "conversion_24h 0.79"
+          },
+          "bank_affinity": {
+            "score": 0.2857,
+            "weight": 0.05,
+            "weighted": 0.0143,
+            "note": "sberbank via quickpay: 5 in history, smoothed approval 28.6%"
           },
           "load": {
             "score": 0.8625,
@@ -201,8 +219,8 @@
         "provider": "payflow",
         "decision": "selected",
         "reason": "best_score",
-        "details": "score 0.6626; decisive: traffic_share (+0.255), conversion (+0.137)",
-        "score": 0.6626,
+        "details": "score 0.6338; decisive: traffic_share (+0.255), amount_band (+0.1)",
+        "score": 0.6338,
         "breakdown": {
           "traffic_share": {
             "score": 0.85,
@@ -230,9 +248,15 @@
           },
           "conversion": {
             "score": 0.91,
-            "weight": 0.15,
-            "weighted": 0.1365,
+            "weight": 0.1,
+            "weighted": 0.091,
             "note": "conversion_24h 0.91"
+          },
+          "bank_affinity": {
+            "score": 0.3333,
+            "weight": 0.05,
+            "weighted": 0.0167,
+            "note": "alfa via payflow: 7 in history, smoothed approval 33.3%"
           },
           "load": {
             "score": 0.0333,
@@ -260,8 +284,8 @@
         "provider": "quickpay",
         "decision": "skipped",
         "reason": "lower_score",
-        "details": "score 0.6031 < 0.6626 (payflow)",
-        "score": 0.6031,
+        "details": "score 0.5969 < 0.6338 (payflow)",
+        "score": 0.5969,
         "breakdown": {
           "traffic_share": {
             "score": 0.75,
@@ -289,9 +313,15 @@
           },
           "conversion": {
             "score": 0.79,
-            "weight": 0.15,
-            "weighted": 0.1185,
+            "weight": 0.1,
+            "weighted": 0.079,
             "note": "conversion_24h 0.79"
+          },
+          "bank_affinity": {
+            "score": 0.6667,
+            "weight": 0.05,
+            "weighted": 0.0333,
+            "note": "alfa via quickpay: 7 in history, smoothed approval 66.7%"
           },
           "load": {
             "score": 0.8625,
@@ -347,8 +377,8 @@
         "provider": "quickpay",
         "decision": "selected",
         "reason": "only_eligible_provider",
-        "details": "score 0.7032; decisive: traffic_share (+0.225), load (+0.129)",
-        "score": 0.7032,
+        "details": "score 0.6779; decisive: traffic_share (+0.225), load (+0.129)",
+        "score": 0.6779,
         "breakdown": {
           "traffic_share": {
             "score": 0.75,
@@ -376,9 +406,15 @@
           },
           "conversion": {
             "score": 0.79,
-            "weight": 0.15,
-            "weighted": 0.1185,
+            "weight": 0.1,
+            "weighted": 0.079,
             "note": "conversion_24h 0.79"
+          },
+          "bank_affinity": {
+            "score": 0.2857,
+            "weight": 0.05,
+            "weighted": 0.0143,
+            "note": "sberbank via quickpay: 5 in history, smoothed approval 28.6%"
           },
           "load": {
             "score": 0.8625,
@@ -432,8 +468,8 @@
         "provider": "quickpay",
         "decision": "selected",
         "reason": "only_eligible_provider",
-        "details": "score 0.4954; decisive: load (+0.127), traffic_share (+0.125)",
-        "score": 0.4954,
+        "details": "score 0.4845; decisive: load (+0.127), traffic_share (+0.125)",
+        "score": 0.4845,
         "breakdown": {
           "traffic_share": {
             "score": 0.4167,
@@ -461,9 +497,15 @@
           },
           "conversion": {
             "score": 0.79,
-            "weight": 0.15,
-            "weighted": 0.1185,
+            "weight": 0.1,
+            "weighted": 0.079,
             "note": "conversion_24h 0.79"
+          },
+          "bank_affinity": {
+            "score": 0.5714,
+            "weight": 0.05,
+            "weighted": 0.0286,
+            "note": "gazprombank via quickpay: 5 in history, smoothed approval 57.1%"
           },
           "load": {
             "score": 0.8438,
@@ -511,8 +553,8 @@
         "provider": "vipay",
         "decision": "selected",
         "reason": "best_score",
-        "details": "score 0.6089; decisive: traffic_share (+0.195), conversion (+0.131)",
-        "score": 0.6089,
+        "details": "score 0.6029; decisive: traffic_share (+0.195), cascade_priority (+0.1)",
+        "score": 0.6029,
         "breakdown": {
           "traffic_share": {
             "score": 0.65,
@@ -540,9 +582,15 @@
           },
           "conversion": {
             "score": 0.87,
-            "weight": 0.15,
-            "weighted": 0.1305,
+            "weight": 0.1,
+            "weighted": 0.087,
             "note": "conversion_24h 0.87"
+          },
+          "bank_affinity": {
+            "score": 0.75,
+            "weight": 0.05,
+            "weighted": 0.0375,
+            "note": "tinkoff via vipay: 6 in history, smoothed approval 75.0%"
           },
           "load": {
             "score": 0.357,
@@ -570,8 +618,8 @@
         "provider": "quickpay",
         "decision": "skipped",
         "reason": "lower_score",
-        "details": "score 0.4453 < 0.6089 (vipay)",
-        "score": 0.4453,
+        "details": "score 0.4371 < 0.6029 (vipay)",
+        "score": 0.4371,
         "breakdown": {
           "traffic_share": {
             "score": 0.25,
@@ -599,9 +647,15 @@
           },
           "conversion": {
             "score": 0.79,
-            "weight": 0.15,
-            "weighted": 0.1185,
+            "weight": 0.1,
+            "weighted": 0.079,
             "note": "conversion_24h 0.79"
+          },
+          "bank_affinity": {
+            "score": 0.625,
+            "weight": 0.05,
+            "weighted": 0.0313,
+            "note": "tinkoff via quickpay: 6 in history, smoothed approval 62.5%"
           },
           "load": {
             "score": 0.8434,
@@ -647,8 +701,8 @@
         "provider": "vipay",
         "decision": "selected",
         "reason": "best_score",
-        "details": "score 0.6604; decisive: traffic_share (+0.15), conversion (+0.131)",
-        "score": 0.6604,
+        "details": "score 0.6569; decisive: traffic_share (+0.15), cascade_priority (+0.1)",
+        "score": 0.6569,
         "breakdown": {
           "traffic_share": {
             "score": 0.5,
@@ -676,9 +730,15 @@
           },
           "conversion": {
             "score": 0.87,
-            "weight": 0.15,
-            "weighted": 0.1305,
+            "weight": 0.1,
+            "weighted": 0.087,
             "note": "conversion_24h 0.87"
+          },
+          "bank_affinity": {
+            "score": 0.8,
+            "weight": 0.05,
+            "weighted": 0.04,
+            "note": "sberbank via vipay: 8 in history, smoothed approval 80.0%"
           },
           "load": {
             "score": 0.357,
@@ -706,8 +766,8 @@
         "provider": "quickpay",
         "decision": "skipped",
         "reason": "lower_score",
-        "details": "score 0.4787 < 0.6604 (vipay)",
-        "score": 0.4787,
+        "details": "score 0.4535 < 0.6569 (vipay)",
+        "score": 0.4535,
         "breakdown": {
           "traffic_share": {
             "score": 0.35,
@@ -735,9 +795,15 @@
           },
           "conversion": {
             "score": 0.79,
-            "weight": 0.15,
-            "weighted": 0.1185,
+            "weight": 0.1,
+            "weighted": 0.079,
             "note": "conversion_24h 0.79"
+          },
+          "bank_affinity": {
+            "score": 0.2857,
+            "weight": 0.05,
+            "weighted": 0.0143,
+            "note": "sberbank via quickpay: 5 in history, smoothed approval 28.6%"
           },
           "load": {
             "score": 0.8434,
@@ -789,8 +855,8 @@
         "provider": "payflow",
         "decision": "selected",
         "reason": "only_eligible_provider",
-        "details": "score 0.611; decisive: traffic_share (+0.205), conversion (+0.137)",
-        "score": 0.611,
+        "details": "score 0.6055; decisive: traffic_share (+0.205), amount_band (+0.1)",
+        "score": 0.6055,
         "breakdown": {
           "traffic_share": {
             "score": 0.6833,
@@ -818,9 +884,15 @@
           },
           "conversion": {
             "score": 0.91,
-            "weight": 0.15,
-            "weighted": 0.1365,
+            "weight": 0.1,
+            "weighted": 0.091,
             "note": "conversion_24h 0.91"
+          },
+          "bank_affinity": {
+            "score": 0.8,
+            "weight": 0.05,
+            "weighted": 0.04,
+            "note": "sberbank via payflow: 3 in history, smoothed approval 80.0%"
           },
           "load": {
             "score": 0.0173,
@@ -874,8 +946,8 @@
         "provider": "quickpay",
         "decision": "selected",
         "reason": "only_eligible_provider",
-        "details": "score 0.5131; decisive: traffic_share (+0.139), load (+0.127)",
-        "score": 0.5131,
+        "details": "score 0.5069; decisive: traffic_share (+0.139), load (+0.127)",
+        "score": 0.5069,
         "breakdown": {
           "traffic_share": {
             "score": 0.4643,
@@ -903,9 +975,15 @@
           },
           "conversion": {
             "score": 0.79,
-            "weight": 0.15,
-            "weighted": 0.1185,
+            "weight": 0.1,
+            "weighted": 0.079,
             "note": "conversion_24h 0.79"
+          },
+          "bank_affinity": {
+            "score": 0.6667,
+            "weight": 0.05,
+            "weighted": 0.0333,
+            "note": "raiffeisen via quickpay: 7 in history, smoothed approval 66.7%"
           },
           "load": {
             "score": 0.8434,
@@ -953,8 +1031,8 @@
         "provider": "vipay",
         "decision": "selected",
         "reason": "best_score",
-        "details": "score 0.5688; decisive: traffic_share (+0.158), conversion (+0.131)",
-        "score": 0.5688,
+        "details": "score 0.5587; decisive: traffic_share (+0.158), cascade_priority (+0.1)",
+        "score": 0.5587,
         "breakdown": {
           "traffic_share": {
             "score": 0.525,
@@ -982,9 +1060,15 @@
           },
           "conversion": {
             "score": 0.87,
-            "weight": 0.15,
-            "weighted": 0.1305,
+            "weight": 0.1,
+            "weighted": 0.087,
             "note": "conversion_24h 0.87"
+          },
+          "bank_affinity": {
+            "score": 0.6667,
+            "weight": 0.05,
+            "weighted": 0.0333,
+            "note": "vtb via vipay: 7 in history, smoothed approval 66.7%"
           },
           "load": {
             "score": 0.3416,
@@ -1012,8 +1096,8 @@
         "provider": "quickpay",
         "decision": "skipped",
         "reason": "lower_score",
-        "details": "score 0.4818 < 0.5688 (vipay)",
-        "score": 0.4818,
+        "details": "score 0.4839 < 0.5587 (vipay)",
+        "score": 0.4839,
         "breakdown": {
           "traffic_share": {
             "score": 0.375,
@@ -1041,9 +1125,15 @@
           },
           "conversion": {
             "score": 0.79,
-            "weight": 0.15,
-            "weighted": 0.1185,
+            "weight": 0.1,
+            "weighted": 0.079,
             "note": "conversion_24h 0.79"
+          },
+          "bank_affinity": {
+            "score": 0.8333,
+            "weight": 0.05,
+            "weighted": 0.0417,
+            "note": "vtb via quickpay: 10 in history, smoothed approval 83.3%"
           },
           "load": {
             "score": 0.8381,
@@ -1089,8 +1179,8 @@
         "provider": "payflow",
         "decision": "selected",
         "reason": "best_score",
-        "details": "score 0.5945; decisive: traffic_share (+0.188), conversion (+0.137)",
-        "score": 0.5945,
+        "details": "score 0.5657; decisive: traffic_share (+0.188), amount_band (+0.1)",
+        "score": 0.5657,
         "breakdown": {
           "traffic_share": {
             "score": 0.6278,
@@ -1118,9 +1208,15 @@
           },
           "conversion": {
             "score": 0.91,
-            "weight": 0.15,
-            "weighted": 0.1365,
+            "weight": 0.1,
+            "weighted": 0.091,
             "note": "conversion_24h 0.91"
+          },
+          "bank_affinity": {
+            "score": 0.3333,
+            "weight": 0.05,
+            "weighted": 0.0167,
+            "note": "alfa via payflow: 7 in history, smoothed approval 33.3%"
           },
           "load": {
             "score": 0.0171,
@@ -1148,8 +1244,8 @@
         "provider": "quickpay",
         "decision": "skipped",
         "reason": "lower_score",
-        "details": "score 0.4976 < 0.5945 (payflow)",
-        "score": 0.4976,
+        "details": "score 0.4914 < 0.5657 (payflow)",
+        "score": 0.4914,
         "breakdown": {
           "traffic_share": {
             "score": 0.4167,
@@ -1177,9 +1273,15 @@
           },
           "conversion": {
             "score": 0.79,
-            "weight": 0.15,
-            "weighted": 0.1185,
+            "weight": 0.1,
+            "weighted": 0.079,
             "note": "conversion_24h 0.79"
+          },
+          "bank_affinity": {
+            "score": 0.6667,
+            "weight": 0.05,
+            "weighted": 0.0333,
+            "note": "alfa via quickpay: 7 in history, smoothed approval 66.7%"
           },
           "load": {
             "score": 0.8381,

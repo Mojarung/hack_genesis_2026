@@ -5,13 +5,14 @@
   "merchant": "alpha_market",
   "policy": {
     "name": "balanced",
-    "description": "Держим целевые доли трафика и объёма, но учитываем конверсию, текущую загрузку, позицию в каскаде и диапазон суммы. Fallback — self-provider spacepayments.",
+    "description": "Держим целевые доли трафика и объёма, но учитываем конверсию (в том числе по банку из истории), текущую загрузку, позицию в каскаде и диапазон суммы. Fallback — self-provider spacepayments.",
     "goals": {
       "traffic_share": 0.3,
       "volume_share": 0.1,
       "cascade_priority": 0.1,
       "amount_band": 0.1,
-      "conversion": 0.15,
+      "conversion": 0.1,
+      "bank_affinity": 0.05,
       "load": 0.15,
       "turnover_min": 0.05,
       "rate_headroom": 0.05
@@ -27,7 +28,8 @@
       "margin",
       "bank_filter",
       "rate_limit",
-      "daily_turnover_max"
+      "daily_turnover_max",
+      "circuit_breaker"
     ],
     "tie_breakers": [
       "priority",
@@ -87,7 +89,8 @@
         "rejected": 0,
         "expired": 0,
         "conversion_simulated": 1.0,
-        "conversion_24h": 0.87
+        "conversion_24h": 0.87,
+        "circuit_trips": 0
       },
       "payflow": {
         "dispatched": 3,
@@ -95,7 +98,8 @@
         "rejected": 0,
         "expired": 0,
         "conversion_simulated": 1.0,
-        "conversion_24h": 0.91
+        "conversion_24h": 0.91,
+        "circuit_trips": 0
       },
       "quickpay": {
         "dispatched": 3,
@@ -103,7 +107,8 @@
         "rejected": 0,
         "expired": 0,
         "conversion_simulated": 1.0,
-        "conversion_24h": 0.79
+        "conversion_24h": 0.79,
+        "circuit_trips": 0
       }
     }
   },
@@ -262,6 +267,33 @@
           "vtb": 3,
           "sberbank": 3,
           "tinkoff": 2
+        },
+        "bank_conversion": {
+          "alfa": {
+            "operations": 7,
+            "approved": 2,
+            "smoothed_conversion": 0.333
+          },
+          "raiffeisen": {
+            "operations": 4,
+            "approved": 2,
+            "smoothed_conversion": 0.5
+          },
+          "vtb": {
+            "operations": 3,
+            "approved": 2,
+            "smoothed_conversion": 0.6
+          },
+          "sberbank": {
+            "operations": 3,
+            "approved": 3,
+            "smoothed_conversion": 0.8
+          },
+          "tinkoff": {
+            "operations": 2,
+            "approved": 0,
+            "smoothed_conversion": 0.25
+          }
         }
       },
       "quickpay": {
@@ -285,6 +317,38 @@
           "tinkoff": 6,
           "gazprombank": 5,
           "sberbank": 5
+        },
+        "bank_conversion": {
+          "vtb": {
+            "operations": 10,
+            "approved": 9,
+            "smoothed_conversion": 0.833
+          },
+          "raiffeisen": {
+            "operations": 7,
+            "approved": 5,
+            "smoothed_conversion": 0.667
+          },
+          "alfa": {
+            "operations": 7,
+            "approved": 5,
+            "smoothed_conversion": 0.667
+          },
+          "tinkoff": {
+            "operations": 6,
+            "approved": 4,
+            "smoothed_conversion": 0.625
+          },
+          "gazprombank": {
+            "operations": 5,
+            "approved": 3,
+            "smoothed_conversion": 0.571
+          },
+          "sberbank": {
+            "operations": 5,
+            "approved": 1,
+            "smoothed_conversion": 0.286
+          }
         }
       },
       "vipay": {
@@ -308,6 +372,38 @@
           "raiffeisen": 7,
           "tinkoff": 6,
           "gazprombank": 5
+        },
+        "bank_conversion": {
+          "alfa": {
+            "operations": 8,
+            "approved": 5,
+            "smoothed_conversion": 0.6
+          },
+          "sberbank": {
+            "operations": 8,
+            "approved": 7,
+            "smoothed_conversion": 0.8
+          },
+          "vtb": {
+            "operations": 7,
+            "approved": 5,
+            "smoothed_conversion": 0.667
+          },
+          "raiffeisen": {
+            "operations": 7,
+            "approved": 6,
+            "smoothed_conversion": 0.778
+          },
+          "tinkoff": {
+            "operations": 6,
+            "approved": 5,
+            "smoothed_conversion": 0.75
+          },
+          "gazprombank": {
+            "operations": 5,
+            "approved": 4,
+            "smoothed_conversion": 0.714
+          }
         }
       }
     },
@@ -360,7 +456,7 @@
     "vipay: заявленная conversion_24h 0.87 против 0.78 в истории (41 операций) — метрика завышена, скоринг по конверсии переоценивает провайдера. Проверить источник conversion_24h или использовать наблюдаемое значение 0.78",
     "payflow: заявленная conversion_24h 0.91 против 0.47 в истории (19 операций) — метрика завышена, скоринг по конверсии переоценивает провайдера. Проверить источник conversion_24h или использовать наблюдаемое значение 0.47",
     "quickpay: заявленная conversion_24h 0.79 против 0.68 в истории (40 операций) — метрика завышена, скоринг по конверсии переоценивает провайдера. Проверить источник conversion_24h или использовать наблюдаемое значение 0.68",
-    "quickpay: самая низкая конверсия в пуле (0.79) при доле 30.0% (цель 25%) — примерно 0.1 лишних отказов на 10 заявок. Поднять вес conversion с 0.15 до 0.25 или расширить лимиты провайдеров с конверсией 0.91",
+    "quickpay: самая низкая конверсия в пуле (0.79) при доле 30.0% (цель 25%) — примерно 0.1 лишних отказов на 10 заявок. Поднять вес conversion с 0.1 до 0.2 или расширить лимиты провайдеров с конверсией 0.91",
     "payflow: в истории 36.8% заявок истекли по таймауту (средняя задержка 631 с) — включить latency в скоринг (вес 0.1) или снизить traffic_percentage с 35 до 25",
     "quickpay: в истории 15.0% заявок истекли по таймауту (средняя задержка 539 с) — включить latency в скоринг (вес 0.1) или снизить traffic_percentage с 25 до 15"
   ],
@@ -406,9 +502,9 @@
       "rule": "low_conversion_overload",
       "provider": "quickpay",
       "parameter": "goals.conversion",
-      "current": 0.15,
-      "suggested": 0.25,
-      "message": "quickpay: самая низкая конверсия в пуле (0.79) при доле 30.0% (цель 25%) — примерно 0.1 лишних отказов на 10 заявок. Поднять вес conversion с 0.15 до 0.25 или расширить лимиты провайдеров с конверсией 0.91"
+      "current": 0.1,
+      "suggested": 0.2,
+      "message": "quickpay: самая низкая конверсия в пуле (0.79) при доле 30.0% (цель 25%) — примерно 0.1 лишних отказов на 10 заявок. Поднять вес conversion с 0.1 до 0.2 или расширить лимиты провайдеров с конверсией 0.91"
     },
     {
       "severity": "info",
