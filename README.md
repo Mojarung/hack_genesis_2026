@@ -9,8 +9,11 @@
 почему отсеяли), `routing_report.json` (распределение, загрузка лимитов, причины отсева,
 рекомендации) и `routing_report.html` (дашборд одним файлом).
 
-ТЗ: [docs/case/task.md](docs/case/task.md) · архитектура: [docs/architecture.md](docs/architecture.md) ·
+ТЗ: [docs/tz.md](docs/tz.md) · данные и их аудит: [docs/data.md](docs/data.md),
+[docs/data_audit.md](docs/data_audit.md) · архитектура: [docs/architecture.md](docs/architecture.md) ·
 питч: [docs/pitch.md](docs/pitch.md) · план: [docs/plan.md](docs/plan.md).
+Каталог `analysis/` — офлайн-разведка данных на Python (polars), к решению не относится и в сборке
+ответа не участвует; `scripts/history_stats.rb` — калибровка по истории на Ruby.
 
 ## Быстрый старт
 
