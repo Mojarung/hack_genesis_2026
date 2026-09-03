@@ -1,0 +1,43 @@
+# Максимум ожидаемой маржи: вероятность одобрения × (маржа мерчанта − маржа провайдера).
+# Доли трафика — фоном, чтобы не уронить обязательства перед партнёрами.
+
+name: profit_first
+description: Роутинг по ожидаемой марже с учётом конверсии по банку из истории; доли — второстепенно.
+
+fallback_provider: spacepayments
+
+hard_constraints:
+  - provider_active
+  - traffic_enabled
+  - amount_range
+  - daily_limit
+  - in_progress_count
+  - in_progress_amount
+  - requisites
+  - margin
+  - bank_filter
+  - rate_limit
+  - daily_turnover_max
+  - circuit_breaker
+
+goals:
+  expected_value: 0.40
+  bank_affinity: 0.20
+  load: 0.15
+  traffic_share: 0.15
+  rate_headroom: 0.10
+
+tie_breakers: [conversion, priority, name]
+
+providers:
+  vipay:    { requests_per_minute_limit: 15 }
+  payflow:  { requests_per_minute_limit: 7 }
+  quickpay: { requests_per_minute_limit: 15 }
+
+circuit_breaker:
+  failures: 3
+  cooldown_sec: 300
+
+simulation:
+  mode: optimistic
+  seed: 42

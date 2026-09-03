@@ -1,64 +1,49 @@
 # hack_genesis_2026 — карта проекта
 
-Хакатон Hack.Genesis 2026 (основной этап 3–6 сентября 2026). Стек: Ruby 3.4,
-зависимости через bundler. `ruby` на машине не в PATH сессии — в `C:\Ruby34-x64\bin`.
+Hack.Genesis 2026, задача 2 «Умный роутинг выплат» (основной этап 3–6 сентября 2026, ТЗ в
+`docs/tz.md`). Решение — гем `payout_router` на Ruby 4.0: hard-constraints → взвешенный
+скоринг по soft-goals → каскад попыток с fallback → отчёт с рекомендациями, плюс что-если анализ
+и HTTP-сервис. Нейросети в проекте запрещены правилами кейса; почти весь код должен быть на Ruby.
 
-## Кейс: «Задача 2. Умный роутинг выплат»
+## Окружение
 
-ТЗ приехало 2026-09-03. На вход — очередь выплат и снапшот платёжных провайдеров,
-на выход `routing_decisions_test.json` (кого выбрали, кого отсекли и почему) и
-`routing_report_test.json` (аналитика + рекомендации), оба в корне ветки `main`.
+- Ruby 4.0.6 стоит в `C:\Ruby40-x64` (winget `RubyInstallerTeam.RubyWithDevKit.4.0`); в новых
+  терминалах он в PATH, в старых — `$env:PATH = "C:\Ruby40-x64\bin;" + $env:PATH`.
+- Гемы в `vendor/bundle` (`bundle install`), запуск всего через `bundle exec`.
+- `bundle exec rake` = rspec + rubocop. `rubocop -a` на Windows пишет CRLF — после автокоррекции
+  прогнать `sed -i 's/\r$//'` по изменённым файлам; репозиторий в LF (`.gitattributes`).
+- Рабочая ветка `kirill_backend2`, коммиты — conventional на русском, без co-author trailer; `main`
+  обновляется fast-forward. `git push` из обычных команд виснет (sandbox), пушить фоновой командой.
 
-- ТЗ: `docs/tz.md` (оригинал `docs/tz.docx`, картинки `docs/media/`)
-- Данные: `data/`, короткая справка — `docs/data.md`
-- **Аудит данных: `docs/data_audit.md`** — разбор файл за файлом, нестыковки,
-  вопросы к организаторам, требования к архитектуре. Читать перед проектированием
-- Валидатор организаторов: `scripts/validate_10.rb` (ищет `../data`, не двигать)
-- Калибровка по истории: `scripts/history_stats.rb [--json]` → `data/derived/`
-- Разведка на polars: `analysis/` (uv-проект, см. `analysis/README.md`).
-  `analysis/paylens/rules.py` — реплика hard-фильтров валидатора, сверена
-  с эталоном, расхождений 0; Ruby-реализация должна давать те же коды причин
+## Пайплайн и якоря
 
-Ограничения кейса: код преимущественно на Ruby, нейросети внутри решения
-запрещены, проприетарные компоненты запрещены.
-
-## Скелет paygen (написан до получения ТЗ)
-
-Генератор интеграций из OpenAPI-спеки — отдельная от кейса вещь, к роутингу
-отношения не имеет. Живой и зелёный, но под текущее ТЗ не переиспользуется.
-
-## Пайплайн
-
-```
-SpecLoader → Analyzer → Generator
-  файл       hash       IR::Api + ERB → файлы на диске
-```
-
-| Файл | Что делает | Якоря |
+| Слой | Файлы | Что искать |
 |---|---|---|
-| `lib/paygen/spec_loader.rb` | читает YAML/JSON, разворачивает локальные `$ref`, обрывает циклы маркером `x-cycle` | `#resolve_hash` |
-| `lib/paygen/analyzer.rb` | OpenAPI-hash → `IR::Api`: auth, base_url с подстановкой server variables, группировка операций по тегам | `#auth`, `#build_operation`, `#build_param` |
-| `lib/paygen/ir.rb` | IR-структуры (`Api/Resource/Operation/Param/Body/Auth/Schema/Property`) + `IR.rubyize/classify` | — |
-| `lib/paygen/generator.rb` | рендер шаблонов; `Generator::Context` — все хелперы для .erb (`signature`, `query_literal`, `sample_*`, `client_init`) | `#call` — список артефактов |
-| `lib/paygen/cli.rb` | Thor: `generate`, `describe`, `version` | — |
-| `lib/paygen/templates/` | .erb: `client/`, `docs/`, `tests/`, `project/` — исключены из rubocop | — |
-| `fixtures/provider_api.yaml` | демо-спека Acme Pay: bearer, `$ref`, циклы, server variables, 5 операций / 2 тега | — |
+| Входы | `lib/payout_router/inputs/*` | `Fields` — проверка полей с адресом ошибки; `PolicyLoader` валидирует ключи по реестрам |
+| Домен | `lib/payout_router/domain/*` | `Provider` (Data + дефолты), `Policy#apply`, `Policy#with_goals`, `Policy#to_h_document` |
+| Hard-правила | `lib/payout_router/constraints/*` | `Base#call → pass/violation`, `Registry::ALL`, `CircuitBreaker` (со состоянием) |
+| Состояние | `lib/payout_router/state/*` | `Ledger#dispatch!/settle_due` — виртуальные часы; `ProviderState#record_failure` — предохранитель |
+| Цели | `lib/payout_router/strategies/*` | `Base#evaluate → signal(score, note)`; `BankAffinity`/`ExpectedValue`; формула долей `0.5 + (цель − факт)/100` |
+| Скоринг | `lib/payout_router/scoring/*` | `CompositeScorer#rank`, `TieBreaker#sort_key` |
+| Роутинг | `lib/payout_router/routing/*` | `Router#route` → `try_ranked` → `fallback` → `unrouted`; коды причин в `Reasons` |
+| Симуляция | `lib/payout_router/simulation/*` | `optimistic` (сдача) / `conversion` (seed, демо каскада) |
+| Аналитика | `lib/payout_router/analytics/*` | `ApprovalModel` (пара × банк, LOO), `Backtest`, `PolicyComparison`, `MonteCarlo`, `WeightTuner`, `recommendations/engine.rb` |
+| Выход/CLI | `lib/payout_router/output/*`, `cli.rb`, `runner.rb`, `server.rb` | `Runner` — весь сценарий; `HtmlReport` + `templates/report.html.erb`; `Server::Service` |
+| Проверка | `lib/payout_router/validation/decisions_validator.rb` | повторяет `scripts/validate_10.rb` + инвариант «один selected» |
 
 ## Правила
 
-- Шаблоны не лезут в сырой OpenAPI-hash — только в IR. Новое поле нужно шаблону →
-  сначала добавь его в IR и Analyzer.
-- Новый артефакт на выходе = новый `.erb` + строка в `Generator#call`.
-- Логика форматирования живёт в `Generator::Context`, а не внутри `.erb`.
-- Две грабли Faraday, уже полечены в `client.rb.erb`: базовый URL с завершающим
-  слешем и путь без ведущего — иначе `/v1` из базы теряется.
-- `rubocop -a` на Windows переписывает файлы в CRLF. После автокоррекции гнать
-  `sed -i 's/\r$//'`, в репозитории LF (`.gitattributes`).
-- Проверка «всё живо» = сгенерировать демо и прогнать сгенерированные тесты:
-  `ruby -Ilib bin/paygen generate fixtures/provider_api.yaml --out out/demo`,
-  затем в `out/demo`: `bundle exec rspec`.
+- Новая сущность = класс-наследник `Base` + строка в реестре + ключ в `config/policy.yml`.
+- В `attempts` допустимы только `selected`/`skipped` (валидатор жюри); реальная отправка с отказом —
+  `skipped` + `provider_rejected`/`provider_timeout` + `simulated_result`.
+- Для сдачи используем `simulation.mode: optimistic`; дефолтная политика `balanced` должна давать
+  vipay 4 / payflow 3 / quickpay 3 на публичной очереди (спек `spec/integration`).
+- Zeitwerk: аббревиатуры в именах файлов (`json_file`, `yaml_writer`) требуют инфлексии в `lib/payout_router.rb`;
+  константы верхнего уровня — по одной на файл.
+- Проверка «всё живо»: `bundle exec rake validate`. Сдача: `operations_queue_test.json` в `data/`,
+  `bundle exec rake submit`, файлы в корне `main`.
 
 ## Состояние
 
-Скелет рабочий: 16 своих тестов + 10 сгенерированных зелёные, rubocop чистый.
-Что не сделано — в конце `DEV.md`.
+138 спеков зелёные (покрытие строк 98%), rubocop чист, бэктест conversion_first +6.9%, бенчмарк ≈3 400 заявок/с.
+Дальнейшие шаги по дням — `docs/plan.md`, сценарий защиты — `docs/pitch.md`.

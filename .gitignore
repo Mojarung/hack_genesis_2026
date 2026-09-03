@@ -1,6 +1,5 @@
 /.bundle/
 /vendor/bundle/
-/pkg/
 /tmp/
 /out/
 /coverage/
@@ -9,6 +8,6 @@
 .env
 .rspec_status
 .DS_Store
-/data/derived/
-.venv/
-__pycache__/
+
+# Исходная выгрузка организаторов лежит рядом с репозиторием — в git попадают её копии из data/ и docs/case/
+/СТАРТ ХАКАТОНА*/

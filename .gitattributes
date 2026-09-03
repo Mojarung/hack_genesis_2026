@@ -1,24 +1,18 @@
 # Исходники держим в LF, чтобы Windows-машины не плодили diff'ы на переводах строк.
+* text=auto eol=lf
+
 *.rb     text eol=lf
-*.erb    text eol=lf
 *.yml    text eol=lf
 *.yaml   text eol=lf
+*.json   text eol=lf
+*.csv    text eol=lf
+*.md     text eol=lf
+*.erb    text eol=lf
 Gemfile  text eol=lf
 Gemfile.lock text eol=lf
 Rakefile text eol=lf
 bin/*    text eol=lf
 
-.rspec         text eol=lf
-.gitignore     text eol=lf
-.gitattributes text eol=lf
-.ruby-version  text eol=lf
-
 *.jpg binary
 *.png binary
-
-# Данные кейса и документация — тоже LF.
-*.json text eol=lf
-*.csv  text eol=lf
-*.md   text eol=lf
-
 *.docx binary

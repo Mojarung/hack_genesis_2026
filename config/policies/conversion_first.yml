@@ -1,0 +1,43 @@
+# Максимум одобрений: конверсия (общая и по банку из истории) и загрузка важнее целевых долей.
+
+name: conversion_first
+description: Приоритет провайдерам с высокой конверсией и свободной ёмкостью; доли — фоном.
+
+fallback_provider: spacepayments
+
+hard_constraints:
+  - provider_active
+  - traffic_enabled
+  - amount_range
+  - daily_limit
+  - in_progress_count
+  - in_progress_amount
+  - requisites
+  - margin
+  - bank_filter
+  - rate_limit
+  - daily_turnover_max
+  - circuit_breaker
+
+goals:
+  conversion: 0.30
+  bank_affinity: 0.25
+  load: 0.20
+  latency: 0.10
+  traffic_share: 0.10
+  rate_headroom: 0.05
+
+tie_breakers: [conversion, latency, name]
+
+providers:
+  vipay:    { requests_per_minute_limit: 15 }
+  payflow:  { requests_per_minute_limit: 7 }
+  quickpay: { requests_per_minute_limit: 15 }
+
+circuit_breaker:
+  failures: 3
+  cooldown_sec: 300
+
+simulation:
+  mode: optimistic
+  seed: 42

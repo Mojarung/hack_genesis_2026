@@ -1,0 +1,73 @@
+# Политика маршрутизации по умолчанию: «balanced».
+# Всё, что здесь задано, меняется без правки кода. Другие пресеты — в config/policies/.
+
+name: balanced
+description: >
+  Держим целевые доли трафика и объёма, но учитываем конверсию (в том числе по банку из истории),
+  текущую загрузку, позицию в каскаде и диапазон суммы. Fallback — self-provider spacepayments.
+
+fallback_provider: spacepayments
+
+# Hard-constraints — условия допуска. Проверяются в этом порядке; любое нарушение исключает провайдера.
+hard_constraints:
+  - provider_active        # status == active
+  - traffic_enabled        # traffic_percentage > 0 (0 = выведен из ротации)
+  - amount_range           # limit_amount_min <= amount <= limit_amount_max
+  - daily_limit            # daily_approved_amount + amount <= daily_amount_limit
+  - in_progress_count      # in_progress_count + 1 <= in_progress_count_limit
+  - in_progress_amount     # in_progress_amount + amount <= in_progress_amount_limit
+  - requisites             # available_requisites > 0
+  - margin                 # provider_margin_pct <= merchant_margin_pct (или allow_negative_agreement)
+  - bank_filter            # banks / exclude_banks
+  - rate_limit             # requests_per_minute_limit за скользящую минуту
+  - daily_turnover_max     # фин. обязательство «не более X ₽/сутки»
+  - circuit_breaker        # провайдер в карантине после серии отказов (см. circuit_breaker ниже)
+
+# Soft-goals и их веса. Скор кандидата = Σ(вес × оценка 0..1) / Σ весов. Вес 0 — цель выключена.
+goals:
+  traffic_share: 0.30      # стратегия 1: доля по числу заявок (traffic_percentage)
+  volume_share: 0.10       # стратегия 2: доля по объёму (volume_share_pct)
+  cascade_priority: 0.10   # стратегия 3: очередь в каскаде (priority)
+  amount_band: 0.10        # стратегия 4: предпочтения по диапазону суммы (amount_bands ниже)
+  conversion: 0.10         # стратегия 5: conversion_24h
+  bank_affinity: 0.05      # конверсия пары провайдер × банк по истории (сглаженная)
+  load: 0.15               # загрузка лимитов (дневной оборот, in-progress)
+  turnover_min: 0.05       # стратегия 7: фин. обязательство «не менее X ₽/сутки»
+  rate_headroom: 0.05      # стратегия 6: запас по интенсивности
+  latency: 0.00            # скорость ответа (выключено)
+  margin: 0.00             # стоимость для мерчанта (выключено)
+  expected_value: 0.00     # ожидаемая маржа = конверсия × маржа (выключено, см. policies/profit_first.yml)
+
+# При равном скоре: кто раньше в списке — тот важнее.
+tie_breakers: [priority, conversion, name]
+
+# Стратегия 4: какой провайдер предпочтителен в диапазоне суммы (null — без границы).
+amount_bands:
+  - { min: 500,    max: 50000,  prefer: [payflow] }
+  - { min: 50001,  max: 100000, prefer: [vipay] }
+  - { min: 100001, max: null,   prefer: [quickpay] }
+
+# Параметры, которых нет в providers.json (и переопределения любых его полей).
+providers:
+  vipay:
+    volume_share_pct: 50
+    requests_per_minute_limit: 15
+    daily_turnover_max: 5000000
+  payflow:
+    volume_share_pct: 30
+    requests_per_minute_limit: 7
+    daily_turnover_min: 2000000
+  quickpay:
+    volume_share_pct: 20
+    requests_per_minute_limit: 15
+
+# Предохранитель: после failures отказов/таймаутов подряд провайдер выбывает на cooldown_sec.
+circuit_breaker:
+  failures: 3
+  cooldown_sec: 300
+
+# Исход отправки: optimistic — все одобрены (детерминированно, режим сдачи);
+# conversion — по conversion_24h с seed (демонстрация каскада при отказах).
+simulation:
+  mode: optimistic
+  seed: 42

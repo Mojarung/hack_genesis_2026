@@ -2,18 +2,17 @@
 
 source "https://rubygems.org"
 
-ruby "~> 3.4"
+ruby "~> 4.0"
 
-gem "dry-inflector", "~> 1.1"   # camelize/underscore для генерации имён
-gem "thor", "~> 1.3"            # CLI
-
-# рантайм сгенерированного клиента (нужен, чтобы гонять сгенерированные тесты)
-gem "faraday", "~> 2.9"
-gem "faraday-retry", "~> 2.2"
+gem "csv", "~> 3.3"       # с Ruby 3.4 — bundled gem, без явной строки не загрузится
+gem "thor", "~> 1.5"      # CLI
+gem "webrick", "~> 1.9"   # HTTP-сервис (serve): чистый Ruby, без нативных расширений
+gem "zeitwerk", "~> 2.8"  # автозагрузка lib/ по соглашению об именах
 
 group :development, :test do
-  gem "rake", "~> 13.2"
+  gem "rake", "~> 13.4"
   gem "rspec", "~> 3.13"
-  gem "rubocop", "~> 1.65", require: false
-  gem "webmock", "~> 3.23"
+  gem "rubocop", "~> 1.90", require: false
+  gem "rubocop-rspec", "~> 3.10", require: false
+  gem "simplecov", "~> 1.1", require: false
 end

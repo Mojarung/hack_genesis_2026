@@ -1,26 +1,28 @@
+plugins:
+  - rubocop-rspec
+
 AllCops:
-  TargetRubyVersion: 3.4
+  TargetRubyVersion: 4.0
   NewCops: enable
   SuggestExtensions: false
   Exclude:
-    - "out/**/*"
     - "vendor/**/*"
-    - "lib/paygen/templates/**/*"   # это .erb-шаблоны, не Ruby-код проекта
-    - "scripts/validate_10.rb"      # файл организаторов, правим только они
+    - "tmp/**/*"
+    - "out/**/*"
+    - "coverage/**/*"
+    - "scripts/validate_10.rb"   # скрипт организаторов — оставляем как есть
+    - "СТАРТ ХАКАТОНА*/**/*"     # исходная выгрузка организаторов рядом с репозиторием
 
-# Стиль
 Style/Documentation:
+  Enabled: false
+# `class X < Data.define(...)` вместо блока: внутри нужны константы и вложенные классы,
+# а лишний анонимный предок в цепочке наследования ничего не стоит.
+Style/DataInheritance:
   Enabled: false
 Style/StringLiterals:
   EnforcedStyle: double_quotes
-  Exclude:
-    # тут в одинарных кавычках лежит СГЕНЕРИРОВАННЫЙ код, кавычки значимы
-    - "spec/paygen/generator_spec.rb"
-    - "spec/paygen/analyzer_spec.rb"
 Style/StringLiteralsInInterpolation:
   EnforcedStyle: double_quotes
-Style/FormatStringToken:
-  EnforcedStyle: unannotated
 
 # Репозиторий держим в LF, даже когда работаем из Windows.
 Layout/EndOfLine:
@@ -28,31 +30,41 @@ Layout/EndOfLine:
 Layout/LineLength:
   Max: 120
 
-# Мэппинг OpenAPI → IR по природе ветвистый: это таблица соответствий,
-# дробить её на методы только ради метрики — хуже читается.
+Style/FormatStringToken:
+  EnforcedStyle: unannotated
+
+# Правила рекомендаций и сериализация собирают длинные сообщения из многих полей:
+# по ABC это «сложно», по факту — линейный список интерполяций.
 Metrics/MethodLength:
-  Max: 30
+  Max: 20
 Metrics/AbcSize:
-  Max: 35
+  Max: 32
 Metrics/CyclomaticComplexity:
-  Max: 12
+  Max: 9
 Metrics/PerceivedComplexity:
-  Max: 12
+  Max: 10
 Metrics/ClassLength:
-  Max: 200
+  Max: 180
+  Exclude:
+    - "lib/payout_router/cli.rb"   # Thor: описания команд и опций — это документация, не логика
 Metrics/BlockLength:
   Exclude:
     - "spec/**/*"
     - "Rakefile"
+Metrics/ParameterLists:
+  CountKeywordArgs: false
 
 Naming/MethodParameterName:
-  AllowedNames: [op, id, f, p, e, to, at]
+  AllowedNames: [op, id, at, to, by, rng]
 
-# В тестах генератора #{} внутри одинарных кавычек — данные, не забытая интерполяция.
-Lint/InterpolationCheck:
-  Exclude:
-    - "spec/**/*"
-
-# RSpec-хелперы вида `def generate(**opts)` читаются лучше именованных.
-Style/ArgumentsForwarding:
+# Часть спеков описывает подсистему (загрузчики, аналитика, интеграция), а не один класс.
+RSpec/DescribeClass:
   Enabled: false
+RSpec/ExampleLength:
+  Max: 15
+RSpec/MultipleExpectations:
+  Max: 5
+RSpec/NestedGroups:
+  Max: 4
+RSpec/MultipleMemoizedHelpers:
+  Max: 8
