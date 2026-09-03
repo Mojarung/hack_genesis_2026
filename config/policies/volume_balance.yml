@@ -1,0 +1,46 @@
+# Балансировка по деньгам и фин. обязательствам: доля оборота и минимальный
+# суточный оборот payflow важнее числа заявок.
+
+name: volume_balance
+description: Целевые доли по объёму и обязательства по обороту; число заявок — второстепенно.
+
+fallback_provider: spacepayments
+
+hard_constraints:
+  - provider_active
+  - traffic_enabled
+  - amount_range
+  - daily_limit
+  - in_progress_count
+  - in_progress_amount
+  - requisites
+  - margin
+  - bank_filter
+  - rate_limit
+  - daily_turnover_max
+
+goals:
+  volume_share: 0.40
+  turnover_min: 0.25
+  load: 0.15
+  traffic_share: 0.10
+  conversion: 0.10
+
+tie_breakers: [priority, name]
+
+providers:
+  vipay:
+    volume_share_pct: 50
+    requests_per_minute_limit: 15
+    daily_turnover_max: 5000000
+  payflow:
+    volume_share_pct: 30
+    requests_per_minute_limit: 7
+    daily_turnover_min: 2000000
+  quickpay:
+    volume_share_pct: 20
+    requests_per_minute_limit: 15
+
+simulation:
+  mode: optimistic
+  seed: 42

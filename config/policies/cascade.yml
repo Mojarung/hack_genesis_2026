@@ -1,0 +1,34 @@
+# Классический каскад «как депозиты в production»: строго по priority,
+# при отказе — следующий. Остальные цели выключены.
+
+name: cascade
+description: Последовательный обход провайдеров по priority; отказ — переход к следующему.
+
+fallback_provider: spacepayments
+
+hard_constraints:
+  - provider_active
+  - traffic_enabled
+  - amount_range
+  - daily_limit
+  - in_progress_count
+  - in_progress_amount
+  - requisites
+  - margin
+  - bank_filter
+  - rate_limit
+  - daily_turnover_max
+
+goals:
+  cascade_priority: 1.0
+
+tie_breakers: [priority, name]
+
+providers:
+  vipay:    { requests_per_minute_limit: 15 }
+  payflow:  { requests_per_minute_limit: 7 }
+  quickpay: { requests_per_minute_limit: 15 }
+
+simulation:
+  mode: conversion
+  seed: 7
