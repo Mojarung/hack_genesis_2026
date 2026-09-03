@@ -1,25 +1,23 @@
+plugins:
+  - rubocop-rspec
+
 AllCops:
-  TargetRubyVersion: 3.4
+  TargetRubyVersion: 4.0
   NewCops: enable
   SuggestExtensions: false
   Exclude:
-    - "out/**/*"
     - "vendor/**/*"
-    - "lib/paygen/templates/**/*"   # это .erb-шаблоны, не Ruby-код проекта
+    - "tmp/**/*"
+    - "out/**/*"
+    - "coverage/**/*"
+    - "scripts/validate_10.rb"   # скрипт организаторов — оставляем как есть
 
-# Стиль
 Style/Documentation:
   Enabled: false
 Style/StringLiterals:
   EnforcedStyle: double_quotes
-  Exclude:
-    # тут в одинарных кавычках лежит СГЕНЕРИРОВАННЫЙ код, кавычки значимы
-    - "spec/paygen/generator_spec.rb"
-    - "spec/paygen/analyzer_spec.rb"
 Style/StringLiteralsInInterpolation:
   EnforcedStyle: double_quotes
-Style/FormatStringToken:
-  EnforcedStyle: unannotated
 
 # Репозиторий держим в LF, даже когда работаем из Windows.
 Layout/EndOfLine:
@@ -27,31 +25,27 @@ Layout/EndOfLine:
 Layout/LineLength:
   Max: 120
 
-# Мэппинг OpenAPI → IR по природе ветвистый: это таблица соответствий,
-# дробить её на методы только ради метрики — хуже читается.
 Metrics/MethodLength:
-  Max: 30
+  Max: 20
 Metrics/AbcSize:
-  Max: 35
-Metrics/CyclomaticComplexity:
-  Max: 12
-Metrics/PerceivedComplexity:
-  Max: 12
+  Max: 25
 Metrics/ClassLength:
-  Max: 200
+  Max: 180
 Metrics/BlockLength:
   Exclude:
     - "spec/**/*"
     - "Rakefile"
+Metrics/ParameterLists:
+  CountKeywordArgs: false
 
 Naming/MethodParameterName:
-  AllowedNames: [op, id, f, p, e, to, at]
+  AllowedNames: [op, id, at, to, by, rng]
 
-# В тестах генератора #{} внутри одинарных кавычек — данные, не забытая интерполяция.
-Lint/InterpolationCheck:
-  Exclude:
-    - "spec/**/*"
-
-# RSpec-хелперы вида `def generate(**opts)` читаются лучше именованных.
-Style/ArgumentsForwarding:
-  Enabled: false
+RSpec/ExampleLength:
+  Max: 15
+RSpec/MultipleExpectations:
+  Max: 5
+RSpec/NestedGroups:
+  Max: 4
+RSpec/MultipleMemoizedHelpers:
+  Max: 8
