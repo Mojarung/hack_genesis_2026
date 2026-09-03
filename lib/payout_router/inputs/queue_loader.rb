@@ -38,7 +38,7 @@ module PayoutRouter
       def build(raw, index, base)
         raise InputError, "#{@source} [#{index}]: ожидается объект" unless raw.is_a?(Hash)
 
-        id = Fields.string!(raw, "operation_id", where: "#{@source} [#{index}]")
+        id = Fields.identifier!(raw, "operation_id", where: "#{@source} [#{index}]")
         where = "#{@source} заявка #{id}"
         Domain::Operation.new(
           operation_id: id,

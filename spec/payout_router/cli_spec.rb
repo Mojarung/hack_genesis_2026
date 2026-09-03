@@ -33,6 +33,30 @@ RSpec.describe PayoutRouter::CLI do
     expect(result.stdout).to include("op_103", "amount_exceeds_limit", "=> quickpay: approved")
   end
 
+  it "путь сдачи (как rake submit): route --suffix _test, затем validate по той же очереди" do
+    test_queue = File.join(out, "operations_queue_test.json")
+    FileUtils.cp(queue, test_queue)
+    routed = run_cli("route", "--queue", test_queue, "--out", out, "--suffix", "_test", "--quiet")
+    expect(routed.status).to eq(0)
+    expect(File).to exist(File.join(out, "routing_decisions_test.json"))
+    expect(File).to exist(File.join(out, "routing_report_test.json"))
+
+    validated = run_cli("validate", File.join(out, "routing_decisions_test.json"), "--queue", test_queue)
+    expect(validated.status).to eq(0)
+    expect(validated.stdout).to include("ошибок 0")
+  end
+
+  it "validate падает с кодом 1, если решение пустое" do
+    run_cli("route", "--out", out, "--quiet")
+    path = File.join(out, "routing_decisions.json")
+    broken = JSON.parse(File.read(path)).map { |d| d.merge("selected_provider" => nil, "attempts" => []) }
+    File.write(path, JSON.generate(broken))
+
+    result = run_cli("validate", path)
+    expect(result.status).to eq(1)
+    expect(result.stdout).to include("selected_provider пуст")
+  end
+
   it "validate проверяет файл решений с эталоном" do
     run_cli("route", "--out", out, "--quiet")
     result = run_cli("validate", File.join(out, "routing_decisions.json"), "--reference",

@@ -14,6 +14,14 @@ module PayoutRouter
         value
       end
 
+      # Идентификатор: непустая строка; целое число тоже принимаем (103 → "103") — так тоже выгружают.
+      def identifier!(hash, key, where:)
+        value = hash[key]
+        return value.to_s if value.is_a?(Integer)
+
+        string!(hash, key, where:)
+      end
+
       def string(hash, key, where:)
         value = hash[key]
         return nil if value.nil?
@@ -76,11 +84,20 @@ module PayoutRouter
         value.map { |item| item.strip.downcase }.reject(&:empty?)
       end
 
+      # Время: ISO 8601; «2026-07-30 09:00:00» без T тоже разбираем, остальное — ошибка с адресом.
       def time(hash, key, where:)
         value = hash[key]
         return nil if value.nil?
 
         Time.iso8601(value.to_s)
+      rescue ArgumentError
+        parse_time_loosely(value, key, where)
+      end
+
+      def parse_time_loosely(value, key, where)
+        raise ArgumentError unless value.is_a?(String) && value.match?(/\A\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/)
+
+        Time.parse(value)
       rescue ArgumentError
         raise InputError, "#{where}: поле #{key} должно быть датой ISO 8601, получено #{value.inspect}"
       end

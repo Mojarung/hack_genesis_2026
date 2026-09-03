@@ -87,6 +87,17 @@ RSpec.describe "загрузчики входных данных" do
         .to raise_error(PayoutRouter::InputError, /должно быть числом/)
     end
 
+    it "терпит числовой operation_id и дату без «T», но не мусор" do
+      raw = [{ "operation_id" => 103, "amount" => 100, "created_at" => "2026-07-30 09:05:00" }]
+      operation = described_class.new(raw).call.first
+      expect(operation.operation_id).to eq("103")
+      expect(operation.created_at).to eq(Time.new(2026, 7, 30, 9, 5, 0))
+      expect { described_class.new([{ "operation_id" => "a", "amount" => 1, "created_at" => "вчера" }]).call }
+        .to raise_error(PayoutRouter::InputError, /ISO 8601/)
+      expect { described_class.new([{ "operation_id" => nil, "amount" => 1 }]).call }
+        .to raise_error(PayoutRouter::InputError, /operation_id обязательно/)
+    end
+
     it "отвергает неположительную сумму и дубликаты operation_id" do
       expect { described_class.new([{ "operation_id" => "a", "amount" => 0 }]).call }
         .to raise_error(PayoutRouter::InputError, /заявка a.*положительной/)

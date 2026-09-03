@@ -33,8 +33,9 @@ module Builders
                    in_progress_amount_limit: nil, fallback: true, conversion_24h: 0.95, avg_latency_sec: 15)
   end
 
-  def build_operation(id: "op_1", amount: 10_000, bank: "sberbank", at: T0)
-    PayoutRouter::Domain::Operation.new(operation_id: id, created_at: at, amount: amount, bank: bank)
+  def build_operation(id: "op_1", amount: 10_000, bank: "sberbank", at: T0, currency: nil)
+    PayoutRouter::Domain::Operation.new(operation_id: id, created_at: at, amount: amount, bank: bank,
+                                        currency: currency)
   end
 
   def build_snapshot(*providers) = PayoutRouter::Domain::Snapshot.new(snapshot_at: T0, providers: providers)

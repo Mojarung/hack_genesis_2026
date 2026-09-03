@@ -2,6 +2,7 @@
 
 RSpec.describe PayoutRouter::Analytics::ApprovalModel do
   # alpha × alfa: 5 наблюдений, 3 одобрено; alpha × vtb: 1 одобрено; beta × alfa: 1 таймаут.
+  # Заявленные конверсии: alpha 0.9, beta 0.7. Ожидания ниже посчитаны вручную, формулы — в комментариях.
   let(:records) do
     rows = [%w[alpha alfa approved], %w[alpha alfa rejected], %w[alpha alfa approved], %w[alpha alfa approved],
             %w[alpha alfa rejected], %w[alpha vtb approved], %w[beta alfa expired]]
@@ -17,21 +18,20 @@ RSpec.describe PayoutRouter::Analytics::ApprovalModel do
   end
   let(:model) { described_class.new(history: history, snapshot: snapshot) }
 
-  it "усаживает историю провайдера к заявленной конверсии: (approved + 10·declared) / (n + 10)" do
+  it "усаживает историю провайдера к заявленной конверсии, заявленная стоит 10 наблюдений" do
     estimate = model.estimate("alpha", "vtb") # по vtb одно наблюдение — меньше порога, берём провайдера
     expect(estimate).to have_attributes(source: "provider_history", samples: 6)
-    expect(estimate.probability).to be_within(0.0001).of((4 + (10 * 0.9)) / 16)
+    expect(estimate.probability).to be_within(0.0001).of(0.8125) # (4 одобрено + 10 × 0.9) / (6 + 10)
   end
 
   it "пару провайдер × банк берёт от 5 наблюдений и усаживает к оценке провайдера" do
-    provider_level = (4 + (10 * 0.9)) / 16
     estimate = model.estimate("alpha", "alfa")
     expect(estimate).to have_attributes(source: "bank_history", samples: 5)
-    expect(estimate.probability).to be_within(0.0001).of((3 + (5 * provider_level)) / 10)
+    expect(estimate.probability).to be_within(0.0001).of(0.70625) # (3 + 5 × 0.8125) / (5 + 5)
   end
 
-  it "два наблюдения не дают провайдеру оценку 0.25: приор держит" do
-    expect(model.estimate("beta", "alfa").probability).to be_within(0.0001).of((0 + (10 * 0.7)) / 11)
+  it "одно-два наблюдения почти не двигают оценку от заявленной" do
+    expect(model.estimate("beta", "alfa").probability).to be_within(0.0001).of(0.6364) # (0 + 10 × 0.7) / 11
     expect(model.estimate("gamma", "alfa")).to have_attributes(source: "conversion_24h", probability: 0.0)
   end
 
@@ -40,7 +40,7 @@ RSpec.describe PayoutRouter::Analytics::ApprovalModel do
     estimate = model.estimate("alpha", "alfa", exclude: excluded)
     # по паре остаётся 4 наблюдения — меньше порога; провайдер: 5 наблюдений, 3 одобрено
     expect(estimate.source).to eq("provider_history")
-    expect(estimate.probability).to be_within(0.0001).of((3 + (10 * 0.9)) / 15)
+    expect(estimate.probability).to be_within(0.0001).of(0.8) # (3 + 9) / 15
     expect(history.bank_counts("alpha", "alfa", exclude: excluded)).to eq([4, 2])
   end
 

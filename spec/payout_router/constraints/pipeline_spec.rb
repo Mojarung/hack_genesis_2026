@@ -16,6 +16,7 @@ RSpec.describe PayoutRouter::Constraints::Pipeline do
   {
     "provider_inactive" => [{ status: "paused" }, {}, "status=paused"],
     "traffic_disabled" => [{ traffic_percentage: 0 }, {}, "traffic_percentage=0"],
+    "currency_mismatch" => [{ currency: "RUB" }, { currency: "USD" }, "USD != provider currency RUB"],
     "amount_below_minimum" => [{ limit_amount_min: 1_000 }, { amount: 800 }, "800 < limit_amount_min 1000"],
     "amount_exceeds_limit" => [{ limit_amount_max: 50_000 }, { amount: 150_000 }, "150000 > limit_amount_max 50000"],
     "daily_limit_exceeded" => [{ daily_amount_limit: 100_000, daily_approved_amount: 95_000 }, {},
