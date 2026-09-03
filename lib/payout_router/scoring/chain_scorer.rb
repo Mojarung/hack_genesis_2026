@@ -17,8 +17,10 @@ module PayoutRouter
                 "в политике #{policy.name} режим chain, но цепочка стратегий пуста"
         end
 
+        # Шаги цепочки сравнивают оценки стратегий как есть: tolerance задан в их единицах.
         @steps = policy.selection.chain.each_with_index.map do |step, index|
-          scorer = CompositeScorer.new(policy: policy.with(goals: step.goals), snapshot: snapshot, history: history)
+          scorer = CompositeScorer.new(policy: policy.with(goals: step.goals), snapshot: snapshot, history: history,
+                                       normalization: "absolute")
           Step.new(label: "#{index + 1}·#{step.label}", scorer: scorer, tolerance: step.tolerance.to_f)
         end
         @tie_breaker = TieBreaker.new(policy.tie_breakers)

@@ -61,7 +61,8 @@ module PayoutRouter
           "skip_reasons_by_provider" => @stats.skip_reasons_by_provider,
           "projected_daily_utilization" => @stats.utilization,
           "attempts" => @stats.attempts_stats,
-          "target_attainability" => @stats.attainability
+          "target_attainability" => @stats.attainability,
+          "goal_activity" => @stats.goal_activity
         }
       end
 

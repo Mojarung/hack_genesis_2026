@@ -8,7 +8,7 @@ module PayoutRouter
         RULES = [
           DailyLimitPressure, ShareShortfall, ShareOverflow, FallbackUsage, AmountCoverageGap,
           LowConversionOverload, ConversionDrift, TurnoverMinUnmet, RateLimitHits,
-          InProgressPressure, ExpiredHeavy, CircuitTrips
+          InProgressPressure, ExpiredHeavy, CircuitTrips, DeadGoal
         ].freeze
 
         def initialize(rules = RULES.map(&:new))

@@ -17,11 +17,12 @@
       "turnover_min": 0.05,
       "rate_headroom": 0.05
     },
-    "selection": "weighted: traffic_share 0.3, volume_share 0.1, cascade_priority 0.1, amount_band 0.1, conversion 0.1, bank_affinity 0.05, load 0.15, turnover_min 0.05, rate_headroom 0.05",
+    "selection": "weighted (pool): traffic_share 0.3, volume_share 0.1, cascade_priority 0.1, amount_band 0.1, conversion 0.1, bank_affinity 0.05, load 0.15, turnover_min 0.05, rate_headroom 0.05",
     "plugins": [],
     "custom_goals": [],
     "hard_constraints": [
       "provider_active",
+      "currency",
       "traffic_enabled",
       "amount_range",
       "daily_limit",
@@ -246,6 +247,56 @@
       }
     }
   },
+  "goal_activity": {
+    "contested_operations": 6,
+    "goals": {
+      "traffic_share": {
+        "weight": 0.3,
+        "discriminating_operations": 6,
+        "share_pct": 100.0
+      },
+      "volume_share": {
+        "weight": 0.1,
+        "discriminating_operations": 6,
+        "share_pct": 100.0
+      },
+      "cascade_priority": {
+        "weight": 0.1,
+        "discriminating_operations": 6,
+        "share_pct": 100.0
+      },
+      "amount_band": {
+        "weight": 0.1,
+        "discriminating_operations": 4,
+        "share_pct": 66.7
+      },
+      "conversion": {
+        "weight": 0.1,
+        "discriminating_operations": 6,
+        "share_pct": 100.0
+      },
+      "bank_affinity": {
+        "weight": 0.05,
+        "discriminating_operations": 6,
+        "share_pct": 100.0
+      },
+      "load": {
+        "weight": 0.15,
+        "discriminating_operations": 6,
+        "share_pct": 100.0
+      },
+      "turnover_min": {
+        "weight": 0.05,
+        "discriminating_operations": 0,
+        "share_pct": 0.0
+      },
+      "rate_headroom": {
+        "weight": 0.05,
+        "discriminating_operations": 3,
+        "share_pct": 50.0
+      }
+    }
+  },
   "history_analysis": {
     "operations": 100,
     "volume": 3391500,
@@ -275,27 +326,27 @@
           "alfa": {
             "operations": 7,
             "approved": 2,
-            "smoothed_conversion": 0.333
+            "conversion": 0.286
           },
           "raiffeisen": {
             "operations": 4,
             "approved": 2,
-            "smoothed_conversion": 0.5
+            "conversion": 0.5
           },
           "vtb": {
             "operations": 3,
             "approved": 2,
-            "smoothed_conversion": 0.6
+            "conversion": 0.667
           },
           "sberbank": {
             "operations": 3,
             "approved": 3,
-            "smoothed_conversion": 0.8
+            "conversion": 1.0
           },
           "tinkoff": {
             "operations": 2,
             "approved": 0,
-            "smoothed_conversion": 0.25
+            "conversion": 0.0
           }
         }
       },
@@ -325,32 +376,32 @@
           "vtb": {
             "operations": 10,
             "approved": 9,
-            "smoothed_conversion": 0.833
+            "conversion": 0.9
           },
           "raiffeisen": {
             "operations": 7,
             "approved": 5,
-            "smoothed_conversion": 0.667
+            "conversion": 0.714
           },
           "alfa": {
             "operations": 7,
             "approved": 5,
-            "smoothed_conversion": 0.667
+            "conversion": 0.714
           },
           "tinkoff": {
             "operations": 6,
             "approved": 4,
-            "smoothed_conversion": 0.625
+            "conversion": 0.667
           },
           "gazprombank": {
             "operations": 5,
             "approved": 3,
-            "smoothed_conversion": 0.571
+            "conversion": 0.6
           },
           "sberbank": {
             "operations": 5,
             "approved": 1,
-            "smoothed_conversion": 0.286
+            "conversion": 0.2
           }
         }
       },
@@ -380,32 +431,32 @@
           "alfa": {
             "operations": 8,
             "approved": 5,
-            "smoothed_conversion": 0.6
+            "conversion": 0.625
           },
           "sberbank": {
             "operations": 8,
             "approved": 7,
-            "smoothed_conversion": 0.8
+            "conversion": 0.875
           },
           "vtb": {
             "operations": 7,
             "approved": 5,
-            "smoothed_conversion": 0.667
+            "conversion": 0.714
           },
           "raiffeisen": {
             "operations": 7,
             "approved": 6,
-            "smoothed_conversion": 0.778
+            "conversion": 0.857
           },
           "tinkoff": {
             "operations": 6,
             "approved": 5,
-            "smoothed_conversion": 0.75
+            "conversion": 0.833
           },
           "gazprombank": {
             "operations": 5,
             "approved": 4,
-            "smoothed_conversion": 0.714
+            "conversion": 0.8
           }
         }
       }
@@ -496,7 +547,8 @@
     "payflow: заявленная conversion_24h 0.91 лежит вне 95% интервала по истории [0.273, 0.683] (19 операций, факт 0.47) — метрика завышена, скоринг по конверсии переоценивает провайдера. Проверить источник conversion_24h или использовать наблюдаемое значение 0.47",
     "quickpay: самая низкая конверсия в пуле (0.79) при доле 30.0% (цель 25%) — примерно 0.1 лишних отказов на 10 заявок. Поднять вес conversion с 0.1 до 0.2 или расширить лимиты провайдеров с конверсией 0.91",
     "payflow: в истории 36.8% заявок истекли по таймауту (средняя задержка 631 с) — включить latency в скоринг (вес 0.1) или снизить traffic_percentage с 35 до 25",
-    "quickpay: в истории 15.0% заявок истекли по таймауту (средняя задержка 539 с) — включить latency в скоринг (вес 0.1) или снизить traffic_percentage с 25 до 15"
+    "quickpay: в истории 15.0% заявок истекли по таймауту (средняя задержка 539 с) — включить latency в скоринг (вес 0.1) или снизить traffic_percentage с 25 до 15",
+    "цель turnover_min (вес 0.05) не различила кандидатов ни в одной из 6 конкурентных заявок — на этой очереди не работает и лишь размывает остальные веса. Снять вес (goals.turnover_min: 0) или изменить её параметры"
   ],
   "recommendation_details": [
     {
@@ -543,6 +595,15 @@
       "current": 0.0,
       "suggested": 0.1,
       "message": "quickpay: в истории 15.0% заявок истекли по таймауту (средняя задержка 539 с) — включить latency в скоринг (вес 0.1) или снизить traffic_percentage с 25 до 15"
+    },
+    {
+      "severity": "info",
+      "rule": "dead_goal",
+      "provider": null,
+      "parameter": "goals.turnover_min",
+      "current": 0.05,
+      "suggested": 0,
+      "message": "цель turnover_min (вес 0.05) не различила кандидатов ни в одной из 6 конкурентных заявок — на этой очереди не работает и лишь размывает остальные веса. Снять вес (goals.turnover_min: 0) или изменить её параметры"
     }
   ]
 }

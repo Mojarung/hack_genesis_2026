@@ -9,8 +9,13 @@ description: >
 fallback_provider: spacepayments
 
 # Hard-constraints — условия допуска. Проверяются в этом порядке; любое нарушение исключает провайдера.
+# К fallback-провайдеру применяются только статические правила из этого списка (provider_active, currency,
+# amount_range, margin, bank_filter): реквизиты, in-progress, интенсивность и предохранитель self-provider
+# не ограничивают — иначе при плотной очереди заявка останется вообще без маршрута.
+# Явный список — fallback_constraints: [...]; пустой список — fallback безусловный.
 hard_constraints:
   - provider_active        # status == active
+  - currency             # валюта заявки совпадает с валютой провайдера/шлюза (RUB_SBP_WITHDRAW → RUB)
   - traffic_enabled        # traffic_percentage > 0 (0 = выведен из ротации)
   - amount_range           # limit_amount_min <= amount <= limit_amount_max
   - daily_limit            # daily_approved_amount + amount <= daily_amount_limit
@@ -23,7 +28,14 @@ hard_constraints:
   - daily_turnover_max     # фин. обязательство «не более X ₽/сутки»
   - circuit_breaker        # провайдер в карантине после серии отказов (см. circuit_breaker ниже)
 
-# Soft-goals и их веса. Скор кандидата = Σ(вес × оценка 0..1) / Σ весов. Вес 0 — цель выключена.
+# Способ выбора среди допустимых: weighted — все цели сразу с весами (chain — цепочка, см. policies/strategy_chain.yml).
+# normalization: pool — оценка каждой цели приводится к разбросу среди кандидатов заявки (лучший 1, худший 0,
+# все равны — 0.5), и вес означает важность цели; absolute — оценки стратегий как есть (0..1).
+selection:
+  mode: weighted
+  normalization: pool
+
+# Soft-goals и их веса. Скор кандидата = Σ(вес × оценка по пулу) / Σ весов. Вес 0 — цель выключена.
 goals:
   traffic_share: 0.30      # стратегия 1: доля по числу заявок (traffic_percentage)
   volume_share: 0.10       # стратегия 2: доля по объёму (volume_share_pct)

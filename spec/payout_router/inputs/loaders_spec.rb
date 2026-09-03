@@ -11,6 +11,18 @@ RSpec.describe "загрузчики входных данных" do
       expect(snapshot.provider("spacepayments").limit_amount_max).to be_nil
     end
 
+    it "валюту провайдера берёт из поля currency, иначе из имени шлюза" do
+      expect(described_class.load(data_path("providers.json")).provider("vipay").currency).to eq("RUB")
+
+      raw = { "gateway" => "USD_CARD", "providers" => [{ "payment_system" => "x", "status" => "active" },
+                                                       { "payment_system" => "y", "status" => "active",
+                                                         "currency" => "eur" }] }
+      snapshot = described_class.new(raw).call
+      expect(snapshot.provider("x").currency).to eq("USD")
+      expect(snapshot.provider("y").currency).to eq("EUR")
+      expect(described_class.new({ "providers" => [] }).call.providers).to be_empty
+    end
+
     it "требует массив providers" do
       expect { described_class.new({ "providers" => "x" }).call }
         .to raise_error(PayoutRouter::InputError, /массивом providers/)
@@ -55,6 +67,24 @@ RSpec.describe "загрузчики входных данных" do
       raw = [{ "operation_id" => "a", "amount" => 100 }, { "operation_id" => "b", "amount" => 100 }]
       operations = described_class.new(raw, default_time: Builders::T0).call
       expect(operations.map(&:created_at)).to eq([Builders::T0, Builders::T0 + 1])
+    end
+
+    it "без базового времени опирается на самое раннее created_at, иначе на фиксированную эпоху — не на часы" do
+      mixed = [{ "operation_id" => "a", "amount" => 100 },
+               { "operation_id" => "b", "amount" => 100, "created_at" => "2026-07-30T09:05:00Z" }]
+      expect(described_class.new(mixed).call.first.created_at).to eq(Time.iso8601("2026-07-30T09:05:00Z"))
+
+      bare = [{ "operation_id" => "a", "amount" => 100 }]
+      expect(described_class.new(bare).call.first.created_at).to eq(described_class::EPOCH)
+    end
+
+    it "читает валюту (в верхнем регистре) и сумму, записанную строкой" do
+      raw = [{ "operation_id" => "a", "amount" => "15000", "currency" => "usd" }]
+      operation = described_class.new(raw, default_time: Builders::T0).call.first
+      expect(operation.amount).to eq(15_000)
+      expect(operation.currency).to eq("USD")
+      expect { described_class.new([{ "operation_id" => "a", "amount" => "many" }]).call }
+        .to raise_error(PayoutRouter::InputError, /должно быть числом/)
     end
 
     it "отвергает неположительную сумму и дубликаты operation_id" do

@@ -27,6 +27,16 @@ module PayoutRouter
 
       def signal(score, note) = Signal.new(score: score.to_f.clamp(0.0, 1.0), note: note)
 
+      # Модель одобрения по истории (nil без истории) — общая для целей на конверсии.
+      def approval_model
+        return @approval_model if defined?(@approval_model)
+
+        @approval_model = if @history && !@history.empty?
+                            Analytics::ApprovalModel.new(history: @history,
+                                                         snapshot: @snapshot)
+                          end
+      end
+
       def pct(value) = format("%.1f%%", value)
 
       def signed(value) = format("%+.1f", value)

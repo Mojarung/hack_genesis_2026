@@ -12,6 +12,7 @@ fallback_provider: spacepayments
 
 hard_constraints:
   - provider_active
+  - currency             # валюта заявки совпадает с валютой провайдера/шлюза (RUB_SBP_WITHDRAW → RUB)
   - traffic_enabled
   - amount_range
   - daily_limit

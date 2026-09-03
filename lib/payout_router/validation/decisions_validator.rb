@@ -108,9 +108,12 @@ module PayoutRouter
         end
       end
 
+      # selected_provider: null валидатор организаторов считает ошибкой (nil не входит в список допустимых) — мы тоже.
       def eligibility_check(operation, selected, eligible)
         id = operation.operation_id
-        return warn("#{id}: заявка не маршрутизирована (допустимые: #{eligible.join(", ")})") if selected.nil?
+        if selected.nil?
+          return fail!("#{id}: заявка не маршрутизирована, selected_provider пуст (допустимые: #{eligible.join(", ")})")
+        end
         return pass("#{id}: #{selected} допустим [#{eligible.join(", ")}]") if eligible.include?(selected)
 
         fail!("#{id}: #{selected} НЕ допустим, допустимые: [#{eligible.join(", ")}]")

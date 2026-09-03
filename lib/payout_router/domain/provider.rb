@@ -4,11 +4,12 @@ module PayoutRouter
   module Domain
     # Провайдер выплат: снимок из providers.json плюс параметры, которых в снимке нет —
     # их задаёт политика (volume_share_pct, requests_per_minute_limit, daily_turnover_min/max, fallback).
+    # currency — валюта провайдера (из providers.json или из имени шлюза, RUB_SBP_WITHDRAW → RUB).
     #
     # Объект неизменяемый — это конфигурация. Текущие счётчики (оборот, in-progress,
     # свободные реквизиты) живут в State::ProviderState и меняются по ходу роутинга.
     class Provider < Data.define(
-      :name, :status, :traffic_percentage, :priority,
+      :name, :status, :traffic_percentage, :priority, :currency,
       :limit_amount_min, :limit_amount_max,
       :daily_amount_limit, :daily_approved_amount,
       :in_progress_count_limit, :in_progress_count,
@@ -23,7 +24,7 @@ module PayoutRouter
 
       def initialize(volume_share_pct: nil, requests_per_minute_limit: nil, daily_turnover_min: nil,
                      daily_turnover_max: nil, fallback: false, banks: [], exclude_banks: false,
-                     allow_negative_agreement: false, priority: DEFAULT_PRIORITY, **rest)
+                     allow_negative_agreement: false, priority: DEFAULT_PRIORITY, currency: nil, **rest)
         super
       end
 

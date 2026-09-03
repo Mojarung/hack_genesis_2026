@@ -72,11 +72,52 @@ RSpec.describe PayoutRouter::Routing::Router do
     expect(decision.serialize).to include("selected_provider" => nil, "operation_id" => "op_1")
   end
 
-  it "проверяет hard-правила и у fallback-провайдера" do
+  it "проверяет статические правила допуска и у fallback-провайдера" do
     paused = build_fallback.with(status: "paused")
     decision = decide(build_operation(amount: 80_000, bank: "alfa"), providers: [alpha, beta, paused])
     expect(decision.attempts.last).to have_attributes(provider: "self", reason: reasons::PROVIDER_INACTIVE)
     expect(decision).not_to be_routed
+  end
+
+  it "валюта заявки — hard-правило для всех, включая fallback" do
+    rub = [alpha, beta, fallback].map { |provider| provider.with(currency: "RUB") }
+    usd = PayoutRouter::Domain::Operation.new(operation_id: "usd", created_at: Builders::T0, amount: 10_000,
+                                              bank: "sberbank", currency: "USD")
+    decision = decide(usd, providers: rub)
+
+    expect(decision.attempts.map(&:reason)).to all(eq(reasons::CURRENCY_MISMATCH))
+    expect(decision.attempts.first.details).to eq("USD != provider currency RUB")
+    expect(decision).not_to be_routed
+    expect(decide(usd.with(currency: nil), providers: rub)).to be_routed
+  end
+
+  it "плотная очередь: ёмкость fallback не ограничивает, ни одна заявка не остаётся без маршрута" do
+    narrow = build_provider(name: "alpha", in_progress_count_limit: 2, available_requisites: 5, avg_latency_sec: 60)
+    scarce = build_fallback.with(available_requisites: 1)
+    operations = (1..8).map { |i| build_operation(id: "op_#{i}", at: Builders::T0) } # одно время — ничего не сеттлится
+    decisions = route_all(providers: [narrow, scarce], operations: operations).decisions
+
+    expect(decisions.map(&:selected_provider)).to eq(%w[alpha alpha] + (["self"] * 6))
+    expect(decisions.count(&:routed?)).to eq(8)
+    fallback_attempts = decisions.last.attempts.select { |attempt| attempt.provider == "self" }
+    expect(fallback_attempts.map(&:reason)).to eq([reasons::FALLBACK_SELF_PROVIDER])
+  end
+
+  it "fallback_constraints задаёт правила для fallback явно; пустой список — fallback безусловный" do
+    policy = build_policy("fallback_constraints" => [])
+    paused = build_fallback.with(status: "paused")
+    decision = decide(build_operation(amount: 80_000, bank: "alfa"), providers: [alpha, beta, paused], policy: policy)
+    expect(decision.selected_provider).to eq("self")
+
+    strict = build_policy("fallback_constraints" => ["requisites"])
+    empty = build_fallback.with(available_requisites: 0)
+    decision = decide(build_operation(amount: 80_000, bank: "alfa"), providers: [alpha, beta, empty], policy: strict)
+    expect(decision.attempts.last).to have_attributes(provider: "self", reason: reasons::NO_AVAILABLE_REQUISITES)
+  end
+
+  it "объясняет выбор перевесом над ближайшим соперником" do
+    decision = decide(build_operation(amount: 10_000, bank: "sberbank"))
+    expect(decision.selected_attempt.details).to match(/decisive vs beta: traffic_share \(\+[\d.]+\)/)
   end
 
   it "обновляет состояние: одобренный оборот закрывает дневной лимит следующим заявкам" do

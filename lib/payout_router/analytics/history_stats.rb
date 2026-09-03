@@ -65,27 +65,21 @@ module PayoutRouter
       def avg_expired_latency(name) = self.for(name)&.avg_expired_latency
       def bank_share_pct(bank) = empty? ? 0.0 : @banks.fetch(bank, 0) * 100.0 / @total_operations
 
-      # Сколько раз провайдер обрабатывал заявки этого банка.
-      def bank_samples(provider, bank) = bank_outcome(provider, bank)&.operations || 0
+      # Наблюдения провайдера: [заявок, одобрено]. exclude — запись, которую не учитываем
+      # (leave-one-out для честного бэктеста). Без истории — [0, 0]. Сглаживание — в ApprovalModel.
+      def provider_counts(provider, exclude: nil)
+        stats = self.for(provider)
+        return [0, 0] if stats.nil?
 
-      # Сглаженная по Лапласу конверсия пары провайдер × банк: (approved + 1) / (operations + 2).
-      # Не даёт крайних 0 и 1 на одном-двух наблюдениях. exclude — запись, которую не учитываем
-      # (leave-one-out для честного бэктеста).
-      def bank_conversion(provider, bank, exclude: nil)
-        outcome = bank_outcome(provider, bank)
-        return nil if outcome.nil? || outcome.operations.zero?
-
-        operations, approved = counts_without(outcome.operations, outcome.approved, exclude, provider, bank)
-        smoothed(operations, approved)
+        counts_without(stats.operations, stats.approved, exclude, provider, nil)
       end
 
-      # Сглаженная конверсия провайдера в целом (с тем же leave-one-out).
-      def smoothed_conversion(provider, exclude: nil)
-        stats = self.for(provider)
-        return nil if stats.nil? || stats.operations.zero?
+      # Наблюдения пары провайдер × банк: [заявок, одобрено].
+      def bank_counts(provider, bank, exclude: nil)
+        outcome = bank_outcome(provider, bank)
+        return [0, 0] if outcome.nil?
 
-        operations, approved = counts_without(stats.operations, stats.approved, exclude, provider, nil)
-        smoothed(operations, approved)
+        counts_without(outcome.operations, outcome.approved, exclude, provider, bank)
       end
 
       # 95% доверительный интервал Уилсона для конверсии провайдера: на 20–40 наблюдениях
@@ -130,12 +124,6 @@ module PayoutRouter
         return nil if bank.nil?
 
         self.for(provider)&.bank_outcomes&.fetch(bank, nil)
-      end
-
-      def smoothed(operations, approved)
-        return nil if operations.zero?
-
-        (approved + 1.0) / (operations + 2.0)
       end
 
       # Вычесть саму запись, если она относится к этой паре провайдер × банк.
@@ -214,7 +202,7 @@ module PayoutRouter
       def bank_conversions(stats)
         stats.bank_outcomes.sort_by { |_bank, outcome| -outcome.operations }.to_h do |bank, outcome|
           [bank, { "operations" => outcome.operations, "approved" => outcome.approved,
-                   "smoothed_conversion" => smoothed(outcome.operations, outcome.approved).round(3) }]
+                   "conversion" => (outcome.approved.to_f / outcome.operations).round(3) }]
         end
       end
     end

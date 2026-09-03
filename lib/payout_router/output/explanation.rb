@@ -37,9 +37,11 @@ module PayoutRouter
         lines
       end
 
+      # «0.650 → 1.000 × 0.30» — оценка стратегии, после нормировки по пулу, вес; без нормировки стрелки нет.
       def breakdown_lines(breakdown)
         breakdown.map do |goal, component|
-          format("      %-18s %.3f × %.2f = %.4f   %s", goal, component["score"], component["weight"],
+          scaled = component["normalized"] ? format(" → %.3f", component["normalized"]) : ""
+          format("      %-18s %.3f%s × %.2f = %.4f   %s", goal, component["score"], scaled, component["weight"],
                  component["weighted"], component["note"])
         end
       end

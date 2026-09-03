@@ -34,6 +34,7 @@ module PayoutRouter
           description: @doc["description"]&.to_s&.strip,
           fallback_provider: @doc["fallback_provider"]&.to_s,
           hard_constraints: hard_constraints,
+          fallback_constraints: fallback_constraints,
           goals: goals,
           selection: selection,
           custom_goals: @custom_goals,
@@ -88,6 +89,15 @@ module PayoutRouter
         keys
       end
 
+      # Не задано — политика сама берёт статические правила из hard_constraints; пустой список — fallback безусловный.
+      def fallback_constraints
+        return nil unless @doc.key?("fallback_constraints")
+
+        keys = list("fallback_constraints").map(&:to_s)
+        keys.each { |key| Constraints::Registry.fetch(key) }
+        keys
+      end
+
       def goals
         raw = @doc.fetch("goals", {})
         raise PolicyError, "#{@source}: goals должен быть объектом «цель: вес»" unless raw.is_a?(Hash)
@@ -135,7 +145,15 @@ module PayoutRouter
                 "#{@source}: selection.mode: chain требует непустой selection.chain"
         end
 
-        Domain::Policy::Selection.new(mode: mode, chain: chain)
+        Domain::Policy::Selection.new(mode: mode, chain: chain, normalization: normalization(raw))
+      end
+
+      def normalization(raw)
+        value = raw.fetch("normalization", "pool").to_s
+        return value if Domain::Policy::Selection::NORMALIZATIONS.include?(value)
+
+        raise PolicyError, "#{@source}: selection.normalization должен быть одним из " \
+                           "#{Domain::Policy::Selection::NORMALIZATIONS.join("/")}"
       end
 
       def chain_step(raw, index)

@@ -51,6 +51,19 @@ RSpec.describe "аналитика" do
       expect(vipay["blocked_banks"]).to include("alfa")
     end
 
+    it "диагностирует, какие цели различали кандидатов, и предлагает снять мёртвый вес" do
+      activity = report["goal_activity"]
+      expect(activity["contested_operations"]).to be_between(1, 10)
+      expect(activity["goals"].keys).to include("traffic_share", "turnover_min")
+      expect(activity["goals"]["turnover_min"]).to include("weight" => 0.05, "discriminating_operations" => 0)
+      expect(activity["goals"]["load"]["discriminating_operations"]).to be_positive
+
+      dead = report["recommendation_details"].find do |d|
+        d["rule"] == "dead_goal" && d["parameter"] == "goals.turnover_min"
+      end
+      expect(dead).to include("current" => 0.05, "suggested" => 0)
+    end
+
     it "даёт рекомендации с конкретным параметром" do
       details = report["recommendation_details"]
       expect(details).not_to be_empty

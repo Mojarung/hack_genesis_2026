@@ -4,15 +4,17 @@ module PayoutRouter
   module Routing
     # Роутинг одной заявки:
     #   1. hard-constraints отсеивают недопустимых (каждому — причина в attempts);
-    #   2. допустимые ранжируются взвешенным скорингом по soft-goals;
+    #   2. допустимые ранжируются скорингом по soft-goals;
     #   3. отправляем лучшему; отказ/таймаут → следующий по рангу;
-    #   4. внешних не осталось → fallback на self-provider; нет и его → заявка не маршрутизирована.
+    #   4. внешних не осталось → fallback на self-provider (к нему применяются только правила допуска
+    #      из policy.fallback_rules — ёмкость его не ограничивает); нет и его → заявка не маршрутизирована.
     # После каждой отправки леджер обновляет загрузку, оборот и счётчики интенсивности.
     class Router
       def initialize(snapshot:, policy:, ledger:, simulator:, history: nil)
         @ledger = ledger
         @simulator = simulator
         @constraints = Constraints::Pipeline.new(policy.hard_constraints)
+        @fallback_constraints = Constraints::Pipeline.new(policy.fallback_rules)
         @scorer = Scoring.build(policy: policy, snapshot: snapshot, history: history)
         @external = ledger.external_states
                           .sort_by { |state| [state.provider.priority, state.name] }
@@ -59,7 +61,7 @@ module PayoutRouter
             next
           end
 
-          selected = selected_attempt(score, outcome, index, ranked.size)
+          selected = selected_attempt(score, outcome, index, ranked)
           attempts << selected
           ranked.drop(index + 1).each { |loser| attempts << outscored_attempt(loser, score) }
           return decide(operation, score.candidate, attempts, selected, retries: index, fallback_used: false)
@@ -75,7 +77,7 @@ module PayoutRouter
 
       def fallback(operation, attempts, now, cause:)
         if @fallback
-          evaluation = @constraints.evaluate(@fallback, operation, now)
+          evaluation = @fallback_constraints.evaluate(@fallback, operation, now)
           return dispatch_fallback(operation, attempts, now, cause) if evaluation.eligible?
 
           attempts << Attempt.skipped(@fallback.name, evaluation.reason, evaluation.details,
@@ -93,12 +95,14 @@ module PayoutRouter
         decide(operation, @fallback, attempts, selected, retries: retries, fallback_used: true)
       end
 
-      def selected_attempt(score, outcome, index, pool_size)
+      # Решающие цели считаем относительно ближайшего соперника: что именно дало перевес.
+      def selected_attempt(score, outcome, index, ranked)
         reason = if index.positive? then Reasons::FALLBACK_AFTER_FAILURE
-                 elsif pool_size == 1 then Reasons::ONLY_ELIGIBLE
+                 elsif ranked.size == 1 then Reasons::ONLY_ELIGIBLE
                  else Reasons::BEST_SCORE
                  end
-        details = index.positive? ? "retry ##{index} after failure; #{score.summary}" : score.summary
+        summary = score.summary(versus: ranked[index + 1])
+        details = index.positive? ? "retry ##{index} after failure; #{summary}" : summary
         Attempt.selected(score.name, reason, details,
                          score: score.total, breakdown: score.breakdown,
                          simulated_result: outcome.result, latency_sec: outcome.latency_sec)

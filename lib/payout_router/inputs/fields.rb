@@ -41,12 +41,20 @@ module PayoutRouter
       end
 
       # Сумма заявки: обязательна, положительна; целые значения приводим к Integer.
+      # Число в строке ("15000") принимаем — так иногда выгружают из биллинга.
       def amount!(hash, key, where:)
-        value = number(hash, key, where:)
+        value = number(numeric_string_coerced(hash, key), key, where:)
         raise InputError, "#{where}: поле #{key} обязательно" if value.nil?
         raise InputError, "#{where}: сумма должна быть положительной, получено #{value}" unless value.positive?
 
         value == value.floor ? value.to_i : value
+      end
+
+      def numeric_string_coerced(hash, key)
+        value = hash[key]
+        return hash unless value.is_a?(String) && value.strip.match?(/\A-?\d+(\.\d+)?\z/)
+
+        hash.merge(key => Float(value.strip))
       end
 
       def boolean(hash, key, where:, default: false)

@@ -4,14 +4,20 @@ module PayoutRouter
   module Constraints
     module Registry
       ALL = [
-        ProviderActive, TrafficEnabled, AmountRange, DailyLimit, InProgressCount, InProgressAmount,
+        ProviderActive, TrafficEnabled, Currency, AmountRange, DailyLimit, InProgressCount, InProgressAmount,
         Requisites, Margin, BankFilter, RateLimit, DailyTurnoverMax, CircuitBreaker
       ].freeze
       BY_KEY = ALL.to_h { |klass| [klass.key, klass] }.freeze
 
+      # Правила допуска, не зависящие от текущей загрузки. Только их по умолчанию применяем
+      # к fallback-провайдеру: реквизиты, in-progress, интенсивность и предохранитель self-provider
+      # не ограничивают — он последняя линия, иначе заявка остаётся вообще без маршрута.
+      STATIC = %w[provider_active currency amount_range margin bank_filter].freeze
+
       DESCRIPTIONS = {
         "provider_active" => "status == active",
         "traffic_enabled" => "traffic_percentage > 0 (0 — провайдер выведен из ротации)",
+        "currency" => "валюта заявки совпадает с валютой провайдера/шлюза (если обе заданы)",
         "amount_range" => "limit_amount_min <= amount <= limit_amount_max",
         "daily_limit" => "daily_approved_amount + amount <= daily_amount_limit",
         "in_progress_count" => "in_progress_count + 1 <= in_progress_count_limit",

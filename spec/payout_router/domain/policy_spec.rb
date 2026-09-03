@@ -26,8 +26,16 @@ RSpec.describe PayoutRouter::Domain::Policy do
     expect(policy.band_for(100)).to be_nil
   end
 
-  it "сообщает о провайдерах из политики, которых нет в снимке" do
+  it "сообщает о провайдерах из политики (параметры и amount_bands), которых нет в снимке" do
     expect(policy.unknown_providers(build_snapshot(build_provider(name: "beta")))).to eq(["alpha"])
+    expect(policy.unknown_providers(build_snapshot(build_provider(name: "alpha")))).to eq(["beta"])
+  end
+
+  it "для fallback по умолчанию берёт статические правила из hard_constraints" do
+    expect(policy.fallback_rules).to eq(%w[provider_active currency amount_range margin bank_filter])
+    expect(build_policy("hard_constraints" => %w[requisites amount_range]).fallback_rules).to eq(["amount_range"])
+    expect(build_policy("fallback_constraints" => []).fallback_rules).to eq([])
+    expect(build_policy.to_h_document["fallback_constraints"]).to eq(policy.fallback_rules)
   end
 
   it "исключает цели с нулевым весом" do

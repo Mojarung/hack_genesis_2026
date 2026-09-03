@@ -9,13 +9,22 @@ module PayoutRouter
 
       def breakdown = components.to_h { |component| [component.goal, component.serialize] }
 
-      # Цели с наибольшим вкладом — их называем решающими в details.
-      def summary
-        top = components.select { |component| component.weighted.positive? }
-                        .sort_by { |component| -component.weighted }.first(2)
+      # Решающие цели. С соперником (versus) — те, что дали наибольший перевес над ним:
+      # цель с большим вкладом, но одинаковым у обоих, ничего не решала. Без соперника — наибольшие вклады.
+      def summary(versus: nil)
+        edges = versus ? edges_over(versus) : components.map { |component| [component.goal, component.weighted] }
+        top = edges.select { |_goal, edge| edge.positive? }.sort_by { |_goal, edge| -edge }.first(2)
         return "score #{total.round(4)}" if top.empty?
 
-        "score #{total.round(4)}; decisive: #{top.map { |c| "#{c.goal} (+#{c.weighted.round(3)})" }.join(", ")}"
+        label = versus ? "decisive vs #{versus.name}" : "decisive"
+        "score #{total.round(4)}; #{label}: #{top.map { |goal, edge| "#{goal} (+#{edge.round(3)})" }.join(", ")}"
+      end
+
+      private
+
+      def edges_over(other)
+        theirs = other.components.to_h { |component| [component.goal, component.weighted] }
+        components.map { |component| [component.goal, component.weighted - theirs.fetch(component.goal, 0.0)] }
       end
     end
   end

@@ -5,7 +5,7 @@ RSpec.describe "CLI: справочник стратегий и цепочка" 
     result = run_cli("strategies", "--policy", config_path("policies/custom_strategy.yml"))
 
     expect(result.status).to eq(0)
-    expect(result.stdout).to include("Hard-правила (12)", "bank_affinity", "bank_table", "strategy_chain",
+    expect(result.stdout).to include("Hard-правила (13)", "bank_affinity", "bank_table", "strategy_chain",
                                      "custom_strategy")
     expect(result.stdout).to include("плагины: ", "requisites_headroom.rb", "свои цели: fastest_first (field)")
   end
@@ -16,7 +16,7 @@ RSpec.describe "CLI: справочник стратегий и цепочка" 
     selected = run.decision("op_101").selected_attempt
 
     expect(selected.breakdown.keys.first).to eq("1·amount_band")
-    expect(selected.details).to include("decisive: 1·amount_band")
+    expect(selected.details).to match(/decisive vs \w+: 1·amount_band/)
     expect(run.report["policy"]["selection"]).to start_with("chain: amount_band → turnover_min")
     reference = PayoutRouter::Inputs::JSONFile.read(data_path("reference_decisions.json"))
     reference["deterministic_cases"].each do |kase|

@@ -8,6 +8,7 @@ module PayoutRouter
       # Hard-constraints: провайдер не допущен к заявке.
       PROVIDER_INACTIVE = "provider_inactive"
       TRAFFIC_DISABLED = "traffic_disabled"
+      CURRENCY_MISMATCH = "currency_mismatch"
       AMOUNT_BELOW_MINIMUM = "amount_below_minimum"
       AMOUNT_EXCEEDS_LIMIT = "amount_exceeds_limit"
       DAILY_LIMIT_EXCEEDED = "daily_limit_exceeded"
@@ -35,10 +36,10 @@ module PayoutRouter
       NO_ELIGIBLE_PROVIDER = "no_eligible_provider"
 
       HARD = [
-        PROVIDER_INACTIVE, TRAFFIC_DISABLED, AMOUNT_BELOW_MINIMUM, AMOUNT_EXCEEDS_LIMIT, DAILY_LIMIT_EXCEEDED,
-        IN_PROGRESS_COUNT_LIMIT, IN_PROGRESS_AMOUNT_LIMIT, NO_AVAILABLE_REQUISITES, NEGATIVE_MARGIN,
-        BANK_NOT_IN_LIST, BANK_EXCLUDED, BANK_UNKNOWN, RATE_LIMIT_EXCEEDED, DAILY_TURNOVER_MAX_EXCEEDED,
-        CIRCUIT_OPEN
+        PROVIDER_INACTIVE, TRAFFIC_DISABLED, CURRENCY_MISMATCH, AMOUNT_BELOW_MINIMUM, AMOUNT_EXCEEDS_LIMIT,
+        DAILY_LIMIT_EXCEEDED, IN_PROGRESS_COUNT_LIMIT, IN_PROGRESS_AMOUNT_LIMIT, NO_AVAILABLE_REQUISITES,
+        NEGATIVE_MARGIN, BANK_NOT_IN_LIST, BANK_EXCLUDED, BANK_UNKNOWN, RATE_LIMIT_EXCEEDED,
+        DAILY_TURNOVER_MAX_EXCEEDED, CIRCUIT_OPEN
       ].freeze
 
       FAILURES = [PROVIDER_REJECTED, PROVIDER_TIMEOUT].freeze
@@ -46,6 +47,7 @@ module PayoutRouter
       DESCRIPTIONS = {
         PROVIDER_INACTIVE => "провайдер не в статусе active",
         TRAFFIC_DISABLED => "целевая доля трафика 0% — провайдер выключен из ротации",
+        CURRENCY_MISMATCH => "валюта заявки не совпадает с валютой провайдера",
         AMOUNT_BELOW_MINIMUM => "сумма меньше минимального чека",
         AMOUNT_EXCEEDS_LIMIT => "сумма больше максимального чека",
         DAILY_LIMIT_EXCEEDED => "исчерпан дневной лимит оборота",

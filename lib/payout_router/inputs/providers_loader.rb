@@ -17,17 +17,22 @@ module PayoutRouter
           raise InputError, "#{@source}: ожидается объект с массивом providers"
         end
 
+        gateway = Fields.string(@document, "gateway", where: @source)
+        @currency = (Fields.string(@document, "currency", where: @source) || gateway_currency(gateway))&.upcase
         providers = @document["providers"].each_with_index.map { |raw, index| build(raw, index) }
         ensure_unique!(providers)
         Domain::Snapshot.new(
           snapshot_at: Fields.time(@document, "snapshot_at", where: @source),
-          gateway: Fields.string(@document, "gateway", where: @source),
+          gateway: gateway,
           merchant: Fields.string(@document, "merchant", where: @source),
           providers: providers
         )
       end
 
       private
+
+      # Валюта шлюза: явное поле currency, иначе префикс имени шлюза (RUB_SBP_WITHDRAW → RUB).
+      def gateway_currency(gateway) = gateway.to_s[/\A([A-Za-z]{3})_/, 1]
 
       def build(raw, index)
         raise InputError, "#{@source} providers[#{index}]: ожидается объект" unless raw.is_a?(Hash)
@@ -42,6 +47,7 @@ module PayoutRouter
       def limits(raw, where)
         {
           status: Fields.string!(raw, "status", where: where),
+          currency: (Fields.string(raw, "currency", where: where) || @currency)&.upcase,
           traffic_percentage: Fields.number(raw, "traffic_percentage", where: where, min: 0, max: 100) || 0,
           priority: Fields.number(raw, "priority", where: where) || Domain::Provider::DEFAULT_PRIORITY,
           limit_amount_min: Fields.number(raw, "limit_amount_min", where: where, min: 0),

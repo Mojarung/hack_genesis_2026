@@ -32,6 +32,18 @@ RSpec.describe PayoutRouter::Validation::DecisionsValidator do
                                 a_string_matching(/не совпадает с selected-попыткой/))
   end
 
+  it "пустой selected_provider — ошибка, как у валидатора организаторов" do
+    broken = decisions.map do |d|
+      next d unless d["operation_id"] == "op_101"
+
+      d.merge("selected_provider" => nil, "attempts" => d["attempts"].reject { |a| a["decision"] == "selected" })
+    end
+    result = validate(broken)
+    expect(result).not_to be_ok
+    failures = result.checks.select(&:fail?).map(&:message)
+    expect(failures).to include(a_string_matching(/op_101: .*selected_provider пуст/))
+  end
+
   it "проверяет структуру попыток" do
     broken = decisions.map { |d| d.merge("attempts" => [{ "provider" => "vipay", "decision" => "maybe" }]) }
     expect(validate(broken).checks.map(&:message)).to include(a_string_matching(/без reason/),

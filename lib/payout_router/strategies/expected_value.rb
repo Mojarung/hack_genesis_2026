@@ -3,6 +3,7 @@
 module PayoutRouter
   module Strategies
     # Ожидаемая маржа: вероятность одобрения × (маржа мерчанта − маржа провайдера).
+    # Вероятность — конверсия, откалиброванная по истории (как в цели conversion).
     # Лучший по ожидаемой марже внешний провайдер получает 1.0, остальные — пропорционально.
     class ExpectedValue < Base
       def initialize(policy:, snapshot:, history: nil)
@@ -17,7 +18,7 @@ module PayoutRouter
         value = expected_margin(provider)
         signal(value / @best,
                "expected margin #{format("%.3f", value)}% of amount " \
-               "(conversion #{provider.conversion_24h} × margin #{format("%.2f", margin(provider))}%), " \
+               "(conversion #{format("%.3f", conversion(provider))} × margin #{format("%.2f", margin(provider))}%), " \
                "best #{format("%.3f", @best)}%")
       end
 
@@ -25,7 +26,11 @@ module PayoutRouter
 
       def margin(provider) = provider.merchant_margin_pct.to_f - provider.provider_margin_pct.to_f
 
-      def expected_margin(provider) = provider.conversion_24h.to_f * margin(provider)
+      def conversion(provider)
+        approval_model&.probability(provider.name, nil) || provider.conversion_24h.to_f
+      end
+
+      def expected_margin(provider) = conversion(provider) * margin(provider)
     end
   end
 end

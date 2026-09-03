@@ -3,11 +3,11 @@
 module PayoutRouter
   module Domain
     # Политика маршрутизации — всё, что можно менять без правки кода:
-    # набор и порядок hard-constraints, способ выбора (веса или цепочка стратегий), свои цели
-    # (плагины и декларативные), диапазоны сумм, параметры провайдеров, fallback, предохранитель, симуляция.
-    class Policy < Data.define(:name, :description, :fallback_provider, :hard_constraints, :goals, :selection,
-                               :custom_goals, :plugins, :tie_breakers, :amount_bands, :provider_overrides,
-                               :circuit_breaker, :simulation)
+    # набор и порядок hard-constraints (отдельно — для fallback), способ выбора (веса или цепочка стратегий),
+    # свои цели (плагины и декларативные), диапазоны сумм, параметры провайдеров, fallback, предохранитель, симуляция.
+    class Policy < Data.define(:name, :description, :fallback_provider, :hard_constraints, :fallback_constraints,
+                               :goals, :selection, :custom_goals, :plugins, :tie_breakers, :amount_bands,
+                               :provider_overrides, :circuit_breaker, :simulation)
       # Стратегия «по сумме чека»: диапазон и провайдеры, которых в нём предпочитаем.
       class AmountBand < Data.define(:min, :max, :prefer)
         def cover?(amount) = (min.nil? || amount >= min) && (max.nil? || amount <= max)
@@ -38,26 +38,35 @@ module PayoutRouter
       end
 
       # Способ выбора среди допустимых: weighted — все цели сразу с весами; chain — по очереди.
-      class Selection < Data.define(:mode, :chain)
+      # normalization — как взвешенный скоринг приводит оценки целей к общей шкале:
+      #   pool     — по разбросу среди кандидатов заявки (лучший 1, худший 0): вес = важность цели;
+      #   absolute — оценка стратегии как есть (0..1): вес = цена единицы оценки.
+      class Selection < Data.define(:mode, :chain, :normalization)
         MODES = %w[weighted chain].freeze
+        NORMALIZATIONS = %w[pool absolute].freeze
 
-        def initialize(mode: "weighted", chain: []) = super
+        def initialize(mode: "weighted", chain: [], normalization: "pool") = super
 
         def chain? = mode == "chain"
+        def pool_normalization? = normalization == "pool"
       end
 
       # Декларативная цель из YAML: type — field / table / bank_table, options — её параметры.
       class CustomGoal < Data.define(:type, :options)
       end
 
-      def initialize(name: "custom", description: nil, fallback_provider: nil, hard_constraints: [], goals: {},
-                     selection: Selection.new, custom_goals: {}, plugins: [], tie_breakers: [], amount_bands: [],
-                     provider_overrides: {}, circuit_breaker: CircuitBreakerSettings.new,
-                     simulation: SimulationSettings.new)
+      def initialize(name: "custom", description: nil, fallback_provider: nil, hard_constraints: [],
+                     fallback_constraints: nil, goals: {}, selection: Selection.new, custom_goals: {}, plugins: [],
+                     tie_breakers: [], amount_bands: [], provider_overrides: {},
+                     circuit_breaker: CircuitBreakerSettings.new, simulation: SimulationSettings.new)
         super
       end
 
       def enabled_goals = goals.reject { |_goal, weight| weight.zero? }
+
+      # Правила для fallback-провайдера: заданные явно, иначе — только статические правила допуска
+      # из hard_constraints (ёмкостные ограничения self-provider не отсеивают, см. Constraints::Registry::STATIC).
+      def fallback_rules = fallback_constraints || (hard_constraints & Constraints::Registry::STATIC)
 
       def band_for(amount) = amount_bands.find { |band| band.cover?(amount) }
 
@@ -68,8 +77,10 @@ module PayoutRouter
         provider.with(**provider_overrides.fetch(provider.name, {}), fallback: provider.name == fallback_provider)
       end
 
-      # Провайдеры, упомянутые в политике, но отсутствующие в снимке — вероятно, опечатка.
-      def unknown_providers(snapshot) = provider_overrides.keys - snapshot.names
+      # Провайдеры, упомянутые в политике (параметры, диапазоны сумм), но отсутствующие в снимке — вероятно, опечатка.
+      def unknown_providers(snapshot)
+        (provider_overrides.keys + amount_bands.flat_map(&:prefer)).uniq - snapshot.names
+      end
 
       # Политика с другими весами целей (для сравнения и подбора весов).
       def with_goals(new_goals) = with(goals: goals.merge(new_goals.transform_keys(&:to_s).transform_values(&:to_f)))
@@ -77,7 +88,7 @@ module PayoutRouter
       # Короткое описание способа выбора для отчётов.
       def selection_label
         unless selection.chain?
-          return "weighted: #{enabled_goals.map do |goal, weight|
+          return "weighted (#{selection.normalization}): #{enabled_goals.map do |goal, weight|
             "#{goal} #{weight}"
           end.join(", ")}"
         end
@@ -89,8 +100,8 @@ module PayoutRouter
       def to_h_document
         {
           "name" => name, "description" => description, "fallback_provider" => fallback_provider,
-          "plugins" => plugins, "hard_constraints" => hard_constraints, "goals" => goals,
-          "selection" => selection_document, "custom_goals" => custom_goals_document,
+          "plugins" => plugins, "hard_constraints" => hard_constraints, "fallback_constraints" => fallback_rules,
+          "goals" => goals, "selection" => selection_document, "custom_goals" => custom_goals_document,
           "tie_breakers" => tie_breakers,
           "amount_bands" => amount_bands.map { |band| band.to_h.transform_keys(&:to_s) },
           "providers" => provider_overrides.transform_values { |fields| fields.transform_keys(&:to_s) },
@@ -102,7 +113,7 @@ module PayoutRouter
       private
 
       def selection_document
-        { "mode" => selection.mode,
+        { "mode" => selection.mode, "normalization" => selection.normalization,
           "chain" => selection.chain.map { |step| { "goals" => step.goals, "tolerance" => step.tolerance } } }
       end
 

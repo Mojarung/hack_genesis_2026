@@ -1,0 +1,67 @@
+# Сценарий конфликта целей из ТЗ: vipay почти упёрся в максимум оборота по фин. обязательству,
+# а у quickpay не набран минимум «не менее 2 000 000 ₽/сутки». Ожидание ТЗ: роутер снижает долю vipay,
+# дотягивает оборот quickpay и объясняет это — здесь turnover_min получает наибольший вес,
+# а daily_turnover_max у vipay оставляет ему запас лишь на первые заявки.
+
+name: turnover_pressure
+description: >
+  Конфликт целей из ТЗ: максимум оборота vipay против минимума оборота quickpay — обязательства важнее долей.
+
+fallback_provider: spacepayments
+
+hard_constraints:
+  - provider_active
+  - currency
+  - traffic_enabled
+  - amount_range
+  - daily_limit
+  - in_progress_count
+  - in_progress_amount
+  - requisites
+  - margin
+  - bank_filter
+  - rate_limit
+  - daily_turnover_max
+  - circuit_breaker
+
+selection:
+  mode: weighted
+  normalization: pool
+
+goals:
+  turnover_min: 0.35
+  traffic_share: 0.20
+  load: 0.15
+  volume_share: 0.10
+  conversion: 0.10
+  cascade_priority: 0.05
+  amount_band: 0.05
+
+tie_breakers: [priority, conversion, name]
+
+amount_bands:
+  - { min: 500,    max: 50000,  prefer: [payflow] }
+  - { min: 50001,  max: 100000, prefer: [vipay] }
+  - { min: 100001, max: null,   prefer: [quickpay] }
+
+providers:
+  vipay:
+    volume_share_pct: 50
+    requests_per_minute_limit: 15
+    daily_turnover_max: 3700000   # в снимке уже 3.2 млн + 0.38 млн in-progress — запас на пару заявок
+  payflow:
+    volume_share_pct: 30
+    requests_per_minute_limit: 7
+    daily_turnover_min: 2000000
+  quickpay:
+    volume_share_pct: 20
+    requests_per_minute_limit: 15
+    daily_turnover_min: 2000000   # набрано 1.1 млн — недобор 0.9 млн поднимает приоритет
+
+circuit_breaker:
+  failures: 3
+  cooldown_sec: 300
+
+simulation:
+  mode: optimistic
+  seed: 42

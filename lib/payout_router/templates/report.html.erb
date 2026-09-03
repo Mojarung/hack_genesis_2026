@@ -195,9 +195,9 @@
         <%- if selected && selected.breakdown -%>
         <p class="details-text">Разложение скора выбранного провайдера:</p>
         <table>
-          <tr><th>Цель</th><th class="num">Оценка</th><th class="num">Вес</th><th class="num">Вклад</th><th>Пояснение</th></tr>
+          <tr><th>Цель</th><th class="num">Оценка</th><th class="num">По пулу</th><th class="num">Вес</th><th class="num">Вклад</th><th>Пояснение</th></tr>
           <%- selected.breakdown.each do |goal, component| -%>
-          <tr><td><%= h(goal) %></td><td class="num"><%= component["score"] %></td><td class="num"><%= component["weight"] %></td><td class="num"><%= component["weighted"] %></td><td class="details-text"><%= h(component["note"]) %></td></tr>
+          <tr><td><%= h(goal) %></td><td class="num"><%= component["score"] %></td><td class="num"><%= component["normalized"] || "—" %></td><td class="num"><%= component["weight"] %></td><td class="num"><%= component["weighted"] %></td><td class="details-text"><%= h(component["note"]) %></td></tr>
           <%- end -%>
         </table>
         <%- end -%>

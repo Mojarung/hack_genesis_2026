@@ -64,6 +64,23 @@ module PayoutRouter
         }
       end
 
+      # Самодиагностика скоринга: в скольких «конкурентных» заявках (два и более кандидата со скором)
+      # каждая цель вообще различала кандидатов. Цель с нулём — на этих данных мёртвый вес.
+      def goal_activity
+        @goal_activity ||= begin
+          contested = contested_breakdowns
+          active = Hash.new(0)
+          weights = {}
+          contested.each do |scored|
+            scored.first.breakdown.each do |goal, component|
+              weights[goal] ||= component["weight"]
+              active[goal] += 1 if discriminates?(scored, goal)
+            end
+          end
+          { "contested_operations" => contested.size, "goals" => goal_rows(weights, active, contested.size) }
+        end
+      end
+
       private
 
       def reported_providers
@@ -167,6 +184,24 @@ module PayoutRouter
       end
 
       def share_pct(part, whole) = whole.zero? ? 0.0 : part * 100.0 / whole
+
+      # Попытки со скором по каждой заявке, где кандидатов было двое и больше.
+      def contested_breakdowns
+        @decisions.map { |decision| decision.attempts.select(&:breakdown) }.select { |scored| scored.size > 1 }
+      end
+
+      def goal_rows(weights, active, contested)
+        weights.to_h do |goal, weight|
+          [goal, { "weight" => weight, "discriminating_operations" => active[goal],
+                   "share_pct" => share_pct(active[goal], contested).round(1) }]
+        end
+      end
+
+      # Цель различала кандидатов заявки: её оценки у них не совпадают.
+      def discriminates?(scored, goal)
+        values = scored.filter_map { |attempt| attempt.breakdown.dig(goal, "score") }
+        values.size > 1 && (values.max - values.min) > 1e-9
+      end
 
       def simulated_conversion(state)
         return nil if state.dispatch_count.zero?
