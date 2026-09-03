@@ -19,11 +19,14 @@ module PayoutRouter
 
     def policy = @policy ||= Inputs::PolicyLoader.load(@policy_path)
 
-    def snapshot = @snapshot ||= policy.apply(Inputs::ProvidersLoader.load(@providers_path))
+    # Снимок без наложенной политики — для сравнения нескольких политик на одних данных.
+    def raw_snapshot = @raw_snapshot ||= Inputs::ProvidersLoader.load(@providers_path)
 
-    def history_stats
-      @history_stats ||= Analytics::HistoryStats.new(@history_path ? Inputs::HistoryLoader.load(@history_path) : [])
-    end
+    def snapshot = @snapshot ||= policy.apply(raw_snapshot)
+
+    def history_records = @history_records ||= @history_path ? Inputs::HistoryLoader.load(@history_path) : []
+
+    def history_stats = @history_stats ||= Analytics::HistoryStats.new(history_records)
 
     def simulation
       @simulation ||= policy.simulation.with(mode: @simulation_mode || policy.simulation.mode,
@@ -32,6 +35,8 @@ module PayoutRouter
 
     def load_queue(queue_path) = Inputs::QueueLoader.load(queue_path, default_time: snapshot.snapshot_at)
 
+    def load_policies(paths) = paths.map { |path| Inputs::PolicyLoader.load(path) }
+
     def call(queue_path)
       operations = load_queue(queue_path)
       route(operations)
@@ -39,12 +44,37 @@ module PayoutRouter
 
     def route(operations)
       simulator = Simulation.build(simulation, history_stats: history_stats)
-      result = Routing::BatchRouter.new(snapshot: snapshot, policy: policy, simulator: simulator).call(operations)
+      result = Routing::BatchRouter.new(snapshot: snapshot, policy: policy, simulator: simulator,
+                                        history: history_stats).call(operations)
       report = Analytics::ReportBuilder.new(decisions: result.decisions, ledger: result.ledger, snapshot: snapshot,
                                             policy: policy, history_stats: history_stats, simulation: simulation).build
       Run.new(snapshot: snapshot, policy: policy, operations: operations, decisions: result.decisions,
               ledger: result.ledger, report: report, history_stats: history_stats, simulation: simulation,
               warnings: warnings)
+    end
+
+    def backtest
+      Analytics::Backtest.new(records: history_records, snapshot: snapshot, policy: policy, history: history_stats).call
+    end
+
+    def comparison(operations)
+      Analytics::PolicyComparison.new(base_snapshot: raw_snapshot, operations: operations, history: history_stats)
+    end
+
+    def monte_carlo(operations, runs:, seed:)
+      Analytics::MonteCarlo.new(snapshot: snapshot, policy: policy, operations: operations, history: history_stats,
+                                runs: runs, seed: seed).call
+    end
+
+    def tune(operations, candidates:, seed:)
+      Analytics::WeightTuner.new(comparison: comparison(operations), policy: policy, candidates: candidates,
+                                 seed: seed).call
+    end
+
+    # Очередь для подбора весов: реальные пары (сумма, банк) из истории, интервалы 1–5 секунд.
+    def synthetic_queue(count, seed:)
+      Bench::QueueGenerator.from_history(history_records, seed: seed, start_at: snapshot.snapshot_at || Time.now)
+                           .generate(count)
     end
 
     def warnings

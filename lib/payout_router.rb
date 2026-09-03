@@ -7,7 +7,9 @@ require_relative "payout_router/version"
 
 loader = Zeitwerk::Loader.for_gem
 loader.ignore("#{__dir__}/payout_router/version.rb")
-loader.inflector.inflect("cli" => "CLI", "json_file" => "JSONFile", "json_writer" => "JSONWriter")
+loader.ignore("#{__dir__}/payout_router/templates")
+loader.inflector.inflect("cli" => "CLI", "json_file" => "JSONFile", "json_writer" => "JSONWriter",
+                         "yaml_writer" => "YAMLWriter")
 loader.setup
 
 # PayoutRouter — умный роутинг выплат между платёжными провайдерами.

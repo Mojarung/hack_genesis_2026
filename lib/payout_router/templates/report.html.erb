@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PayoutRouter · отчёт роутинга <%= h(report["period"]) %></title>
+<style>
+  :root {
+    --bg: #f4f2ec; --paper: #fffdf8; --ink: #1c1b18; --muted: #6b675c; --line: #e2ddd0;
+    --accent: #1f4e79; --ok: #2e7d4f; --warn: #c77d00; --danger: #b3261e; --chip: #ece7da;
+    --mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 "Inter", "Segoe UI", system-ui, sans-serif; }
+  header { padding: 40px 48px 24px; border-bottom: 1px solid var(--line); background: var(--paper); }
+  header h1 { margin: 0 0 6px; font-size: 30px; letter-spacing: -0.02em; }
+  header .meta { color: var(--muted); font-family: var(--mono); font-size: 13px; }
+  main { max-width: 1180px; margin: 0 auto; padding: 24px 48px 64px; display: grid; gap: 28px; }
+  section { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 22px 26px; }
+  section h2 { margin: 0 0 14px; font-size: 18px; letter-spacing: -0.01em; }
+  section h2 small { color: var(--muted); font-weight: 400; font-size: 13px; margin-left: 8px; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; }
+  .kpi { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; background: #fff; }
+  .kpi .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .kpi .value { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+  td.num, th.num { text-align: right; font-family: var(--mono); font-size: 13px; }
+  .bar { position: relative; height: 10px; background: var(--chip); border-radius: 5px; min-width: 160px; }
+  .bar > i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px; background: var(--accent); }
+  .bar > b { position: absolute; top: -3px; width: 2px; height: 16px; background: var(--ink); }
+  .bar-ok > i { background: var(--ok); } .bar-warn > i { background: var(--warn); }
+  .bar-danger > i { background: var(--danger); } .bar-muted > i { background: #bbb; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { background: var(--chip); border-radius: 999px; padding: 4px 12px; font-family: var(--mono); font-size: 12px; }
+  .rec { border-left: 4px solid var(--accent); padding: 10px 14px; margin: 8px 0; background: #fff; border-radius: 0 8px 8px 0; }
+  .rec.critical { border-color: var(--danger); } .rec.warning { border-color: var(--warn); } .rec.info { border-color: var(--accent); }
+  .rec .tag { font-family: var(--mono); font-size: 11px; text-transform: uppercase; color: var(--muted); }
+  details { border: 1px solid var(--line); border-radius: 8px; margin: 8px 0; background: #fff; }
+  summary { cursor: pointer; padding: 10px 14px; font-family: var(--mono); font-size: 13px; display: flex; gap: 12px; align-items: center; }
+  summary .mark { display: inline-block; width: 22px; height: 22px; border-radius: 50%; text-align: center; line-height: 22px; color: #fff; font-size: 12px; }
+  .mark.ok { background: var(--ok); } .mark.fail { background: var(--danger); } .mark.warn { background: var(--warn); }
+  details > div { padding: 4px 14px 14px; }
+  .details-text { color: var(--muted); font-family: var(--mono); font-size: 12px; }
+  .dev-pos { color: var(--warn); } .dev-neg { color: var(--danger); } .dev-zero { color: var(--ok); }
+  footer { color: var(--muted); font-size: 12px; text-align: center; padding: 16px; font-family: var(--mono); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Роутинг выплат · <%= h(report["period"]) %></h1>
+  <div class="meta">
+    политика <%= h(run.policy.name) %> · симуляция <%= h(report["simulation"]["mode"]) %><%= " (seed #{h(report["simulation"]["seed"])})" if report["simulation"]["mode"] == "conversion" %>
+    · шлюз <%= h(report["gateway"]) %> · мерчант <%= h(report["merchant"]) %> · снимок <%= h(report["snapshot_at"]) %>
+  </div>
+</header>
+<main>
+  <section>
+    <div class="kpis">
+      <div class="kpi"><div class="label">Заявок</div><div class="value"><%= report["total_operations"] %></div></div>
+      <div class="kpi"><div class="label">Маршрутизировано</div><div class="value"><%= report["routed_operations"] %></div></div>
+      <div class="kpi"><div class="label">Одобрено</div><div class="value"><%= report["results"]["approved"] %></div></div>
+      <div class="kpi"><div class="label">Fallback</div><div class="value"><%= report["fallback_operations"] %></div></div>
+      <div class="kpi"><div class="label">Повторов после отказа</div><div class="value"><%= report["attempts"]["retries_after_failure"] %></div></div>
+      <div class="kpi"><div class="label">Попыток на заявку</div><div class="value"><%= report["attempts"]["avg_per_operation"] %></div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Распределение <small>факт против цели</small></h2>
+    <table>
+      <tr><th>Провайдер</th><th>Доля по заявкам</th><th class="num">Заявок</th><th class="num">Факт</th><th class="num">Цель</th><th class="num">Откл.</th><th class="num">Объём</th><th class="num">Доля объёма / цель</th></tr>
+      <%- report["distribution"].each do |name, share| -%>
+      <%- deviation = share["deviation_pp"] -%>
+      <tr>
+        <td><b><%= h(name) %></b></td>
+        <td><div class="bar"><i style="width: <%= bar_width(share["share_pct"]) %>%"></i><b style="left: <%= bar_width(share["target_pct"]) %>%"></b></div></td>
+        <td class="num"><%= share["count"] %></td>
+        <td class="num"><%= pct(share["share_pct"]) %></td>
+        <td class="num"><%= pct(share["target_pct"]) %></td>
+        <td class="num <%= deviation.zero? ? "dev-zero" : (deviation.positive? ? "dev-pos" : "dev-neg") %>"><%= signed(deviation) %></td>
+        <td class="num"><%= money(share["volume"]) %></td>
+        <td class="num"><%= pct(share["volume_share_pct"]) %> / <%= pct(share["target_volume_pct"]) %></td>
+      </tr>
+      <%- end -%>
+    </table>
+  </section>
+
+  <section>
+    <h2>Загрузка лимитов <small>после обработки очереди</small></h2>
+    <table>
+      <tr><th>Провайдер</th><th>Дневной оборот</th><th class="num">Использовано</th><th class="num">Лимит</th><th class="num">In-progress</th><th class="num">Реквизиты</th><th class="num">Одобрено / отказ / таймаут</th><th class="num">Конверсия (сим. / 24h)</th></tr>
+      <%- report["projected_daily_utilization"].each do |name, usage| -%>
+      <%- outcome = report["results"]["by_provider"][name] || {} -%>
+      <tr>
+        <td><b><%= h(name) %></b></td>
+        <td><div class="bar <%= utilization_class(usage["utilization_pct"]) %>"><i style="width: <%= bar_width(usage["utilization_pct"]) %>%"></i></div></td>
+        <td class="num"><%= money(usage["used"]) %> (<%= pct(usage["utilization_pct"]) %>)</td>
+        <td class="num"><%= money(usage["limit"]) %></td>
+        <td class="num"><%= usage["in_progress_count"] %>/<%= usage["in_progress_count_limit"] || "∞" %> · <%= money(usage["in_progress_amount"]) %></td>
+        <td class="num"><%= usage["available_requisites"] %></td>
+        <td class="num"><%= outcome["approved"] %> / <%= outcome["rejected"] %> / <%= outcome["expired"] %><%= " · карантин ×#{outcome["circuit_trips"]}" if outcome["circuit_trips"].to_i.positive? %></td>
+        <td class="num"><%= outcome["conversion_simulated"] || "—" %> / <%= outcome["conversion_24h"] %></td>
+      </tr>
+      <%- end -%>
+    </table>
+  </section>
+
+  <section>
+    <h2>Причины отсева <small>по всем попыткам</small></h2>
+    <div class="chips">
+      <%- report["skip_reasons"].each do |reason, count| -%>
+      <span class="chip" title="<%= h(reason_text(reason)) %>"><%= h(reason) %> × <%= count %></span>
+      <%- end -%>
+      <%- if report["skip_reasons"].empty? -%><span class="chip">отсевов не было</span><%- end -%>
+    </div>
+  </section>
+
+  <section>
+    <h2>Достижимость целевых долей <small>в какой доле заявок провайдер вообще допустим</small></h2>
+    <table>
+      <tr><th>Провайдер</th><th>Допустим</th><th class="num">Заявок</th><th>Что блокирует</th><th>Банки, не прошедшие фильтр</th></tr>
+      <%- report["target_attainability"].each do |name, att| -%>
+      <tr>
+        <td><b><%= h(name) %></b></td>
+        <td><div class="bar"><i style="width: <%= bar_width(att["eligible_pct"]) %>%"></i></div></td>
+        <td class="num"><%= att["eligible"] %>/<%= att["considered"] %> (<%= pct(att["eligible_pct"]) %>)</td>
+        <td><%= att["blocked_by"].map { |reason, n| "#{h(reason)} ×#{n}" }.join(", ") %></td>
+        <td><%= att["blocked_banks"].map { |bank, n| "#{h(bank)} ×#{n}" }.join(", ") %></td>
+      </tr>
+      <%- end -%>
+    </table>
+  </section>
+
+  <section>
+    <h2>Рекомендации <small><%= report["recommendation_details"].size %></small></h2>
+    <%- report["recommendation_details"].each do |rec| -%>
+    <div class="rec <%= h(rec["severity"]) %>">
+      <div class="tag"><%= h(severity_label(rec["severity"])) %> · <%= h(rec["rule"]) %><%= " · #{h(rec["parameter"])}: #{h(rec["current"])} → #{h(rec["suggested"])}" if rec["parameter"] %></div>
+      <div><%= h(rec["message"]) %></div>
+    </div>
+    <%- end -%>
+    <%- if report["recommendation_details"].empty? -%><p>Распределение в норме, менять нечего.</p><%- end -%>
+  </section>
+
+  <%- if report["history_analysis"] -%>
+  <section>
+    <h2>История операций <small><%= report["history_analysis"]["operations"] %> заявок · заявленная конверсия против наблюдаемой</small></h2>
+    <table>
+      <tr><th>Провайдер</th><th class="num">Операций</th><th class="num">Доля</th><th class="num">Конверсия</th><th class="num">Отказы</th><th class="num">Таймауты</th><th class="num">Задержка, с</th><th class="num">Заявлено 24h</th><th class="num">Дрейф</th></tr>
+      <%- report["history_analysis"]["providers"].each do |name, stats| -%>
+      <%- drift = report["history_analysis"]["conversion_drift"][name] -%>
+      <tr>
+        <td><b><%= h(name) %></b></td>
+        <td class="num"><%= stats["operations"] %></td>
+        <td class="num"><%= pct(stats["count_share_pct"]) %></td>
+        <td class="num"><%= stats["conversion"] %></td>
+        <td class="num"><%= pct(stats["rejected_pct"]) %></td>
+        <td class="num"><%= pct(stats["expired_pct"]) %></td>
+        <td class="num"><%= stats["avg_latency_sec"] %></td>
+        <td class="num"><%= drift ? drift["reported"] : "—" %></td>
+        <td class="num <%= drift && drift["delta"].negative? ? "dev-neg" : "dev-zero" %>"><%= drift ? signed(drift["delta"] * 100) : "—" %> п.п.</td>
+      </tr>
+      <%- end -%>
+    </table>
+  </section>
+  <%- end -%>
+
+  <section>
+    <h2>Решения по заявкам <small>раскройте, чтобы увидеть трейс</small></h2>
+    <%- run.decisions.each do |decision| -%>
+    <%- op = decision.operation -%>
+    <details>
+      <summary>
+        <span class="mark <%= decision.routed? ? (decision.approved? ? "ok" : "warn") : "fail" %>"><%= decision_mark(decision) %></span>
+        <span><%= h(op.operation_id) %></span><span><%= money(op.amount) %></span><span><%= h(op.bank || "банк не указан") %></span>
+        <span>→ <b><%= h(decision.selected_provider || "нет провайдера") %></b> · <%= h(decision.simulated_result) %> · <%= decision.latency_sec %> с</span>
+        <span class="details-text"><%= h(reason_text(decision.reason)) %><%= " · fallback" if decision.fallback_used %><%= " · повторов #{decision.retries}" if decision.retries.positive? %></span>
+      </summary>
+      <div>
+        <table>
+          <tr><th>Провайдер</th><th>Решение</th><th>Причина</th><th class="num">Скор</th><th>Детали</th></tr>
+          <%- decision.attempts.each do |attempt| -%>
+          <tr>
+            <td><b><%= h(attempt.provider) %></b></td>
+            <td><%= h(attempt.decision) %></td>
+            <td><%= h(attempt.reason) %><br><span class="details-text"><%= h(reason_text(attempt.reason)) %></span></td>
+            <td class="num"><%= attempt.score ? attempt.score.round(4) : "—" %></td>
+            <td class="details-text"><%= h(attempt.details) %></td>
+          </tr>
+          <%- end -%>
+        </table>
+        <%- selected = decision.selected_attempt -%>
+        <%- if selected && selected.breakdown -%>
+        <p class="details-text">Разложение скора выбранного провайдера:</p>
+        <table>
+          <tr><th>Цель</th><th class="num">Оценка</th><th class="num">Вес</th><th class="num">Вклад</th><th>Пояснение</th></tr>
+          <%- selected.breakdown.each do |goal, component| -%>
+          <tr><td><%= h(goal) %></td><td class="num"><%= component["score"] %></td><td class="num"><%= component["weight"] %></td><td class="num"><%= component["weighted"] %></td><td class="details-text"><%= h(component["note"]) %></td></tr>
+          <%- end -%>
+        </table>
+        <%- end -%>
+      </div>
+    </details>
+    <%- end -%>
+  </section>
+</main>
+<footer>PayoutRouter <%= PayoutRouter::VERSION %> · цели: <%= run.policy.enabled_goals.map { |goal, weight| "#{goal} #{weight}" }.join(", ") %> · hard-правила: <%= run.policy.hard_constraints.size %></footer>
+</body>
+</html>
