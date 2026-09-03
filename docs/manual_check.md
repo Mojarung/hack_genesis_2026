@@ -40,7 +40,7 @@
 |---|---|
 | `pr compare` | семь политик на одной очереди с разным распределением, Σ отклонений, ожидаемыми одобрениями и маржой |
 | `pr route --policy config/policies/strategy_chain.yml --out out/chain` и `pr explain op_101 --policy config/policies/strategy_chain.yml` | в breakdown шаги `1·amount_band` (decisive step) … `not consulted` |
-| `pr explain op_106 --policy config/policies/strategy_chain.yml` | шаг 1 не различает (tie, passed to the next step), решает следующий |
+| `pr explain op_105 --policy config/policies/strategy_chain.yml` | шаги 1 и 2 не различают vipay и quickpay (tie, passed to the next step), решает шаг 3 traffic_share |
 | `pr route --policy config/policies/custom_strategy.yml --out out/custom` | работает плагин `requisites_headroom` и декларативные цели `fastest_first`, `q3_partner_deal`, `alfa_to_quickpay` |
 | Поменять вес в `config/policy.yml` (например `conversion: 0.4`) и снова `pr route` | распределение меняется без правки кода |
 | Поменять `traffic_percentage` в копии `data/providers.json` и передать `--providers` | доли следуют новым целям |

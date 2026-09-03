@@ -34,6 +34,7 @@ module PayoutRouter
 
       # Рекурсивно: ярусы текущего шага, внутри яруса — следующий шаг.
       def order(pool, table, index)
+        return pool.map { |candidate| [candidate, :only] } if pool.size == 1 && index.zero?
         return tie_break(pool) if pool.size <= 1 || index >= @steps.size
 
         tiers(pool, table, index).flat_map do |tier|
@@ -58,11 +59,12 @@ module PayoutRouter
           Component.new(goal: @steps[index].label, weight: decisive ? 1.0 : 0.0, score: score.total,
                         weighted: decisive ? score.total : 0.0, note: "#{status(index, decided_at)} · #{notes(score)}")
         end
-        total = decided_at.is_a?(Integer) ? step_scores[decided_at].total : (step_scores.last&.total || 0.0)
+        total = decided_at.is_a?(Integer) ? step_scores[decided_at].total : (step_scores.first&.total || 0.0)
         Score.new(candidate: candidate, total: total, components: components)
       end
 
       def status(index, decided_at)
+        return "the only eligible candidate, chain not needed" if decided_at == :only
         return "tie through the whole chain, tie-breakers decided" if decided_at == :tie_breakers
         return "decisive step" if decided_at == index
 
