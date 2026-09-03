@@ -16,3 +16,6 @@ bin/*    text eol=lf
 *.jpg binary
 *.png binary
 *.docx binary
+
+# analysis/ — офлайн-разведка данных, не часть решения: не учитывать в языковой статистике GitHub
+analysis/** linguist-documentation
