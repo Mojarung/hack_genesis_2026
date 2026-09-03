@@ -44,7 +44,7 @@ Metrics/CyclomaticComplexity:
 Metrics/PerceivedComplexity:
   Max: 10
 Metrics/ClassLength:
-  Max: 180
+  Max: 200
   Exclude:
     - "lib/payout_router/cli.rb"   # Thor: описания команд и опций — это документация, не логика
 Metrics/BlockLength:

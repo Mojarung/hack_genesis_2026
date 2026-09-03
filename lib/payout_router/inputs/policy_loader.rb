@@ -27,12 +27,17 @@ module PayoutRouter
       end
 
       def call
+        plugin_paths = plugins # сначала подключаем плагины: их стратегии должны быть известны реестру
+        @custom_goals = custom_goals
         Domain::Policy.new(
           name: @doc.fetch("name", "custom").to_s,
           description: @doc["description"]&.to_s&.strip,
           fallback_provider: @doc["fallback_provider"]&.to_s,
           hard_constraints: hard_constraints,
           goals: goals,
+          selection: selection,
+          custom_goals: @custom_goals,
+          plugins: plugin_paths,
           tie_breakers: tie_breakers,
           amount_bands: amount_bands,
           provider_overrides: provider_overrides,
@@ -43,6 +48,40 @@ module PayoutRouter
 
       private
 
+      # Плагины — Ruby-файлы со своими стратегиями (наследники Strategies::Base).
+      # Путь — относительно файла политики или корня проекта.
+      def plugins
+        paths = list("plugins").map do |raw|
+          path = resolve_plugin(raw.to_s)
+          raise PolicyError, "#{@source}: плагин #{raw} не найден" if path.nil?
+
+          require path
+          path
+        end
+        Strategies::Registry.discover!
+        paths
+      end
+
+      def resolve_plugin(raw)
+        candidates = [raw]
+        candidates << File.expand_path(raw, File.dirname(@source)) if File.file?(@source.to_s)
+        candidates.map { |candidate| File.expand_path(candidate) }.find { |candidate| File.file?(candidate) }
+      end
+
+      # Декларативные цели без кода: по полю провайдера, таблица по провайдерам, таблица провайдер × банк.
+      def custom_goals
+        raw = @doc.fetch("custom_goals", {})
+        raise PolicyError, "#{@source}: custom_goals должен быть объектом" unless raw.is_a?(Hash)
+
+        raw.to_h do |name, definition|
+          raise PolicyError, "#{@source}: custom_goals.#{name} должен быть объектом" unless definition.is_a?(Hash)
+
+          type = definition.fetch("type", nil).to_s
+          Strategies::Custom.validate!(name.to_s, type, definition, source: @source)
+          [name.to_s, Domain::Policy::CustomGoal.new(type: type, options: definition.except("type"))]
+        end
+      end
+
       def hard_constraints
         keys = list("hard_constraints").map(&:to_s)
         keys.each { |key| Constraints::Registry.fetch(key) }
@@ -50,20 +89,74 @@ module PayoutRouter
       end
 
       def goals
-        raw = @doc["goals"]
+        raw = @doc.fetch("goals", {})
         raise PolicyError, "#{@source}: goals должен быть объектом «цель: вес»" unless raw.is_a?(Hash)
 
-        weights = raw.to_h do |key, weight|
-          Strategies::Registry.fetch(key.to_s)
+        weights = weights(raw, "goals")
+        if weights.values.none?(&:positive?) && !chain_mode?
+          raise PolicyError, "#{@source}: ни одна цель не включена (все веса 0)"
+        end
+
+        weights
+      end
+
+      def weights(raw, where)
+        raw.to_h do |key, weight|
+          goal_known!(key.to_s, where)
           unless weight.is_a?(Numeric) && weight >= 0
-            raise PolicyError, "#{@source}: вес цели #{key} должен быть числом ≥ 0"
+            raise PolicyError, "#{@source}: вес цели #{key} в #{where} должен быть числом ≥ 0"
           end
 
           [key.to_s, weight.to_f]
         end
-        raise PolicyError, "#{@source}: ни одна цель не включена (все веса 0)" if weights.values.none?(&:positive?)
+      end
 
-        weights
+      def goal_known!(key, where)
+        return if @custom_goals.key?(key) || Strategies::Registry.registered?(key)
+
+        raise PolicyError, "#{@source}: неизвестная цель «#{key}» в #{where} " \
+                           "(доступны: #{(Strategies::Registry.keys + @custom_goals.keys).join(", ")})"
+      end
+
+      def chain_mode? = @doc.dig("selection", "mode").to_s == "chain"
+
+      def selection
+        raw = @doc.fetch("selection", {})
+        raise PolicyError, "#{@source}: selection должен быть объектом" unless raw.is_a?(Hash)
+
+        mode = raw.fetch("mode", "weighted").to_s
+        unless Domain::Policy::Selection::MODES.include?(mode)
+          raise PolicyError, "#{@source}: selection.mode должен быть одним из #{Domain::Policy::Selection::MODES.join("/")}"
+        end
+
+        chain = Array(raw["chain"]).each_with_index.map { |step, index| chain_step(step, index) }
+        if mode == "chain" && chain.empty?
+          raise PolicyError,
+                "#{@source}: selection.mode: chain требует непустой selection.chain"
+        end
+
+        Domain::Policy::Selection.new(mode: mode, chain: chain)
+      end
+
+      def chain_step(raw, index)
+        where = "selection.chain[#{index}]"
+        raise PolicyError, "#{@source}: #{where} должен быть объектом" unless raw.is_a?(Hash)
+
+        goals = if raw.key?("goals")
+                  weights(raw["goals"].to_h, where)
+                else
+                  { raw.fetch("strategy") do
+                    raise PolicyError, "#{@source}: #{where}: нужен strategy или goals"
+                  end.to_s => 1.0 }
+                end
+        goals.each_key { |key| goal_known!(key, where) }
+        tolerance = raw.fetch("tolerance", 0)
+        unless tolerance.is_a?(Numeric) && tolerance >= 0
+          raise PolicyError,
+                "#{@source}: #{where}: tolerance должен быть числом ≥ 0"
+        end
+
+        Domain::Policy::ChainStep.new(goals: goals, tolerance: tolerance.to_f)
       end
 
       def tie_breakers

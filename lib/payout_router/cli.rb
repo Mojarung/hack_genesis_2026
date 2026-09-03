@@ -168,6 +168,22 @@ module PayoutRouter
       fail_with(e)
     end
 
+    desc "strategies", "Справочник: hard-правила, цели скоринга (встроенные, плагины, декларативные), пресеты политик"
+    def strategies
+      policy = runner.policy
+      say "Hard-правила (#{Constraints::Registry.keys.size}):", :cyan
+      print_table(Constraints::Registry.keys.map { |key| [key, Constraints::Registry.describe(key)] })
+      say "Цели скоринга (#{Strategies::Registry.keys.size}):", :cyan
+      print_table(Strategies::Registry.keys.map { |key| [key, Strategies::Registry.describe(key)] })
+      say "Декларативные цели (custom_goals в YAML, без кода):", :cyan
+      print_table(Strategies::Custom.describe.to_a)
+      print_policy_extensions(policy)
+      say "Пресеты (config/policies):", :cyan
+      print_table(Dir["config/policies/*.yml"].map { |path| preset_row(path) })
+    rescue PayoutRouter::Error => e
+      fail_with(e)
+    end
+
     desc "bench", "Бенчмарк: синтетическая очередь на N заявок через полный конвейер"
     option :operations, type: :numeric, default: 50_000, desc: "число заявок"
     option :seed, type: :numeric, default: 1, desc: "seed генератора очереди"
@@ -215,6 +231,20 @@ module PayoutRouter
       print_table(summary.distribution_rows)
       summary.result_lines.each { |line| say line }
       summary.recommendation_lines.each { |line| say line, :yellow }
+    end
+
+    def print_policy_extensions(policy)
+      say "Политика #{policy.name}: #{policy.selection_label}", :cyan
+      say "  плагины: #{policy.plugins.empty? ? "нет" : policy.plugins.join(", ")}"
+      custom = policy.custom_goals.map { |key, goal| "#{key} (#{goal.type})" }
+      say "  свои цели: #{custom.empty? ? "нет" : custom.join(", ")}"
+    end
+
+    def preset_row(path)
+      preset = Inputs::PolicyLoader.load(path)
+      [File.basename(path, ".yml"), preset.selection.mode, preset.description.to_s.gsub(/\s+/, " ")[0, 90]]
+    rescue PayoutRouter::Error => e
+      [File.basename(path, ".yml"), "ошибка", e.message[0, 90]]
     end
 
     def check_color(check) = { pass: :green, fail: :red, warn: :yellow }[check.status]

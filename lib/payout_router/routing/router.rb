@@ -13,7 +13,7 @@ module PayoutRouter
         @ledger = ledger
         @simulator = simulator
         @constraints = Constraints::Pipeline.new(policy.hard_constraints)
-        @scorer = Scoring::CompositeScorer.new(policy: policy, snapshot: snapshot, history: history)
+        @scorer = Scoring.build(policy: policy, snapshot: snapshot, history: history)
         @external = ledger.external_states
                           .sort_by { |state| [state.provider.priority, state.name] }
                           .map { |state| Candidate.new(provider: state.provider, state: state) }

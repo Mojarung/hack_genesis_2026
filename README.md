@@ -41,6 +41,7 @@ bundle exec rake validate   # роутинг публичной очереди +
 | `simulate --runs 200` | Monte-Carlo по отказам: перцентили одобрений, fallback и долей |
 | `tune --synthetic 200` | подбор весов целей под бизнес-цель, результат в `policy_tuned.yml` |
 | `serve --port 8080` | HTTP-сервис: `POST /route`, `GET /report`, `/state`, `/metrics` (Prometheus), `/health` |
+| `strategies` | справочник: hard-правила, цели (встроенные, плагины, декларативные), пресеты политик |
 | `history`, `bench` | показатели истории; 50 000 синтетических заявок через полный конвейер |
 
 Сдача итоговых файлов: положить `operations_queue_test.json` в `data/`, выполнить `bundle exec rake submit`,
@@ -80,10 +81,41 @@ policy.yml ────────────────►   2. Scoring     
 | — ожидаемая маржа | `expected_value` | конверсия × (маржа мерчанта − маржа провайдера) |
 | — скорость, стоимость | `latency`, `margin` | быстрее и дешевле — выше |
 
-Комбинация стратегий — это веса; чистый каскад — `cascade_priority: 1.0`, остальное 0. Пресеты в
-`config/policies/`: `cascade`, `conversion_first`, `profit_first`, `volume_balance`. При равном скоре порядок
-задают `tie_breakers`. Если цель недостижима (провайдер с долей 40% не проходит фильтр банков), скорятся только
-допустимые, недобор копится и отыгрывается на следующих заявках, а отчёт показывает достижимость цели и причину.
+**Два способа сочетать стратегии** (`selection.mode`):
+
+- `weighted` — все цели одновременно, итог = взвешенная сумма; чистый каскад — `cascade_priority: 1.0`, остальное 0.
+- `chain` — стратегии по очереди: следующая решает, только если предыдущая не применима к заявке (нет диапазона
+  суммы, нет обязательства, нет истории) или дала равные оценки (в пределах `tolerance`). Шаг цепочки — одна
+  стратегия или взвешенная группа. Победитель всегда лучший по решающему шагу, ранжирование полное, поэтому при
+  отказе провайдера роутер идёт дальше по тому же списку. В `breakdown` каждого решения видно, какой шаг решил,
+  какие «уступили», какие не консультировались.
+
+```yaml
+selection:
+  mode: chain
+  chain:
+    - strategy: amount_band              # 1. по диапазону суммы
+    - strategy: turnover_min             # 2. обязательство «не менее X ₽/сутки»
+    - strategy: traffic_share            # 3. целевая доля; до 3 п.п. считаем равенством
+      tolerance: 0.03
+    - goals: { conversion: 0.5, bank_affinity: 0.5 }   # 4. кто вероятнее одобрит
+    - strategy: cascade_priority         # 5. каскад
+```
+
+Пресеты в `config/policies/`: `cascade`, `conversion_first`, `profit_first`, `volume_balance`, `strategy_chain`,
+`custom_strategy`; `compare` прогоняет их все на одной очереди. При равном скоре порядок задают `tie_breakers`.
+Если цель недостижима (провайдер с долей 40% не проходит фильтр банков), скорятся только допустимые, недобор
+копится и отыгрывается на следующих заявках, а отчёт показывает достижимость цели и причину.
+
+**Своя стратегия** добавляется без правки ядра, двумя способами:
+
+1. Плагин на Ruby: файл с наследником `PayoutRouter::Strategies::Base` (один метод `evaluate`), строка
+   `plugins: [config/plugins/my_strategy.rb]` в политике. Регистрируется автоматически, дальше используется в
+   `goals` или в цепочке по ключу класса. Пример: `config/plugins/requisites_headroom.rb`.
+2. Декларативная цель в YAML без кода (`custom_goals`): `field` (нормированное поле провайдера, `higher`/`lower`),
+   `table` (оценки по провайдерам), `bank_table` (оценки провайдер × банк). Пример: `config/policies/custom_strategy.yml`.
+
+Справочник всех правил, целей, декларативных типов и пресетов: `ruby -Ilib bin/payout_router strategies`.
 
 **Fallback.** Отказ или таймаут провайдера — попытка помечается `skipped` с причиной `provider_rejected` /
 `provider_timeout`, заявка уходит следующему по скору. Когда внешних не осталось — self-provider
@@ -137,14 +169,14 @@ policy.yml ────────────────►   2. Scoring     
 
 ```
 bin/payout_router          CLI (Thor)
-config/policy.yml          политика по умолчанию; config/policies/ — пресеты
+config/policy.yml          политика по умолчанию; config/policies/ — пресеты; config/plugins/ — пример своей стратегии
 data/                      вводные организаторов
 lib/payout_router/
   domain/                  Provider, Operation, Policy, Snapshot, HistoryRecord (неизменяемые Data)
   inputs/                  загрузчики JSON/CSV/YAML с проверкой полей
   constraints/             hard-правила (Base + 12 классов, Registry, Pipeline)
-  strategies/              soft-goals (Base + 12 классов, Registry)
-  scoring/                 CompositeScorer, TieBreaker, Score
+  strategies/              soft-goals (Base + 12 классов, Registry с плагинами, custom/ — декларативные цели)
+  scoring/                 CompositeScorer (веса), ChainScorer (цепочка), TieBreaker, Score
   state/                   ProviderState, Ledger, SettlementQueue (виртуальные часы, предохранитель)
   routing/                 Router, BatchRouter, Attempt, Decision, Reasons
   simulation/              Optimistic, Conversion, Outcome

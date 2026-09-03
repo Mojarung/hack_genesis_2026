@@ -46,7 +46,16 @@ Output::JSONWriter ─► routing_decisions.json, routing_report.json
 
 ## Скоринг
 
-`total = Σ weight_i × score_i / Σ weight_i` по включённым целям (вес > 0). Каждая цель возвращает
+Два механизма выбора среди допустимых (`Scoring.build` по `policy.selection.mode`):
+
+- **weighted** (`CompositeScorer`): все цели сразу, `total = Σ weight_i × score_i / Σ weight_i`.
+- **chain** (`ChainScorer`): стратегии по очереди. Шаг делит пул на ярусы по своей оценке (с допуском `tolerance`);
+  верхний ярус из одного провайдера означает «стратегия решила», иначе ярус передаётся следующему шагу, после
+  последнего — tie-breakers. Стратегия, не применимая к заявке, даёт всем одинаковую нейтральную оценку и тем
+  самым уступает следующей. Ранжирование полное, поэтому при отказе провайдера каскад попыток идёт по тому же списку.
+  В `breakdown` попытки: `1·amount_band … decisive step`, `tie, passed to the next step`, `not consulted`.
+
+Далее про weighted: `total = Σ weight_i × score_i / Σ weight_i` по включённым целям (вес > 0). Каждая цель возвращает
 `Signal(score ∈ [0, 1], note)`; `note` попадает в `breakdown` попытки. Сортировка — по `total`, при
 равенстве — `tie_breakers` из политики (`priority`, `conversion`, `latency`, `name`).
 
@@ -92,7 +101,10 @@ Output::JSONWriter ─► routing_decisions.json, routing_report.json
 | Что | Где | Что сделать |
 |---|---|---|
 | Hard-правило | `lib/payout_router/constraints/` | наследник `Base#call(candidate, operation, now) → pass / violation(reason, details)`; код причины в `Routing::Reasons`; класс в `Registry::ALL`; ключ в `policy.yml` |
-| Цель скоринга | `lib/payout_router/strategies/` | наследник `Base#evaluate(candidate, context) → signal(score, note)`; класс в `Registry::ALL`; вес в `goals` |
+| Цель скоринга (в ядре) | `lib/payout_router/strategies/` | наследник `Base#evaluate(candidate, context) → signal(score, note)`; класс в `Registry::BUILTIN`; вес в `goals` |
+| Своя стратегия без правки ядра | любой `.rb` + `policy.yml → plugins` | наследник `Strategies::Base` в отдельном файле; `Registry.discover!` регистрирует его при загрузке политики |
+| Своя стратегия без кода | `policy.yml → custom_goals` | `type: field / table / bank_table` (`Strategies::Custom::*`) |
+| Порядок применения стратегий | `policy.yml → selection` | `mode: chain` + список шагов с `tolerance`; `Scoring::ChainScorer` |
 | Правило рекомендаций | `lib/payout_router/analytics/recommendations/` | наследник `Base#call(context) → [recommend(...)]`; класс в `Engine::RULES` |
 | Параметр провайдера | `Domain::Provider` | поле в `Data.define` — его сразу можно задавать в `policy.yml → providers` |
 | Режим симуляции | `lib/payout_router/simulation/` | класс с `call(candidate, operation) → Outcome`; ветка в `Simulation.build` |

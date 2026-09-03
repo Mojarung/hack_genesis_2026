@@ -92,7 +92,7 @@ RSpec.describe "загрузчики входных данных" do
     it "читает политику по умолчанию и пресеты" do
       Dir[config_path("**/*.yml")].each do |path|
         policy = described_class.load(path)
-        expect(policy.enabled_goals).not_to be_empty
+        expect(policy.enabled_goals.any? || policy.selection.chain?).to be(true)
         expect(policy.fallback_provider).to eq("spacepayments")
       end
     end

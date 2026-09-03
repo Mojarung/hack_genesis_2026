@@ -1,0 +1,55 @@
+# Свои стратегии без правки ядра: плагин на Ruby (plugins) и декларативные цели в YAML (custom_goals).
+# Здесь всё это включено в цепочку вместе со встроенными стратегиями.
+
+name: custom_strategy
+description: >
+  Демонстрация расширения: плагин requisites_headroom и три декларативные цели
+  (по полю провайдера, таблица по провайдерам, таблица провайдер × банк) в цепочке стратегий.
+
+fallback_provider: spacepayments
+
+plugins:
+  - config/plugins/requisites_headroom.rb
+
+custom_goals:
+  fastest_first: { type: field, field: avg_latency_sec, direction: lower }
+  q3_partner_deal: { type: table, scores: { payflow: 1.0, vipay: 0.6 }, default: 0.2 }
+  alfa_to_quickpay: { type: bank_table, scores: { alfa: { quickpay: 1.0, payflow: 0.3 } }, default: 0.5 }
+
+hard_constraints:
+  - provider_active
+  - traffic_enabled
+  - amount_range
+  - daily_limit
+  - in_progress_count
+  - in_progress_amount
+  - requisites
+  - margin
+  - bank_filter
+  - rate_limit
+  - daily_turnover_max
+  - circuit_breaker
+
+selection:
+  mode: chain
+  chain:
+    - strategy: alfa_to_quickpay          # 1. договорённость по банку (декларативная)
+    - strategy: traffic_share             # 2. целевая доля; до 5 п.п. — равенство
+      tolerance: 0.05
+    - goals: { q3_partner_deal: 0.5, requisites_headroom: 0.3, fastest_first: 0.2 }   # 3. партнёрская сделка + плагин + скорость
+    - strategy: cascade_priority          # 4. каскад
+
+tie_breakers: [priority, name]
+
+providers:
+  vipay:    { requests_per_minute_limit: 15 }
+  payflow:  { requests_per_minute_limit: 7 }
+  quickpay: { requests_per_minute_limit: 15 }
+
+circuit_breaker:
+  failures: 3
+  cooldown_sec: 300
+
+simulation:
+  mode: optimistic
+  seed: 42

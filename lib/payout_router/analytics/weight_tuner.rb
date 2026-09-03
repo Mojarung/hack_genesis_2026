@@ -33,6 +33,11 @@ module PayoutRouter
       end
 
       def call
+        if @policy.selection.chain?
+          raise PolicyError,
+                "tune подбирает веса для selection.mode: weighted; у политики #{@policy.name} режим chain"
+        end
+
         before = objective(@policy)
         best_policy = @policy
         best = before

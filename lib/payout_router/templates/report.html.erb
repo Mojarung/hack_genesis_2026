@@ -206,6 +206,6 @@
     <%- end -%>
   </section>
 </main>
-<footer>PayoutRouter <%= PayoutRouter::VERSION %> · цели: <%= run.policy.enabled_goals.map { |goal, weight| "#{goal} #{weight}" }.join(", ") %> · hard-правила: <%= run.policy.hard_constraints.size %></footer>
+<footer>PayoutRouter <%= PayoutRouter::VERSION %> · <%= h(run.policy.selection_label) %> · hard-правила: <%= run.policy.hard_constraints.size %></footer>
 </body>
 </html>

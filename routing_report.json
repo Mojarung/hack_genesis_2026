@@ -17,6 +17,9 @@
       "turnover_min": 0.05,
       "rate_headroom": 0.05
     },
+    "selection": "weighted: traffic_share 0.3, volume_share 0.1, cascade_priority 0.1, amount_band 0.1, conversion 0.1, bank_affinity 0.05, load 0.15, turnover_min 0.05, rate_headroom 0.05",
+    "plugins": [],
+    "custom_goals": [],
     "hard_constraints": [
       "provider_active",
       "traffic_enabled",

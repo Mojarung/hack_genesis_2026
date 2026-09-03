@@ -3,10 +3,11 @@
 module PayoutRouter
   module Domain
     # Политика маршрутизации — всё, что можно менять без правки кода:
-    # набор и порядок hard-constraints, веса soft-goals, диапазоны сумм,
-    # дополнительные параметры провайдеров, fallback, предохранитель и режим симуляции.
-    class Policy < Data.define(:name, :description, :fallback_provider, :hard_constraints, :goals,
-                               :tie_breakers, :amount_bands, :provider_overrides, :circuit_breaker, :simulation)
+    # набор и порядок hard-constraints, способ выбора (веса или цепочка стратегий), свои цели
+    # (плагины и декларативные), диапазоны сумм, параметры провайдеров, fallback, предохранитель, симуляция.
+    class Policy < Data.define(:name, :description, :fallback_provider, :hard_constraints, :goals, :selection,
+                               :custom_goals, :plugins, :tie_breakers, :amount_bands, :provider_overrides,
+                               :circuit_breaker, :simulation)
       # Стратегия «по сумме чека»: диапазон и провайдеры, которых в нём предпочитаем.
       class AmountBand < Data.define(:min, :max, :prefer)
         def cover?(amount) = (min.nil? || amount >= min) && (max.nil? || amount <= max)
@@ -26,9 +27,33 @@ module PayoutRouter
         def enabled? = failures.positive?
       end
 
+      # Шаг цепочки стратегий: одна цель или взвешенная группа; tolerance — разница оценок,
+      # внутри которой кандидаты считаются равными и решение передаётся следующему шагу.
+      class ChainStep < Data.define(:goals, :tolerance)
+        def initialize(goals:, tolerance: 0.0) = super
+
+        def label
+          goals.size == 1 ? goals.keys.first : "(#{goals.map { |goal, weight| "#{goal} #{weight}" }.join(", ")})"
+        end
+      end
+
+      # Способ выбора среди допустимых: weighted — все цели сразу с весами; chain — по очереди.
+      class Selection < Data.define(:mode, :chain)
+        MODES = %w[weighted chain].freeze
+
+        def initialize(mode: "weighted", chain: []) = super
+
+        def chain? = mode == "chain"
+      end
+
+      # Декларативная цель из YAML: type — field / table / bank_table, options — её параметры.
+      class CustomGoal < Data.define(:type, :options)
+      end
+
       def initialize(name: "custom", description: nil, fallback_provider: nil, hard_constraints: [], goals: {},
-                     tie_breakers: [], amount_bands: [], provider_overrides: {},
-                     circuit_breaker: CircuitBreakerSettings.new, simulation: SimulationSettings.new)
+                     selection: Selection.new, custom_goals: {}, plugins: [], tie_breakers: [], amount_bands: [],
+                     provider_overrides: {}, circuit_breaker: CircuitBreakerSettings.new,
+                     simulation: SimulationSettings.new)
         super
       end
 
@@ -49,16 +74,40 @@ module PayoutRouter
       # Политика с другими весами целей (для сравнения и подбора весов).
       def with_goals(new_goals) = with(goals: goals.merge(new_goals.transform_keys(&:to_s).transform_values(&:to_f)))
 
+      # Короткое описание способа выбора для отчётов.
+      def selection_label
+        unless selection.chain?
+          return "weighted: #{enabled_goals.map do |goal, weight|
+            "#{goal} #{weight}"
+          end.join(", ")}"
+        end
+
+        "chain: #{selection.chain.map(&:label).join(" → ")}"
+      end
+
       # Представление для YAML: можно сохранить и загрузить обратно.
       def to_h_document
         {
           "name" => name, "description" => description, "fallback_provider" => fallback_provider,
-          "hard_constraints" => hard_constraints, "goals" => goals, "tie_breakers" => tie_breakers,
+          "plugins" => plugins, "hard_constraints" => hard_constraints, "goals" => goals,
+          "selection" => selection_document, "custom_goals" => custom_goals_document,
+          "tie_breakers" => tie_breakers,
           "amount_bands" => amount_bands.map { |band| band.to_h.transform_keys(&:to_s) },
           "providers" => provider_overrides.transform_values { |fields| fields.transform_keys(&:to_s) },
           "circuit_breaker" => circuit_breaker.to_h.transform_keys(&:to_s),
           "simulation" => { "mode" => simulation.mode, "seed" => simulation.seed }
         }
+      end
+
+      private
+
+      def selection_document
+        { "mode" => selection.mode,
+          "chain" => selection.chain.map { |step| { "goals" => step.goals, "tolerance" => step.tolerance } } }
+      end
+
+      def custom_goals_document
+        custom_goals.transform_values { |goal| { "type" => goal.type }.merge(goal.options) }
       end
     end
   end

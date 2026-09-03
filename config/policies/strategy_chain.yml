@@ -1,0 +1,64 @@
+# Цепочка стратегий: стратегии применяются по очереди. Следующая решает только тогда,
+# когда предыдущая не применима к заявке (нет диапазона суммы, нет обязательства, нет истории)
+# или не смогла отличить кандидатов (равные оценки в пределах tolerance). Победитель всегда
+# лучший по решающей стратегии; при отказе провайдера роутер идёт дальше по тому же ранжированию.
+
+name: strategy_chain
+description: >
+  Каскад стратегий: диапазон суммы → обязательство по обороту → целевая доля →
+  вероятность одобрения (конверсия + банк) → загрузка → приоритет.
+
+fallback_provider: spacepayments
+
+hard_constraints:
+  - provider_active
+  - traffic_enabled
+  - amount_range
+  - daily_limit
+  - in_progress_count
+  - in_progress_amount
+  - requisites
+  - margin
+  - bank_filter
+  - rate_limit
+  - daily_turnover_max
+  - circuit_breaker
+
+selection:
+  mode: chain
+  chain:
+    - strategy: amount_band          # 1. предпочтительный провайдер диапазона суммы
+    - strategy: turnover_min         # 2. кто ещё не набрал обязательство «не менее X ₽/сутки»
+    - strategy: traffic_share        # 3. целевая доля трафика; разницу до 3 п.п. считаем равенством
+      tolerance: 0.03
+    - goals: { conversion: 0.5, bank_affinity: 0.5 }   # 4. кто вероятнее одобрит эту заявку
+    - strategy: load                 # 5. кто свободнее по лимитам
+    - strategy: cascade_priority     # 6. классический каскад по priority
+
+tie_breakers: [priority, name]
+
+amount_bands:
+  - { min: 500,    max: 50000,  prefer: [payflow] }
+  - { min: 50001,  max: 100000, prefer: [vipay] }
+  - { min: 100001, max: null,   prefer: [quickpay] }
+
+providers:
+  vipay:
+    volume_share_pct: 50
+    requests_per_minute_limit: 15
+    daily_turnover_max: 5000000
+  payflow:
+    volume_share_pct: 30
+    requests_per_minute_limit: 7
+    daily_turnover_min: 2000000
+  quickpay:
+    volume_share_pct: 20
+    requests_per_minute_limit: 15
+
+circuit_breaker:
+  failures: 3
+  cooldown_sec: 300
+
+simulation:
+  mode: optimistic
+  seed: 42

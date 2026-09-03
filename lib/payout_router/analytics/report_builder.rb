@@ -38,6 +38,9 @@ module PayoutRouter
             "name" => @policy.name,
             "description" => @policy.description,
             "goals" => @policy.enabled_goals,
+            "selection" => @policy.selection_label,
+            "plugins" => @policy.plugins,
+            "custom_goals" => @policy.custom_goals.keys,
             "hard_constraints" => @policy.hard_constraints,
             "tie_breakers" => @policy.tie_breakers,
             "fallback_provider" => @policy.fallback_provider

@@ -5,9 +5,9 @@ module PayoutRouter
     # При равном скоре порядок задаёт политика: tie_breakers: [priority, conversion, name].
     class TieBreaker
       RULES = {
-        "priority" => ->(score) { score.provider.priority },
-        "conversion" => ->(score) { -score.provider.conversion_24h.to_f },
-        "latency" => ->(score) { score.provider.avg_latency_sec || Float::INFINITY },
+        "priority" => ->(subject) { subject.provider.priority },
+        "conversion" => ->(subject) { -subject.provider.conversion_24h.to_f },
+        "latency" => ->(subject) { subject.provider.avg_latency_sec || Float::INFINITY },
         "name" => lambda(&:name)
       }.freeze
       PRECISION = 9
@@ -24,7 +24,10 @@ module PayoutRouter
       end
 
       # Ключ сортировки: сначала скор по убыванию, затем tie-breakers по порядку.
-      def sort_key(score) = [-score.total.round(PRECISION), *@rules.map { |rule| rule.call(score) }]
+      def sort_key(score) = [-score.total.round(PRECISION), *tie_key(score)]
+
+      # Только tie-breakers — для чего угодно с provider и name (Score, Candidate).
+      def tie_key(subject) = @rules.map { |rule| rule.call(subject) }
     end
   end
 end

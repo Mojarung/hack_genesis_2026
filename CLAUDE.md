@@ -24,7 +24,8 @@ Hack.Genesis 2026, задача 2 «Умный роутинг выплат» (о
 | Hard-правила | `lib/payout_router/constraints/*` | `Base#call → pass/violation`, `Registry::ALL`, `CircuitBreaker` (со состоянием) |
 | Состояние | `lib/payout_router/state/*` | `Ledger#dispatch!/settle_due` — виртуальные часы; `ProviderState#record_failure` — предохранитель |
 | Цели | `lib/payout_router/strategies/*` | `Base#evaluate → signal(score, note)`; `BankAffinity`/`ExpectedValue`; формула долей `0.5 + (цель − факт)/100` |
-| Скоринг | `lib/payout_router/scoring/*` | `CompositeScorer#rank`, `TieBreaker#sort_key` |
+| Скоринг | `lib/payout_router/scoring/*` | `Scoring.build` выбирает `CompositeScorer` (веса) или `ChainScorer` (цепочка, `selection.mode: chain`) |
+| Свои стратегии | `strategies/custom/*`, `config/plugins/*` | `Strategies.instantiate`; плагины регистрирует `Registry.discover!`; декларативные — `custom_goals` в YAML |
 | Роутинг | `lib/payout_router/routing/*` | `Router#route` → `try_ranked` → `fallback` → `unrouted`; коды причин в `Reasons` |
 | Симуляция | `lib/payout_router/simulation/*` | `optimistic` (сдача) / `conversion` (seed, демо каскада) |
 | Аналитика | `lib/payout_router/analytics/*` | `ApprovalModel` (пара × банк, LOO), `Backtest`, `PolicyComparison`, `MonteCarlo`, `WeightTuner`, `recommendations/engine.rb` |
