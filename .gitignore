@@ -9,3 +9,6 @@
 .env
 .rspec_status
 .DS_Store
+/data/derived/
+.venv/
+__pycache__/

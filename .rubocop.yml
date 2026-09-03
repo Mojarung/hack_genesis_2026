@@ -6,6 +6,7 @@ AllCops:
     - "out/**/*"
     - "vendor/**/*"
     - "lib/paygen/templates/**/*"   # это .erb-шаблоны, не Ruby-код проекта
+    - "scripts/validate_10.rb"      # файл организаторов, правим только они
 
 # Стиль
 Style/Documentation:
