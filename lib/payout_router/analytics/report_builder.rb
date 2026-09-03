@@ -73,14 +73,17 @@ module PayoutRouter
         @history.serialize.merge("conversion_drift" => conversion_drift)
       end
 
-      # Заявленная conversion_24h против наблюдаемой в истории.
+      # Заявленная conversion_24h против наблюдаемой в истории; significant — вне 95% интервала Уилсона.
       def conversion_drift
         @snapshot.external.filter_map do |provider|
           observed = @history.conversion(provider.name)
           next if observed.nil?
 
+          interval = @history.conversion_interval(provider.name)
           [provider.name, { "reported" => provider.conversion_24h, "observed" => observed.round(3),
-                            "delta" => (observed - provider.conversion_24h.to_f).round(3) }]
+                            "delta" => (observed - provider.conversion_24h.to_f).round(3),
+                            "interval_95" => interval,
+                            "significant" => !provider.conversion_24h.to_f.between?(interval.first, interval.last) }]
         end.to_h
       end
     end

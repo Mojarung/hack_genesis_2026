@@ -39,9 +39,15 @@ module PayoutRouter
 
       attr_reader :total_operations, :total_volume
 
+      # Бакеты суммы чека: конверсия заметно зависит от размера выплаты.
+      AMOUNT_BUCKETS = [["<=1000", 0, 1_000], ["1001-50000", 1_001, 50_000], ["50001-100000", 50_001, 100_000],
+                        [">100000", 100_001, Float::INFINITY]].freeze
+      Z95 = 1.96
+
       def initialize(records)
         @by_provider = Hash.new { |hash, name| hash[name] = ProviderStats.new }
         @banks = Hash.new(0)
+        @amount_buckets = AMOUNT_BUCKETS.to_h { |label, _from, _to| [label, BankOutcome.new] }
         @total_operations = 0
         @total_volume = 0
         records.each { |record| add(record) }
@@ -82,6 +88,28 @@ module PayoutRouter
         smoothed(operations, approved)
       end
 
+      # 95% доверительный интервал Уилсона для конверсии провайдера: на 20–40 наблюдениях
+      # разброс велик, и «заявлено 0.87 против 0.78 в истории» может быть шумом, а 0.91 против 0.47 — нет.
+      def conversion_interval(provider)
+        stats = self.for(provider)
+        return nil if stats.nil? || stats.operations.zero?
+
+        n = stats.operations.to_f
+        p_hat = stats.approved / n
+        denominator = 1 + ((Z95**2) / n)
+        center = (p_hat + ((Z95**2) / (2 * n))) / denominator
+        half = Z95 * Math.sqrt((p_hat * (1 - p_hat) / n) + ((Z95**2) / (4 * n * n))) / denominator
+        [(center - half).round(3), (center + half).round(3)]
+      end
+
+      # Конверсия по размеру чека (все провайдеры вместе).
+      def amount_buckets
+        @amount_buckets.to_h do |label, outcome|
+          conversion = outcome.operations.zero? ? nil : (outcome.approved.to_f / outcome.operations).round(3)
+          [label, { "operations" => outcome.operations, "approved" => outcome.approved, "conversion" => conversion }]
+        end
+      end
+
       def serialize
         {
           "operations" => @total_operations,
@@ -89,7 +117,8 @@ module PayoutRouter
           "providers" => providers.to_h { |name| [name, serialize_provider(name)] },
           "banks" => banks.to_h do |bank, count|
             [bank, { "operations" => count, "share_pct" => bank_share_pct(bank).round(1) }]
-          end
+          end,
+          "amount_buckets" => amount_buckets
         }
       end
 
@@ -121,9 +150,19 @@ module PayoutRouter
         stats.operations += 1
         stats.volume += record.amount
         add_bank(stats, record)
+        add_bucket(record)
         @total_operations += 1
         @total_volume += record.amount
         add_outcome(stats, record)
+      end
+
+      def add_bucket(record)
+        label, = AMOUNT_BUCKETS.find { |_label, from, to| record.amount.between?(from, to) }
+        return if label.nil?
+
+        bucket = @amount_buckets[label]
+        bucket.operations += 1
+        bucket.approved += 1 if record.approved?
       end
 
       def add_bank(stats, record)

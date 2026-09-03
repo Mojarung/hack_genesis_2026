@@ -16,6 +16,21 @@ module PayoutRouter
         [%w[провайдер операций доля доля_объёма конверсия отказы таймауты задержка], *rows]
       end
 
+      def history_buckets(stats)
+        rows = stats.amount_buckets.map do |label, bucket|
+          [label, bucket["operations"], bucket["approved"], bucket["conversion"] || "—"]
+        end
+        [%w[сумма_чека операций одобрено конверсия], *rows]
+      end
+
+      def history_intervals(stats)
+        rows = stats.providers.map do |name|
+          interval = stats.conversion_interval(name)
+          [name, stats.conversion(name)&.round(3), "[#{interval.first}, #{interval.last}]"]
+        end
+        [%w[провайдер конверсия 95%_интервал_Уилсона], *rows]
+      end
+
       def backtest(result)
         rows = result.by_provider.map do |name, values|
           [name, values["actual"], values["ours"], values["expected_actual"], values["expected_ours"]]

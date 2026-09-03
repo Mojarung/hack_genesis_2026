@@ -78,6 +78,10 @@ module PayoutRouter
 
       print_table(Output::Tables.history(stats))
       say "банки: #{stats.banks.map { |bank, count| "#{bank} #{count}" }.join(", ")}"
+      say "Конверсия по сумме чека:", :cyan
+      print_table(Output::Tables.history_buckets(stats))
+      say "Доверительные интервалы конверсии (Wilson, 95%):", :cyan
+      print_table(Output::Tables.history_intervals(stats))
     rescue PayoutRouter::Error => e
       fail_with(e)
     end

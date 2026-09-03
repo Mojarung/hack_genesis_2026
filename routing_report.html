@@ -189,22 +189,14 @@
   </section>
 
   <section>
-    <h2>Рекомендации <small>7</small></h2>
+    <h2>Рекомендации <small>5</small></h2>
     <div class="rec critical">
       <div class="tag">критично · daily_limit_pressure · traffic_percentage: 35 → 20</div>
       <div>payflow: дневной лимит использован на 99.6% (2 988 800 ₽ из 3 000 000 ₽) — снизить traffic_percentage с 35 до 20 или поднять daily_amount_limit до 3 800 000 ₽</div>
     </div>
     <div class="rec warning">
-      <div class="tag">внимание · conversion_drift · conversion_24h: 0.87 → 0.78</div>
-      <div>vipay: заявленная conversion_24h 0.87 против 0.78 в истории (41 операций) — метрика завышена, скоринг по конверсии переоценивает провайдера. Проверить источник conversion_24h или использовать наблюдаемое значение 0.78</div>
-    </div>
-    <div class="rec warning">
       <div class="tag">внимание · conversion_drift · conversion_24h: 0.91 → 0.47</div>
-      <div>payflow: заявленная conversion_24h 0.91 против 0.47 в истории (19 операций) — метрика завышена, скоринг по конверсии переоценивает провайдера. Проверить источник conversion_24h или использовать наблюдаемое значение 0.47</div>
-    </div>
-    <div class="rec warning">
-      <div class="tag">внимание · conversion_drift · conversion_24h: 0.79 → 0.68</div>
-      <div>quickpay: заявленная conversion_24h 0.79 против 0.68 в истории (40 операций) — метрика завышена, скоринг по конверсии переоценивает провайдера. Проверить источник conversion_24h или использовать наблюдаемое значение 0.68</div>
+      <div>payflow: заявленная conversion_24h 0.91 лежит вне 95% интервала по истории [0.273, 0.683] (19 операций, факт 0.47) — метрика завышена, скоринг по конверсии переоценивает провайдера. Проверить источник conversion_24h или использовать наблюдаемое значение 0.47</div>
     </div>
     <div class="rec info">
       <div class="tag">к сведению · low_conversion_overload · goals.conversion: 0.1 → 0.2</div>
