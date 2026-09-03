@@ -5,7 +5,7 @@ module PayoutRouter
     module Registry
       ALL = [
         ProviderActive, TrafficEnabled, AmountRange, DailyLimit, InProgressCount, InProgressAmount,
-        Requisites, Margin, BankFilter, RateLimit, DailyTurnoverMax
+        Requisites, Margin, BankFilter, RateLimit, DailyTurnoverMax, CircuitBreaker
       ].freeze
       BY_KEY = ALL.to_h { |klass| [klass.key, klass] }.freeze
 

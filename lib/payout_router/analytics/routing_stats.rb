@@ -126,7 +126,8 @@ module PayoutRouter
           "rejected" => state.rejected_count,
           "expired" => state.expired_count,
           "conversion_simulated" => simulated_conversion(state),
-          "conversion_24h" => provider.conversion_24h
+          "conversion_24h" => provider.conversion_24h,
+          "circuit_trips" => state.circuit_trips
         }
       end
 

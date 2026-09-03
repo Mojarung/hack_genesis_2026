@@ -48,9 +48,11 @@ module Builders
     PayoutRouter::Routing::Candidate.new(provider: provider, state: ledger.state(provider.name))
   end
 
-  def route_all(providers:, operations:, policy: build_policy, simulator: PayoutRouter::Simulation::Optimistic.new)
+  def route_all(providers:, operations:, policy: build_policy, simulator: PayoutRouter::Simulation::Optimistic.new,
+                history: nil)
     snapshot = policy.apply(build_snapshot(*providers))
-    PayoutRouter::Routing::BatchRouter.new(snapshot: snapshot, policy: policy, simulator: simulator).call(operations)
+    PayoutRouter::Routing::BatchRouter.new(snapshot: snapshot, policy: policy, simulator: simulator,
+                                           history: history).call(operations)
   end
 
   def data_path(name) = File.join(DATA_DIR, name)

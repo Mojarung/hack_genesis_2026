@@ -9,10 +9,10 @@ module PayoutRouter
 
       attr_reader :goals
 
-      def initialize(policy:, snapshot:)
+      def initialize(policy:, snapshot:, history: nil)
         @goals = policy.enabled_goals.map do |key, weight|
-          Goal.new(strategy: Strategies::Registry.fetch(key).new(policy: policy, snapshot: snapshot),
-                   weight: weight.to_f)
+          strategy = Strategies::Registry.fetch(key).new(policy: policy, snapshot: snapshot, history: history)
+          Goal.new(strategy: strategy, weight: weight.to_f)
         end.freeze
         raise PolicyError, "в политике #{policy.name} не включена ни одна цель" if @goals.empty?
 

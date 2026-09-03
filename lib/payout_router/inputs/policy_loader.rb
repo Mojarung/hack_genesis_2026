@@ -36,6 +36,7 @@ module PayoutRouter
           tie_breakers: tie_breakers,
           amount_bands: amount_bands,
           provider_overrides: provider_overrides,
+          circuit_breaker: circuit_breaker,
           simulation: simulation
         )
       end
@@ -101,6 +102,19 @@ module PayoutRouter
 
         raise PolicyError, "#{@source}: у провайдера #{provider} неизвестный параметр #{field} " \
                            "(доступны: #{OVERRIDABLE_FIELDS.join(", ")})"
+      end
+
+      def circuit_breaker
+        raw = @doc.fetch("circuit_breaker", {})
+        raise PolicyError, "#{@source}: circuit_breaker должен быть объектом" unless raw.is_a?(Hash)
+
+        failures = raw.fetch("failures", 3)
+        cooldown = raw.fetch("cooldown_sec", 300)
+        unless failures.is_a?(Integer) && failures >= 0 && cooldown.is_a?(Integer) && cooldown >= 0
+          raise PolicyError, "#{@source}: circuit_breaker.failures и cooldown_sec должны быть целыми числами ≥ 0"
+        end
+
+        Domain::Policy::CircuitBreakerSettings.new(failures: failures, cooldown_sec: cooldown)
       end
 
       def simulation

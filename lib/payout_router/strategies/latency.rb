@@ -4,7 +4,7 @@ module PayoutRouter
   module Strategies
     # Предпочитать быстрых: самый медленный внешний провайдер получает 0, мгновенный — 1.
     class Latency < Base
-      def initialize(policy:, snapshot:)
+      def initialize(policy:, snapshot:, history: nil)
         super
         @slowest = [snapshot.external.filter_map(&:avg_latency_sec).max || 1, 1].max.to_f
       end

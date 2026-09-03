@@ -5,12 +5,14 @@ module PayoutRouter
     # Состояние всех провайдеров + виртуальные часы. Роутер спрашивает у леджера доли и загрузку,
     # а после каждой заявки сообщает ему, кому и с каким исходом она ушла.
     class Ledger
-      Settlement = Data.define(:state, :operation, :outcome)
+      Settlement = Data.define(:state, :operation, :outcome, :due)
 
       attr_reader :states, :selected_total, :selected_amount_total
 
-      def initialize(snapshot)
-        @states = snapshot.providers.to_h { |provider| [provider.name, ProviderState.new(provider)] }.freeze
+      def initialize(snapshot, circuit_breaker: nil)
+        @states = snapshot.providers.to_h do |provider|
+          [provider.name, ProviderState.new(provider, breaker: circuit_breaker)]
+        end.freeze
         @external = @states.values.select { |state| state.provider.external? }.freeze
         @fallback = @states.values.find { |state| state.provider.fallback? }
         @pending = SettlementQueue.new
@@ -25,7 +27,8 @@ module PayoutRouter
       # Заявка ушла провайдеру; ответ придёт через latency — до тех пор она висит in-progress.
       def dispatch!(state, operation, outcome, now)
         state.dispatch!(operation, now)
-        @pending.push(now + outcome.latency_sec, Settlement.new(state: state, operation: operation, outcome: outcome))
+        due = now + outcome.latency_sec
+        @pending.push(due, Settlement.new(state: state, operation: operation, outcome: outcome, due: due))
       end
 
       def select!(state, operation)
@@ -37,13 +40,13 @@ module PayoutRouter
       # Применить все ответы, время которых наступило.
       def settle_due(now)
         while (settlement = @pending.pop_due(now))
-          settlement.state.settle!(settlement.operation, settlement.outcome)
+          settlement.state.settle!(settlement.operation, settlement.outcome, at: settlement.due)
         end
       end
 
       def settle_all
         while (settlement = @pending.pop)
-          settlement.state.settle!(settlement.operation, settlement.outcome)
+          settlement.state.settle!(settlement.operation, settlement.outcome, at: settlement.due)
         end
       end
 

@@ -9,11 +9,11 @@ module PayoutRouter
     #   4. внешних не осталось → fallback на self-provider; нет и его → заявка не маршрутизирована.
     # После каждой отправки леджер обновляет загрузку, оборот и счётчики интенсивности.
     class Router
-      def initialize(snapshot:, policy:, ledger:, simulator:)
+      def initialize(snapshot:, policy:, ledger:, simulator:, history: nil)
         @ledger = ledger
         @simulator = simulator
         @constraints = Constraints::Pipeline.new(policy.hard_constraints)
-        @scorer = Scoring::CompositeScorer.new(policy: policy, snapshot: snapshot)
+        @scorer = Scoring::CompositeScorer.new(policy: policy, snapshot: snapshot, history: history)
         @external = ledger.external_states
                           .sort_by { |state| [state.provider.priority, state.name] }
                           .map { |state| Candidate.new(provider: state.provider, state: state) }

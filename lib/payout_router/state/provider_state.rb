@@ -3,22 +3,26 @@
 module PayoutRouter
   module State
     # Изменяемое состояние провайдера в ходе роутинга: оборот, in-progress, реквизиты,
-    # моменты отправок (для лимита интенсивности) и счётчики исходов.
+    # моменты отправок (для лимита интенсивности), счётчики исходов и предохранитель.
     class ProviderState
       RATE_WINDOW_SEC = 60
 
-      attr_reader :provider, :daily_approved_amount, :in_progress_count, :in_progress_amount,
+      attr_reader :provider, :breaker, :daily_approved_amount, :in_progress_count, :in_progress_amount,
                   :available_requisites, :dispatch_count, :selected_count, :selected_amount,
-                  :approved_count, :approved_amount, :rejected_count, :expired_count
+                  :approved_count, :approved_amount, :rejected_count, :expired_count,
+                  :consecutive_failures, :circuit_open_until, :circuit_trips
 
-      def initialize(provider)
+      def initialize(provider, breaker: nil)
         @provider = provider
+        @breaker = breaker
         @daily_approved_amount = provider.daily_approved_amount || 0
         @in_progress_count = provider.in_progress_count || 0
         @in_progress_amount = provider.in_progress_amount || 0
         @available_requisites = provider.available_requisites || 0
         @dispatch_count = @selected_count = @selected_amount = 0
         @approved_count = @approved_amount = @rejected_count = @expired_count = 0
+        @consecutive_failures = @circuit_trips = 0
+        @circuit_open_until = nil
         @request_times = []
       end
 
@@ -39,20 +43,25 @@ module PayoutRouter
         @selected_amount += operation.amount
       end
 
-      # Провайдер ответил: освобождаем in-progress и реквизит, одобренное — в дневной оборот.
-      def settle!(operation, outcome)
+      # Провайдер ответил (в момент at): освобождаем in-progress и реквизит,
+      # одобренное — в дневной оборот, серия отказов — в предохранитель.
+      def settle!(operation, outcome, at: nil)
         @in_progress_count -= 1
         @in_progress_amount -= operation.amount
         @available_requisites += 1
         case outcome.result
-        when "approved"
-          @approved_count += 1
-          @approved_amount += operation.amount
-          @daily_approved_amount += operation.amount
-        when "rejected" then @rejected_count += 1
-        when "expired" then @expired_count += 1
+        when "approved" then record_approval(operation)
+        when "rejected"
+          @rejected_count += 1
+          record_failure(at)
+        when "expired"
+          @expired_count += 1
+          record_failure(at)
         end
       end
+
+      # Предохранитель разомкнут: провайдер в карантине до circuit_open_until.
+      def circuit_open?(now) = !@circuit_open_until.nil? && now < @circuit_open_until
 
       # Отправок за последнюю минуту. Времена монотонны (очередь идёт по created_at),
       # поэтому устаревшие просто срезаем с начала.
@@ -77,6 +86,22 @@ module PayoutRouter
       def max_utilization = utilization.values.max
 
       private
+
+      def record_approval(operation)
+        @approved_count += 1
+        @approved_amount += operation.amount
+        @daily_approved_amount += operation.amount
+        @consecutive_failures = 0
+      end
+
+      def record_failure(at)
+        @consecutive_failures += 1
+        return if at.nil? || @breaker.nil? || !@breaker.enabled? || @consecutive_failures < @breaker.failures
+
+        @circuit_open_until = at + @breaker.cooldown_sec
+        @circuit_trips += 1
+        @consecutive_failures = 0
+      end
 
       def ratio(used, limit)
         return 0.0 if limit.nil? || limit.zero?

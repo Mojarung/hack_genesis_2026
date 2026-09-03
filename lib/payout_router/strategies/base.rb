@@ -6,14 +6,18 @@ module PayoutRouter
     # где 1 — «очень хотим отдать заявку сюда». Веса целей задаёт политика.
     # Новая стратегия = новый класс-наследник + ключ в политике (goals).
     class Base
+      NEUTRAL = 0.5
+
       # Ключ цели в политике: TrafficShare → "traffic_share".
       def self.key = @key ||= name.split("::").last.gsub(/([a-z\d])([A-Z])/, "\\1_\\2").downcase
 
       def key = self.class.key
 
-      def initialize(policy:, snapshot:)
+      # history — Analytics::HistoryStats (может отсутствовать: тогда цели на истории нейтральны).
+      def initialize(policy:, snapshot:, history: nil)
         @policy = policy
         @snapshot = snapshot
+        @history = history
       end
 
       # candidate — Routing::Candidate, context — Scoring::Context (operation, ledger, now).

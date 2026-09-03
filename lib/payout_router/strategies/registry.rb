@@ -5,7 +5,7 @@ module PayoutRouter
     module Registry
       ALL = [
         TrafficShare, VolumeShare, CascadePriority, AmountBand, Conversion, Load,
-        TurnoverMin, RateHeadroom, Latency, Margin
+        TurnoverMin, RateHeadroom, Latency, Margin, BankAffinity, ExpectedValue
       ].freeze
       BY_KEY = ALL.to_h { |klass| [klass.key, klass] }.freeze
 

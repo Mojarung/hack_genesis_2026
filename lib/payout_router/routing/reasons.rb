@@ -20,6 +20,7 @@ module PayoutRouter
       BANK_UNKNOWN = "bank_unknown"
       RATE_LIMIT_EXCEEDED = "rate_limit_exceeded"
       DAILY_TURNOVER_MAX_EXCEEDED = "daily_turnover_max_exceeded"
+      CIRCUIT_OPEN = "circuit_open"
 
       # Результат выбора среди допустимых.
       BEST_SCORE = "best_score"
@@ -36,7 +37,8 @@ module PayoutRouter
       HARD = [
         PROVIDER_INACTIVE, TRAFFIC_DISABLED, AMOUNT_BELOW_MINIMUM, AMOUNT_EXCEEDS_LIMIT, DAILY_LIMIT_EXCEEDED,
         IN_PROGRESS_COUNT_LIMIT, IN_PROGRESS_AMOUNT_LIMIT, NO_AVAILABLE_REQUISITES, NEGATIVE_MARGIN,
-        BANK_NOT_IN_LIST, BANK_EXCLUDED, BANK_UNKNOWN, RATE_LIMIT_EXCEEDED, DAILY_TURNOVER_MAX_EXCEEDED
+        BANK_NOT_IN_LIST, BANK_EXCLUDED, BANK_UNKNOWN, RATE_LIMIT_EXCEEDED, DAILY_TURNOVER_MAX_EXCEEDED,
+        CIRCUIT_OPEN
       ].freeze
 
       FAILURES = [PROVIDER_REJECTED, PROVIDER_TIMEOUT].freeze
@@ -56,6 +58,7 @@ module PayoutRouter
         BANK_UNKNOWN => "банк не указан, а у провайдера есть фильтр по банкам",
         RATE_LIMIT_EXCEEDED => "превышена интенсивность (заявок в минуту)",
         DAILY_TURNOVER_MAX_EXCEEDED => "достигнут максимум оборота по фин. обязательству",
+        CIRCUIT_OPEN => "провайдер в карантине после серии отказов",
         BEST_SCORE => "лучший суммарный скор по активным целям",
         ONLY_ELIGIBLE => "единственный допустимый провайдер",
         LOWER_SCORE => "допустим, но уступил по скору",
