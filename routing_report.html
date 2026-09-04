@@ -19,6 +19,7 @@
   section { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 22px 26px; }
   section h2 { margin: 0 0 14px; font-size: 18px; letter-spacing: -0.01em; }
   section h2 small { color: var(--muted); font-weight: 400; font-size: 13px; margin-left: 8px; }
+  p.note { color: var(--muted); font-size: 13px; margin: 0 0 10px; max-width: 70ch; }
   .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; }
   .kpi { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; background: #fff; }
   .kpi .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
@@ -68,9 +69,12 @@
   </section>
 
   <section>
-    <h2>Распределение <small>факт против цели</small></h2>
+    <h2>Распределение <small>факт против цели из снимка и против достижимой</small></h2>
+    <p class="note">Достижимая цель — доля, которую провайдер получил бы при идеально пропорциональном
+      роутинге среди тех заявок, где он вообще проходит hard-правила. Отклонение от неё показывает работу
+      стратегии; отклонение от цели из снимка — ещё и то, насколько сама цель выполнима на этих данных.</p>
     <table>
-      <tr><th>Провайдер</th><th>Доля по заявкам</th><th class="num">Заявок</th><th class="num">Факт</th><th class="num">Цель</th><th class="num">Откл.</th><th class="num">Объём</th><th class="num">Доля объёма / цель</th></tr>
+      <tr><th>Провайдер</th><th>Доля по заявкам</th><th class="num">Заявок</th><th class="num">Факт</th><th class="num">Цель</th><th class="num">Откл.</th><th class="num">Достижимо</th><th class="num">Откл. от дост.</th><th class="num">Объём</th><th class="num">Доля объёма / цель</th></tr>
       <tr>
         <td><b>vipay</b></td>
         <td><div class="bar"><i style="width: 40.0%"></i><b style="left: 40.0%"></b></div></td>
@@ -78,6 +82,8 @@
         <td class="num">40.0%</td>
         <td class="num">40%</td>
         <td class="num dev-zero">+0.0</td>
+        <td class="num">22.5%</td>
+        <td class="num dev-pos">+17.5</td>
         <td class="num">102 000 ₽</td>
         <td class="num">26.4% / 50%</td>
       </tr>
@@ -88,6 +94,8 @@
         <td class="num">30.0%</td>
         <td class="num">35%</td>
         <td class="num dev-neg">-5.0</td>
+        <td class="num">25.2%</td>
+        <td class="num dev-pos">+4.8</td>
         <td class="num">88 800 ₽</td>
         <td class="num">23.0% / 30%</td>
       </tr>
@@ -98,6 +106,8 @@
         <td class="num">30.0%</td>
         <td class="num">25%</td>
         <td class="num dev-pos">+5.0</td>
+        <td class="num">52.4%</td>
+        <td class="num dev-neg">-22.4</td>
         <td class="num">195 000 ₽</td>
         <td class="num">50.5% / 20%</td>
       </tr>

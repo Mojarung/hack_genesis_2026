@@ -9,13 +9,16 @@ module PayoutRouter
       def serialized_decisions = decisions.map(&:serialize)
     end
 
-    def initialize(providers_path:, policy_path:, history_path: nil, simulation_mode: nil, seed: nil, timeout: nil)
+    def initialize(providers_path:, policy_path:, history_path: nil, simulation_mode: nil, seed: nil, timeout: nil,
+                   on_invalid: :fail)
       @providers_path = providers_path
       @policy_path = policy_path
       @history_path = history_path
       @simulation_mode = simulation_mode
       @seed = seed
       @timeout = timeout
+      @on_invalid = on_invalid
+      @rejected_operations = []
     end
 
     # Политика из файла плюс переопределения симуляции из командной строки — чтобы роутер,
@@ -33,7 +36,15 @@ module PayoutRouter
 
     def simulation = policy.simulation
 
-    def load_queue(queue_path) = Inputs::QueueLoader.load(queue_path, default_time: snapshot.snapshot_at)
+    def load_queue(queue_path)
+      loader = Inputs::QueueLoader.new(Inputs::JSONFile.read(queue_path),
+                                       source: queue_path,
+                                       default_time: snapshot.snapshot_at,
+                                       on_invalid: @on_invalid)
+      operations = loader.call
+      @rejected_operations = loader.rejected
+      operations
+    end
 
     def load_policies(paths) = paths.map { |path| Inputs::PolicyLoader.load(path) }
 
@@ -85,7 +96,15 @@ module PayoutRouter
         list << "fallback-провайдер #{policy.fallback_provider} отсутствует в providers.json — " \
                 "заявки без допустимых провайдеров останутся без маршрута"
       end
-      list
+      list + rejected_warnings
+    end
+
+    # Заявки в карантине (on_invalid: skip): их нет в решениях, и это надо увидеть, а не проглядеть.
+    def rejected_warnings
+      @rejected_operations.map do |rejected|
+        id = rejected.operation_id || "позиция #{rejected.index}"
+        "заявка #{id} не разобрана и пропущена (on_invalid: skip): #{rejected.message}"
+      end
     end
 
     private

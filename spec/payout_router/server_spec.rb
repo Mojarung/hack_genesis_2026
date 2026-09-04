@@ -75,6 +75,17 @@ RSpec.describe PayoutRouter::Server do
     expect(state["providers"]["payflow"]["in_progress_count"]).to eq(3)
   end
 
+  it "живёт по часам сервиса, а не по created_at заявки" do
+    request(:post, "/route", JSON.generate(operation.merge("operation_id" => "op_old",
+                                                           "created_at" => "2020-01-01T00:00:00+03:00")))
+    request(:post, "/route", JSON.generate(operation.merge("operation_id" => "op_new")))
+    state = JSON.parse(request(:get, "/state").body)
+
+    # Обе заявки ещё ждут ответа. Живи роутер по created_at, заявка из 2020 года считалась бы
+    # отвеченной сразу же — и освободила бы ёмкость, которой на самом деле нет.
+    expect(state["pending_settlements"]).to eq(2)
+  end
+
   it "отвечает 400 на битый конверт состояния" do
     envelope = { "operation" => operation, "providers" => { "vipay" => { "in_progress_count" => -3 } } }
     response = request(:post, "/route", JSON.generate(envelope))

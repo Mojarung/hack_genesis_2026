@@ -14,7 +14,10 @@ module PayoutRouter
             next if share["deviation_pp"] > THRESHOLD_PP
 
             attainability = context.attainability[provider.name]
-            if attainability["eligible_pct"] < share["target_pct"]
+            # Сравниваем цель не с «в скольких заявках провайдер допустим» (это верхняя граница,
+            # она завышена, когда за те же заявки борются другие), а с долей при идеально
+            # пропорциональном роутинге по допустимым — её и предлагаем как новую цель.
+            if share["proportional_target_pct"] < share["target_pct"]
               unattainable(provider, share, attainability)
             else
               outscored(provider, share, context.policy)
@@ -26,14 +29,15 @@ module PayoutRouter
 
         def unattainable(provider, share, attainability)
           reason, count = attainability["blocked_by"].first
-          fix = fix_for(provider, reason, attainability)
+          fix = fix_for(provider, reason, attainability, share)
           recommend(
             provider: provider.name, severity: "warning", parameter: fix[:parameter],
             current: fix[:current], suggested: fix[:suggested],
             message: "#{provider.name}: доля #{share["share_pct"]}% при цели #{share["target_pct"]}% — цель " \
                      "недостижима, провайдер допустим лишь в #{attainability["eligible_pct"]}% заявок " \
-                     "(главная причина: #{reason}, #{count} раз). #{fix[:text]}; либо снизить traffic_percentage " \
-                     "до достижимых #{round_to(attainability["eligible_pct"], 5)}"
+                     "(главная причина: #{reason}, #{count} раз), а при пропорциональном роутинге по допустимым " \
+                     "получил бы #{share["proportional_target_pct"]}%. #{fix[:text]}; либо снизить " \
+                     "traffic_percentage до достижимых #{round_to(share["proportional_target_pct"], 5)}"
           )
         end
 
@@ -48,7 +52,7 @@ module PayoutRouter
           )
         end
 
-        def fix_for(provider, reason, attainability)
+        def fix_for(provider, reason, attainability, share)
           case reason
           when Routing::Reasons::BANK_NOT_IN_LIST
             banks = attainability["blocked_banks"].keys.first(3)
@@ -64,7 +68,7 @@ module PayoutRouter
               text: "Опустить limit_amount_min с #{provider.limit_amount_min} до #{min}" }
           else
             { parameter: "traffic_percentage", current: provider.traffic_percentage,
-              suggested: round_to(attainability["eligible_pct"], 5), text: "Устранить причину #{reason}" }
+              suggested: round_to(share["proportional_target_pct"], 5), text: "Устранить причину #{reason}" }
           end
         end
       end

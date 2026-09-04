@@ -4,12 +4,14 @@ module PayoutRouter
   module Strategies
     # Стратегия 2: целевая доля по объёму (рубли). База — дневной оборот из снимка
     # плюс заявки сессии, так что перекос, накопленный до старта, тоже выравнивается.
+    # При share_targets: attainable цель пересчитывается на допустимых кандидатов заявки (см. Base#target_share).
     class VolumeShare < Base
       def evaluate(candidate, context)
-        target = candidate.provider.volume_target_pct.to_f
+        target = target_share(candidate, context) { |item| item.provider.volume_target_pct.to_f }
         actual = context.ledger.volume_share_pct(candidate.state)
-        deficit = target - actual
-        signal(0.5 + (deficit / 100.0), "volume share #{pct(actual)} vs target #{pct(target)} (#{signed(deficit)} pp)")
+        deficit = target.pct - actual
+        signal(0.5 + (deficit / 100.0),
+               "volume share #{pct(actual)} vs target #{pct(target.pct)}#{target.note} (#{signed(deficit)} pp)")
       end
     end
   end

@@ -23,16 +23,16 @@ Hack.Genesis 2026, задача 2 «Умный роутинг выплат» (о
 
 | Слой | Файлы | Что искать |
 |---|---|---|
-| Входы | `lib/payout_router/inputs/*` | `Fields` — проверка полей с адресом ошибки; `PolicyLoader` валидирует ключи по реестрам |
+| Входы | `lib/payout_router/inputs/*` | `Fields` — проверка полей с адресом ошибки; `PolicyLoader` валидирует ключи по реестрам; `QueueLoader#on_invalid: :skip` — карантин битых заявок; `StateUpdate` — внешний снимок состояния |
 | Домен | `lib/payout_router/domain/*` | `Provider` (Data + дефолты), `Policy#apply`, `Policy#with_goals`, `Policy#to_h_document` |
 | Hard-правила | `lib/payout_router/constraints/*` | `Base#call → pass/violation`, `Registry::ALL` (13) и `Registry::STATIC` — правила для fallback; `CircuitBreaker` (со состоянием) |
 | Состояние | `lib/payout_router/state/*` | `Ledger#dispatch!/settle_due` — виртуальные часы и точка линеаризации; `Ledger#sync!` — внешний снимок перед заявкой (`Inputs::StateUpdate`); `ProviderState#record_failure` — предохранитель; `#hold_timeout!` — таймаут без освобождения ёмкости |
-| Цели | `lib/payout_router/strategies/*` | `Base#evaluate → signal(score, note)`, `Base#approval_model`; формула долей `0.5 + (цель − факт)/100`; `Conversion`/`BankAffinity`/`ExpectedValue` — через `Analytics::ApprovalModel` (усадка к приору, `MIN_BANK_SAMPLES = 5`) |
+| Цели | `lib/payout_router/strategies/*` | `Base#evaluate → signal(score, note)`, `Base#approval_model`; формула долей `0.5 + (цель − факт)/100`; `Base#target_share` — перенормировка цели на допустимых (`share_targets: attainable`); `Conversion`/`BankAffinity`/`ExpectedValue` — через `Analytics::ApprovalModel` (усадка к приору, `MIN_BANK_SAMPLES = 5`) |
 | Скоринг | `lib/payout_router/scoring/*` | `Scoring.build` → `CompositeScorer` (веса; `selection.normalization: pool` — min-max по пулу кандидатов, `absolute` — как есть) или `ChainScorer` (цепочка, всегда absolute); `Score#summary(versus:)` — решающие цели как перевес над соперником |
 | Свои стратегии | `strategies/custom/*`, `config/plugins/*` | `Strategies.instantiate`; плагины регистрирует `Registry.discover!`; декларативные — `custom_goals` в YAML |
 | Роутинг | `lib/payout_router/routing/*` | `Router#route` → `try_ranked` → `fallback` (только `policy.fallback_rules`, ёмкость self-provider не ограничивает) → `unrouted`; коды причин в `Reasons` |
 | Симуляция | `lib/payout_router/simulation/*` | `optimistic` (сдача) / `conversion` (seed, демо каскада); `simulation.timeout: cascade\|hold` — семантика таймаута (ТЗ против разъяснения экспертов), флаг `--timeout` |
-| Аналитика | `lib/payout_router/analytics/*` | `ApprovalModel` (пара × банк, LOO), `Backtest`, `PolicyComparison`, `MonteCarlo`, `WeightTuner`, `recommendations/engine.rb` |
+| Аналитика | `lib/payout_router/analytics/*` | `ApprovalModel` (пара × банк, LOO), `Backtest`, `PolicyComparison`, `MonteCarlo`, `WeightTuner`, `recommendations/engine.rb`; `RoutingStats#accumulate_fair_share` — достижимая цель (`proportional_target_pct`) |
 | Выход/CLI | `lib/payout_router/output/*`, `cli.rb`, `runner.rb`, `server.rb` | `Runner` — весь сценарий; `HtmlReport` + `templates/report.html.erb`; `Server::Service` |
 | Проверка | `lib/payout_router/validation/decisions_validator.rb` | повторяет `scripts/validate_10.rb` + инвариант «один selected» |
 
@@ -51,7 +51,7 @@ Hack.Genesis 2026, задача 2 «Умный роутинг выплат» (о
 
 ## Состояние
 
-190 спеков зелёные (покрытие строк 97.8%), rubocop чист, бэктест conversion_first +4.7% / balanced −5.0% (цена
+195 спеков зелёные (покрытие строк 97.8%), rubocop чист, бэктест conversion_first +4.7% / balanced −5.0% (цена
 удержания долей), бенчмарк ≈2 200 заявок/с на этой машине (без YJIT). Разбор QA-сессии 04.09 с экспертами —
 `docs/checkpoint.md`, раздел 4.3; открытые вопросы к ним — раздел 5 (главные: база для фактической доли
 и какая семантика таймаута нужна в сдаваемом файле).

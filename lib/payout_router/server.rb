@@ -27,7 +27,7 @@ module PayoutRouter
           @router = Routing::Router.new(snapshot: @snapshot, policy: @policy, ledger: @ledger, simulator: simulator,
                                         history: @runner.history_stats)
           @decisions = []
-          @started_at = Time.now
+          @started_at = @clock = Time.now
         end
       end
 
@@ -44,7 +44,7 @@ module PayoutRouter
         operation = Inputs::QueueLoader.new([raw], source: "request", default_time: Time.now).call.first
         @mutex.synchronize do
           @ledger.sync!(updates) unless updates.empty?
-          decision = @router.route(operation)
+          decision = @router.route(operation, now: tick!)
           @decisions << decision
           decision
         end
@@ -80,6 +80,11 @@ module PayoutRouter
       end
 
       private
+
+      # Часы сервиса: маршрутизируем по времени прихода запроса, а не по created_at заявки.
+      # Поле created_at в решении остаётся тем, что прислали, — но роутер по нему не живёт:
+      # заявка задним числом иначе сдвинула бы окно интенсивности и очередь ответов назад.
+      def tick! = @clock = [Time.now, @clock].max
 
       # Заявка приходит либо сама по себе, либо в конверте вместе со снимком состояния провайдеров.
       def unwrap(payload)

@@ -19,6 +19,7 @@
   section { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; padding: 22px 26px; }
   section h2 { margin: 0 0 14px; font-size: 18px; letter-spacing: -0.01em; }
   section h2 small { color: var(--muted); font-weight: 400; font-size: 13px; margin-left: 8px; }
+  p.note { color: var(--muted); font-size: 13px; margin: 0 0 10px; max-width: 70ch; }
   .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; }
   .kpi { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; background: #fff; }
   .kpi .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
@@ -68,11 +69,15 @@
   </section>
 
   <section>
-    <h2>Распределение <small>факт против цели</small></h2>
+    <h2>Распределение <small>факт против цели из снимка и против достижимой</small></h2>
+    <p class="note">Достижимая цель — доля, которую провайдер получил бы при идеально пропорциональном
+      роутинге среди тех заявок, где он вообще проходит hard-правила. Отклонение от неё показывает работу
+      стратегии; отклонение от цели из снимка — ещё и то, насколько сама цель выполнима на этих данных.</p>
     <table>
-      <tr><th>Провайдер</th><th>Доля по заявкам</th><th class="num">Заявок</th><th class="num">Факт</th><th class="num">Цель</th><th class="num">Откл.</th><th class="num">Объём</th><th class="num">Доля объёма / цель</th></tr>
+      <tr><th>Провайдер</th><th>Доля по заявкам</th><th class="num">Заявок</th><th class="num">Факт</th><th class="num">Цель</th><th class="num">Откл.</th><th class="num">Достижимо</th><th class="num">Откл. от дост.</th><th class="num">Объём</th><th class="num">Доля объёма / цель</th></tr>
       <%- report["distribution"].each do |name, share| -%>
       <%- deviation = share["deviation_pp"] -%>
+      <%- attainable_deviation = share["proportional_deviation_pp"] -%>
       <tr>
         <td><b><%= h(name) %></b></td>
         <td><div class="bar"><i style="width: <%= bar_width(share["share_pct"]) %>%"></i><b style="left: <%= bar_width(share["target_pct"]) %>%"></b></div></td>
@@ -80,6 +85,8 @@
         <td class="num"><%= pct(share["share_pct"]) %></td>
         <td class="num"><%= pct(share["target_pct"]) %></td>
         <td class="num <%= deviation.zero? ? "dev-zero" : (deviation.positive? ? "dev-pos" : "dev-neg") %>"><%= signed(deviation) %></td>
+        <td class="num"><%= pct(share["proportional_target_pct"]) %></td>
+        <td class="num <%= attainable_deviation.zero? ? "dev-zero" : (attainable_deviation.positive? ? "dev-pos" : "dev-neg") %>"><%= signed(attainable_deviation) %></td>
         <td class="num"><%= money(share["volume"]) %></td>
         <td class="num"><%= pct(share["volume_share_pct"]) %> / <%= pct(share["target_volume_pct"]) %></td>
       </tr>

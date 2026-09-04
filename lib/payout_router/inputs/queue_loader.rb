@@ -9,13 +9,29 @@ module PayoutRouter
     # зависеть от момента запуска.
     class QueueLoader
       EPOCH = Time.utc(2026, 1, 1)
+      MODES = %i[fail skip].freeze
 
-      def self.load(path, default_time: nil) = new(JSONFile.read(path), source: path, default_time: default_time).call
+      # Заявка, которую не удалось разобрать: с чем именно и на каком месте в файле.
+      Rejected = Data.define(:index, :operation_id, :message)
 
-      def initialize(document, source: "operations_queue.json", default_time: nil)
+      attr_reader :rejected
+
+      def self.load(path, default_time: nil, on_invalid: :fail)
+        new(JSONFile.read(path), source: path, default_time: default_time, on_invalid: on_invalid).call
+      end
+
+      # on_invalid: :fail — любая неразобранная заявка останавливает прогон с адресной ошибкой.
+      # Это разумно по умолчанию: молча отроутить часть очереди хуже, чем громко не отроутить ничего.
+      # :skip — заявка уходит в карантин (rejected), остальные обрабатываются. Страховка на сдачу:
+      # одна неожиданная строка в тестовой очереди не должна оставить нас вообще без файла решений.
+      def initialize(document, source: "operations_queue.json", default_time: nil, on_invalid: :fail)
+        @on_invalid = on_invalid.to_sym
+        raise InputError, "неизвестный режим on_invalid: #{on_invalid}" unless MODES.include?(@on_invalid)
+
         @document = document
         @source = source
         @default_time = default_time
+        @rejected = []
       end
 
       def call
@@ -23,17 +39,26 @@ module PayoutRouter
 
         base = @default_time || earliest_created_at || EPOCH
         seen = Set.new
-        @document.each_with_index.map do |raw, index|
-          operation = build(raw, index, base)
-          unless seen.add?(operation.operation_id)
-            raise InputError, "#{@source}: operation_id #{operation.operation_id} повторяется"
-          end
-
-          operation
-        end
+        @rejected = []
+        @document.each_with_index.filter_map { |raw, index| load_one(raw, index, base, seen) }
       end
 
       private
+
+      def load_one(raw, index, base, seen)
+        operation = build(raw, index, base)
+        unless seen.add?(operation.operation_id)
+          raise InputError, "#{@source}: operation_id #{operation.operation_id} повторяется"
+        end
+
+        operation
+      rescue InputError => e
+        raise if @on_invalid == :fail
+
+        @rejected << Rejected.new(index: index, operation_id: raw.is_a?(Hash) ? raw["operation_id"] : nil,
+                                  message: e.message)
+        nil
+      end
 
       def build(raw, index, base)
         raise InputError, "#{@source} [#{index}]: ожидается объект" unless raw.is_a?(Hash)

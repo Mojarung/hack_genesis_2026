@@ -164,6 +164,9 @@ RSpec.describe "загрузчики входных данных" do
       expect do
         build_policy("simulation" => { "timeout" => "ignore" })
       end.to raise_error(PayoutRouter::PolicyError, %r{simulation.timeout.*cascade/hold})
+      expect do
+        build_policy("share_targets" => "fair")
+      end.to raise_error(PayoutRouter::PolicyError, %r{share_targets.*absolute/attainable})
     end
   end
 

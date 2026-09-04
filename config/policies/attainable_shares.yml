@@ -1,0 +1,79 @@
+# Тот же balanced, но цели по долям считаются достижимыми: долю провайдера, не прошедшего
+# hard-правила на этой заявке, получают оставшиеся — пропорционально своим целям.
+#
+# Зачем: у payflow целевые 35% при дневном лимите 3 млн, который почти выбран, и максимальном
+# чеке 50 тыс. На большей части заявок он недопустим, но его недобор всё равно копится, а vipay
+# и quickpay при абсолютных целях вечно выглядят «перебравшими» и теряют приоритет по этой цели.
+# Здесь на каждой заявке 100% делятся между теми, кто её реально может принять.
+#
+# Сравнить с абсолютными целями:
+#   payout_router compare --policies config/policy.yml config/policies/attainable_shares.yml
+
+name: attainable_shares
+description: >
+  Целевые доли трафика и объёма пересчитываются на допустимых кандидатов каждой заявки —
+  ответ на случай «нужная доля у недоступного провайдера».
+
+fallback_provider: spacepayments
+
+# Ключевое отличие от balanced: absolute (по умолчанию) → attainable.
+share_targets: attainable
+
+hard_constraints:
+  - provider_active
+  - currency
+  - traffic_enabled
+  - amount_range
+  - daily_limit
+  - in_progress_count
+  - in_progress_amount
+  - requisites
+  - margin
+  - bank_filter
+  - rate_limit
+  - daily_turnover_max
+  - circuit_breaker
+
+selection:
+  mode: weighted
+  normalization: pool
+
+goals:
+  traffic_share: 0.30
+  volume_share: 0.10
+  cascade_priority: 0.10
+  amount_band: 0.10
+  conversion: 0.10
+  bank_affinity: 0.05
+  load: 0.15
+  turnover_min: 0.05
+  rate_headroom: 0.05
+
+tie_breakers: [priority, conversion, name]
+
+amount_bands:
+  - { min: 500,    max: 50000,  prefer: [payflow] }
+  - { min: 50001,  max: 100000, prefer: [vipay] }
+  - { min: 100001, max: null,   prefer: [quickpay] }
+
+providers:
+  vipay:
+    volume_share_pct: 50
+    requests_per_minute_limit: 15
+    daily_turnover_max: 5000000
+  payflow:
+    volume_share_pct: 30
+    requests_per_minute_limit: 7
+    daily_turnover_min: 2000000
+  quickpay:
+    volume_share_pct: 20
+    requests_per_minute_limit: 15
+
+circuit_breaker:
+  failures: 3
+  cooldown_sec: 300
+
+simulation:
+  mode: optimistic
+  seed: 42
+  timeout: cascade

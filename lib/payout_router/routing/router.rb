@@ -25,14 +25,17 @@ module PayoutRouter
         @fallback = fallback && Candidate.new(state: fallback)
       end
 
-      def route(operation)
-        now = operation.created_at
+      # now — момент маршрутизации. В батче это время заявки (очередь идёт по возрастанию created_at),
+      # в сервисе — время прихода запроса: окно интенсивности и очередь ответов рассчитаны
+      # на неубывающее время, а created_at из запроса может прийти задним числом.
+      def route(operation, now: operation.created_at)
         @ledger.settle_due(now)
         attempts = []
         eligible = filter(operation, now, attempts)
         return fallback(operation, attempts, now, cause: "no eligible external provider") if eligible.empty?
 
-        ranked = @scorer.rank(eligible, Scoring::Context.new(operation: operation, ledger: @ledger, now: now))
+        context = Scoring::Context.new(operation: operation, ledger: @ledger, now: now, pool: eligible)
+        ranked = @scorer.rank(eligible, context)
         try_ranked(ranked, operation, now, attempts) ||
           fallback(operation, attempts, now, cause: "all #{ranked.size} eligible providers failed")
       end

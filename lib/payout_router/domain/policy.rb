@@ -7,7 +7,11 @@ module PayoutRouter
     # свои цели (плагины и декларативные), диапазоны сумм, параметры провайдеров, fallback, предохранитель, симуляция.
     class Policy < Data.define(:name, :description, :fallback_provider, :hard_constraints, :fallback_constraints,
                                :goals, :selection, :custom_goals, :plugins, :tie_breakers, :amount_bands,
-                               :provider_overrides, :circuit_breaker, :simulation)
+                               :provider_overrides, :circuit_breaker, :simulation, :share_targets)
+      # Как цели по долям понимают целевой процент из снимка:
+      #   absolute   — как написано: 40% значит 40% от всех заявок;
+      #   attainable — процент пересчитывается на допустимых кандидатов заявки (см. Strategies::Base#target_share).
+      SHARE_TARGETS = %w[absolute attainable].freeze
       # Стратегия «по сумме чека»: диапазон и провайдеры, которых в нём предпочитаем.
       class AmountBand < Data.define(:min, :max, :prefer)
         def cover?(amount) = (min.nil? || amount >= min) && (max.nil? || amount <= max)
@@ -66,11 +70,14 @@ module PayoutRouter
       def initialize(name: "custom", description: nil, fallback_provider: nil, hard_constraints: [],
                      fallback_constraints: nil, goals: {}, selection: Selection.new, custom_goals: {}, plugins: [],
                      tie_breakers: [], amount_bands: [], provider_overrides: {},
-                     circuit_breaker: CircuitBreakerSettings.new, simulation: SimulationSettings.new)
+                     circuit_breaker: CircuitBreakerSettings.new, simulation: SimulationSettings.new,
+                     share_targets: "absolute")
         super
       end
 
       def enabled_goals = goals.reject { |_goal, weight| weight.zero? }
+
+      def attainable_share_targets? = share_targets == "attainable"
 
       # Правила для fallback-провайдера: заданные явно, иначе — только статические правила допуска
       # из hard_constraints (ёмкостные ограничения self-provider не отсеивают, см. Constraints::Registry::STATIC).
@@ -110,7 +117,7 @@ module PayoutRouter
           "name" => name, "description" => description, "fallback_provider" => fallback_provider,
           "plugins" => plugins, "hard_constraints" => hard_constraints, "fallback_constraints" => fallback_rules,
           "goals" => goals, "selection" => selection_document, "custom_goals" => custom_goals_document,
-          "tie_breakers" => tie_breakers,
+          "share_targets" => share_targets, "tie_breakers" => tie_breakers,
           "amount_bands" => amount_bands.map { |band| band.to_h.transform_keys(&:to_s) },
           "providers" => provider_overrides.transform_values { |fields| fields.transform_keys(&:to_s) },
           "circuit_breaker" => circuit_breaker.to_h.transform_keys(&:to_s),

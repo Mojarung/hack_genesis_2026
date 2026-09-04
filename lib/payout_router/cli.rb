@@ -25,14 +25,19 @@ module PayoutRouter
     option :seed, type: :numeric, desc: "seed для режима conversion"
     option :timeout, type: :string, enum: %w[cascade hold],
                      desc: "таймаут: cascade — к следующему провайдеру (ТЗ), hold — оставить заявку и удержать ёмкость"
+    option :on_invalid, type: :string, enum: %w[fail skip], default: "fail",
+                        desc: "неразобранная заявка: fail — остановиться, skip — пропустить и отроутить остальные"
     option :html, type: :boolean, default: true, desc: "писать routing_report.html"
     option :quiet, type: :boolean, default: false, desc: "только пути к файлам"
     def route
       run = runner.call(options[:queue])
-      run.warnings.each { |warning| say "предупреждение: #{warning}", :yellow }
+      run.warnings.each { |warning| say_warning("предупреждение: #{warning}") }
       written = write_run(run, options[:out], options[:suffix], html: options[:html])
       print_summary(run) unless options[:quiet]
       written.each { |label, path| say "#{label} #{path}", :green }
+    rescue PayoutRouter::InputError => e
+      fail_with(e, hint: "если заявка в очереди неожиданного формата, а файл решений нужен всё равно — " \
+                         "повторите с --on-invalid skip: битые заявки уйдут в предупреждения, остальные отроутятся")
     rescue PayoutRouter::Error => e
       fail_with(e)
     end
@@ -108,11 +113,13 @@ module PayoutRouter
     desc "compare", "Сравнить политики на одной очереди: доли, отклонение, fallback, ожидаемые одобрения и маржа"
     option :queue, type: :string, default: DEFAULT_QUEUE, desc: "очередь заявок (JSON)"
     option :policies, type: :array, desc: "пути к политикам (по умолчанию --policy и config/policies/*.yml)"
+    option :synthetic, type: :numeric, desc: "вместо --queue: N заявок по парам (сумма, банк) из истории"
+    option :seed, type: :numeric, desc: "seed синтетической очереди"
     option :out, type: :string, default: "out", desc: "каталог результата"
     def compare
       base = runner
       paths = options[:policies] || [options[:policy], *Dir["config/policies/*.yml"]]
-      rows = base.comparison(base.load_queue(options[:queue])).call(base.load_policies(paths))
+      rows = base.comparison(synthetic_or_queue(base)).call(base.load_policies(paths))
       path = Output::JSONWriter.write(File.join(options[:out], "compare_report.json"), rows.map(&:serialize))
       print_table(Output::Tables.comparison(rows))
       say "отчёт: #{path}", :green
@@ -143,7 +150,7 @@ module PayoutRouter
     option :out, type: :string, default: "out", desc: "каталог результата (policy_tuned.yml)"
     def tune
       base = runner
-      operations = tuning_queue(base)
+      operations = synthetic_or_queue(base)
       result = base.tune(operations, candidates: options[:candidates], seed: options[:seed])
       header = "# Подобрано командой tune: #{operations.size} заявок, #{result.evaluations} прогонов роутера."
       path = Output::YAMLWriter.write(File.join(options[:out], "policy_tuned.yml"), result.policy.to_h_document,
@@ -208,12 +215,14 @@ module PayoutRouter
 
     def runner
       Runner.new(providers_path: options[:providers], policy_path: options[:policy], history_path: history_path,
-                 simulation_mode: options[:simulation], seed: options[:seed], timeout: options[:timeout])
+                 simulation_mode: options[:simulation], seed: options[:seed], timeout: options[:timeout],
+                 on_invalid: options[:on_invalid] || "fail")
     end
 
     def history_path = options[:history].to_s.empty? ? nil : options[:history]
 
-    def tuning_queue(base)
+    # Очередь для сравнения и подбора весов: либо файл --queue, либо N синтетических заявок из истории.
+    def synthetic_or_queue(base)
       count = options[:synthetic].to_i
       count.positive? ? base.synthetic_queue(count, seed: options[:seed]) : base.load_queue(options[:queue])
     end
@@ -252,8 +261,14 @@ module PayoutRouter
 
     def check_color(check) = { pass: :green, fail: :red, warn: :yellow }[check.status]
 
-    def fail_with(error)
-      say_error "ошибка: #{error.message}", :red
+    # Диагностика идёт напрямую в $stderr, а не через say/say_error: Thor глушит их при --quiet,
+    # а «заявка пропущена» и «файл не найден» должны быть видны всегда — иначе упавшая
+    # или неполная команда не скажет ни слова, только код возврата.
+    def say_warning(text) = warn(shell.set_color(text, :yellow))
+
+    def fail_with(error, hint: nil)
+      warn shell.set_color("ошибка: #{error.message}", :red)
+      say_warning("подсказка: #{hint}") if hint
       exit 2
     end
   end

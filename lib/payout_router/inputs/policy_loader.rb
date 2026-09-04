@@ -43,7 +43,9 @@ module PayoutRouter
           amount_bands: amount_bands,
           provider_overrides: provider_overrides,
           circuit_breaker: circuit_breaker,
-          simulation: simulation
+          simulation: simulation,
+          share_targets: one_of(@doc, "share_targets", Domain::Policy::SHARE_TARGETS, "absolute",
+                                where: "share_targets")
         )
       end
 

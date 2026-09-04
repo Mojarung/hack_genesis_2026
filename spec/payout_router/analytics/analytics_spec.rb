@@ -45,6 +45,18 @@ RSpec.describe "аналитика" do
       expect(report["distribution"]["vipay"]["deviation_pp"]).to eq(report["distribution"]["vipay"]["share_pct"] - 40)
     end
 
+    it "считает достижимую цель: сколько дал бы пропорциональный роутинг по допустимым" do
+      external = report["distribution"].except("spacepayments")
+      # Каждая заявка делит между допустимыми ровно 100%, поэтому достижимые цели дают в сумме 100%.
+      expect(external.values.sum { |share| share["proportional_target_pct"] }).to be_within(0.2).of(100)
+
+      quickpay = external["quickpay"]
+      # Цель quickpay 25%, но он проходит hard-правила чаще остальных — пропорционально ему причитается больше.
+      expect(quickpay["proportional_target_pct"]).to be > quickpay["target_pct"]
+      expect(quickpay["proportional_deviation_pp"])
+        .to eq((quickpay["share_pct"] - quickpay["proportional_target_pct"]).round(1))
+    end
+
     it "показывает достижимость целей и причины блокировок" do
       vipay = report["target_attainability"]["vipay"]
       expect(vipay["eligible"] + vipay["blocked_by"].values.sum).to eq(10)

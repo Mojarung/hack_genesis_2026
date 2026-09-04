@@ -37,6 +37,31 @@ RSpec.describe "soft-goals" do
     expect(signal.note).to include("100.0% vs target 40.0%")
   end
 
+  it "share_targets: attainable делит цели недоступных между теми, кто прошёл hard-правила" do
+    attainable = build_policy("share_targets" => "attainable")
+    candidate = PayoutRouter::Routing::Candidate.new(state: ledger.state("alpha"))
+    # В пуле только alpha: его 40% и 60% выбывшего beta достаются ему — цель становится 100%.
+    pool = PayoutRouter::Scoring::Context.new(operation: build_operation, ledger: ledger, now: Builders::T0,
+                                              pool: [candidate])
+    signal = PayoutRouter::Strategies::TrafficShare.new(policy: attainable, snapshot: snapshot)
+                                                   .evaluate(candidate, pool)
+
+    expect(signal.score).to eq(1.0)
+    expect(signal.note).to include("target 100.0% (was 40.0%, eligible hold 40.0%)")
+  end
+
+  it "share_targets: absolute (по умолчанию) не пересчитывает цель по пулу" do
+    candidate = PayoutRouter::Routing::Candidate.new(state: ledger.state("alpha"))
+    pool = PayoutRouter::Scoring::Context.new(operation: build_operation, ledger: ledger, now: Builders::T0,
+                                              pool: [candidate])
+    signal = PayoutRouter::Strategies::TrafficShare.new(policy: policy, snapshot: snapshot)
+                                                   .evaluate(candidate, pool)
+
+    expect(signal.score).to eq(0.9)
+    expect(signal.note).to include("target 40.0%")
+    expect(signal.note).not_to include("eligible hold")
+  end
+
   it "volume_share: учитывает объём из снимка" do
     signal = evaluate(PayoutRouter::Strategies::VolumeShare, alpha)
     expect(signal.score).to eq(0.9)

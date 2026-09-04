@@ -12,16 +12,8 @@ module PayoutRouter
         @ledger = ledger
         @snapshot = snapshot
         @total = decisions.size
-        @routed = 0
-        @fallback_count = 0
-        @retries = 0
-        @outcomes = Hash.new(0)
-        @skip_reasons = Hash.new(0)
-        @skip_by_provider = Hash.new { |hash, name| hash[name] = Hash.new(0) }
-        @eligible = Hash.new(0)
-        @blocked_banks = Hash.new { |hash, name| hash[name] = Hash.new(0) }
-        @blocked_amounts = Hash.new { |hash, name| hash[name] = [] }
-        @attempts_total = 0
+        @targets = snapshot.external.to_h { |provider| [provider.name, provider.traffic_percentage.to_f] }
+        reset_counters!
         decisions.each { |decision| aggregate(decision) }
       end
 
@@ -83,6 +75,18 @@ module PayoutRouter
 
       private
 
+      # Аккумуляторы одного прохода по решениям.
+      def reset_counters!
+        @routed = @fallback_count = @retries = @attempts_total = 0
+        @outcomes = Hash.new(0)
+        @skip_reasons = Hash.new(0)
+        @eligible = Hash.new(0)
+        @fair_share = Hash.new(0.0)
+        @skip_by_provider = Hash.new { |hash, name| hash[name] = Hash.new(0) }
+        @blocked_banks = Hash.new { |hash, name| hash[name] = Hash.new(0) }
+        @blocked_amounts = Hash.new { |hash, name| hash[name] = [] }
+      end
+
       def reported_providers
         used = @decisions.filter_map(&:selected_provider).to_set
         @snapshot.providers.select { |provider| provider.external? || used.include?(provider.name) }
@@ -95,6 +99,20 @@ module PayoutRouter
         @outcomes[decision.simulated_result] += 1
         @attempts_total += decision.attempts.size
         decision.attempts.each { |attempt| aggregate_attempt(decision, attempt) }
+        accumulate_fair_share(decision)
+      end
+
+      # Достижимая цель: на каждой заявке делим 100% между теми внешними провайдерами, кто её
+      # реально мог принять, пропорционально их целевым долям. Сумма по заявкам и есть доля,
+      # которую провайдер получил бы при идеально пропорциональном роутинге. Именно от неё
+      # честно считать отклонение: бумажные 35% у провайдера, допустимого в трети заявок,
+      # недостижимы ни при какой стратегии.
+      def accumulate_fair_share(decision)
+        pool = decision.attempts.reject(&:hard_skip?).map(&:provider).select { |name| @targets.key?(name) }
+        total = pool.sum { |name| @targets[name] }
+        return if total <= 0
+
+        pool.each { |name| @fair_share[name] += @targets[name] / total }
       end
 
       def aggregate_attempt(decision, attempt)
@@ -123,11 +141,14 @@ module PayoutRouter
         volume_share = share_pct(state.selected_amount, @ledger.selected_amount_total)
         target = provider.fallback? ? 0 : provider.traffic_percentage
         volume_target = provider.fallback? ? 0 : provider.volume_target_pct
+        proportional = provider.fallback? ? 0.0 : proportional_target_pct(provider.name)
         {
           "count" => state.selected_count,
           "share_pct" => share.round(1),
           "target_pct" => target,
           "deviation_pp" => (share - target).round(1),
+          "proportional_target_pct" => proportional.round(1),
+          "proportional_deviation_pp" => (share - proportional).round(1),
           "volume" => state.selected_amount,
           "volume_share_pct" => volume_share.round(1),
           "target_volume_pct" => volume_target,
@@ -184,6 +205,9 @@ module PayoutRouter
       end
 
       def share_pct(part, whole) = whole.zero? ? 0.0 : part * 100.0 / whole
+
+      # Доля, которую провайдер получил бы при идеально пропорциональном роутинге по допустимым.
+      def proportional_target_pct(name) = share_pct(@fair_share[name], @total)
 
       # Попытки со скором по каждой заявке, где кандидатов было двое и больше.
       def contested_breakdowns

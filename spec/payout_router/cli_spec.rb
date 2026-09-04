@@ -77,6 +77,24 @@ RSpec.describe PayoutRouter::CLI do
     expect(result.stderr).to include("ошибка: файл не найден")
   end
 
+  it "битая заявка: по умолчанию останавливает прогон с подсказкой, с --on-invalid skip уходит в карантин" do
+    broken = File.join(out, "broken.json")
+    rows = JSON.parse(File.read(queue))
+    rows[2]["amount"] = "много"
+    File.write(broken, JSON.generate(rows))
+
+    strict = run_cli("route", "--out", out, "--queue", broken, "--quiet")
+    expect(strict.status).to eq(2)
+    expect(strict.stderr).to include("amount должно быть числом", "--on-invalid skip")
+
+    lenient = run_cli("route", "--out", out, "--queue", broken, "--on-invalid", "skip", "--quiet")
+    expect(lenient.status).to eq(0)
+    # Предупреждение идёт в stderr: под --quiet Thor глушит обычный вывод, а пропуск заявки
+    # обязан быть видно — иначе неполный файл решений выглядит как полный.
+    expect(lenient.stderr).to include("op_103 не разобрана и пропущена")
+    expect(JSON.parse(File.read(File.join(out, "routing_decisions.json"))).size).to eq(9)
+  end
+
   it "сообщает об ошибке политики" do
     policy = File.join(out, "policy.yml")
     File.write(policy, "goals:\n  nope: 1\n")
