@@ -14,7 +14,9 @@ module PayoutRouter
       attr_reader :provider, :breaker, :daily_approved_amount, :in_progress_count, :in_progress_amount,
                   :available_requisites, :dispatch_count, :selected_count, :selected_amount,
                   :approved_count, :approved_amount, :rejected_count, :expired_count, :held_timeout_count,
-                  :consecutive_failures, :circuit_open_until, :circuit_trips
+                  :consecutive_failures, :circuit_open_until, :circuit_trips, :held_timeout_amount,
+                  :peak_in_progress_count, :peak_in_progress_amount, :min_available_requisites,
+                  :counter_syncs
 
       def initialize(provider, breaker: nil, hold_timeouts: false)
         @provider = provider
@@ -29,6 +31,11 @@ module PayoutRouter
         @consecutive_failures = @circuit_trips = 0
         @circuit_open_until = nil
         @request_times = []
+        @peak_in_progress_count = @in_progress_count
+        @peak_in_progress_amount = @in_progress_amount
+        @min_available_requisites = @available_requisites
+        @held_timeout_amount = 0
+        @counter_syncs = 0
       end
 
       def name = provider.name
@@ -40,6 +47,7 @@ module PayoutRouter
         @available_requisites -= 1
         @dispatch_count += 1
         @request_times << now
+        track_peaks
       end
 
       # Заявка закреплена за провайдером как итоговый выбор — учитывается в долях трафика.
@@ -63,10 +71,13 @@ module PayoutRouter
       # одобренное — в дневной оборот, серия отказов — в предохранитель.
       # Таймаут при simulation.timeout: hold — ответа так и не было, освобождать нечего (см. #hold_timeout!).
       def settle!(operation, outcome, at: nil)
-        return hold_timeout!(at) if @hold_timeouts && outcome.expired?
+        return hold_timeout!(operation, at) if @hold_timeouts && outcome.expired?
 
-        @in_progress_count -= 1
-        @in_progress_amount -= operation.amount
+        # Ниже нуля не опускаемся: если внешний снимок перебил счётчики (Ledger#sync!), ответы
+        # на заявки, отправленные до снимка, вычитали бы уже учтённое им. Без sync! ограничение
+        # не срабатывает никогда — каждая отправка закрывается ровно одним ответом.
+        @in_progress_count = [@in_progress_count - 1, 0].max
+        @in_progress_amount = [@in_progress_amount - operation.amount, 0].max
         @available_requisites += 1
         case outcome.result
         when "approved" then record_approval(operation)
@@ -106,16 +117,32 @@ module PayoutRouter
 
       private
 
+      # Пики нужны, чтобы проверять лимиты не по итогу прогона, а в каждый момент: к концу очереди
+      # in-progress уже рассосался, и нарушение, если оно было, из финальных чисел не видно.
+      # Интенсивности здесь нет намеренно: её пик считался бы тем же requests_within, который
+      # проверяет само правило, и ошибка в окне подтвердила бы сама себя. Он считается независимо,
+      # по решениям — см. Stress::Invariants.rate_window.
+      def track_peaks
+        @peak_in_progress_count = @in_progress_count if @in_progress_count > @peak_in_progress_count
+        @peak_in_progress_amount = @in_progress_amount if @in_progress_amount > @peak_in_progress_amount
+        @min_available_requisites = @available_requisites if @available_requisites < @min_available_requisites
+      end
+
       # Таймаут без статуса: слот in-progress и реквизит остаются занятыми — вдруг выплата всё же ушла.
       # В дневной оборот сумму не пишем: подтверждения одобрения не было, а in_progress_amount её
       # уже держит (см. #volume_in_flight). Для предохранителя неответ — такой же провал, как отказ.
-      def hold_timeout!(at)
+      def hold_timeout!(operation, at)
         @expired_count += 1
         @held_timeout_count += 1
+        @held_timeout_amount += operation.amount
         record_failure(at)
       end
 
+      # Счётчик перетёрт извне: с этого момента наша бухгалтерия больше не сходится с исходным
+      # снимком, и это нормально — источником истины стала вызывающая система. Считаем такие
+      # перезаписи, чтобы проверка сохранения ёмкости знала, что здесь ей опираться не на что.
       def write_counter(field, value)
+        @counter_syncs += 1
         case field
         when :daily_approved_amount then @daily_approved_amount = value
         when :in_progress_count then @in_progress_count = value

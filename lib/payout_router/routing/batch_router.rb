@@ -14,13 +14,19 @@ module PayoutRouter
         @history = history
       end
 
-      def call(operations)
+      # Блок, если он передан, вызывается перед каждой заявкой с (ledger, операция, порядковый номер) —
+      # точка, куда вызывающая система кладёт свежее состояние провайдеров (Ledger#sync!), если она
+      # ведёт его сама. Эксперты назвали допустимыми обе схемы: снимок извне и счётчики роутера.
+      def call(operations, &before_each)
         ledger = State::Ledger.new(@snapshot, circuit_breaker: @policy.circuit_breaker,
                                               hold_timeouts: @policy.simulation.hold_timeouts?)
         router = Router.new(snapshot: @snapshot, policy: @policy, ledger: ledger, simulator: @simulator,
                             history: @history)
         decisions = Array.new(operations.size)
-        chronological(operations).each { |index| decisions[index] = router.route(operations[index]) }
+        chronological(operations).each_with_index do |index, position|
+          before_each&.call(ledger, operations[index], position)
+          decisions[index] = router.route(operations[index])
+        end
         ledger.settle_all
         Result.new(decisions: decisions, ledger: ledger)
       end

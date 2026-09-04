@@ -1,0 +1,82 @@
+# Тот же balanced, но дневной лимит резервируется под заявки, которые уже отправлены
+# и ждут ответа (daily_limit_reserved вместо daily_limit).
+#
+# Зачем: формула из ТЗ — «daily_approved_amount + amount <= daily_amount_limit», а
+# daily_approved_amount растёт только когда провайдер ответил. Пока он молчит, следующие заявки
+# проходят проверку по устаревшему числу, и на длинной очереди дневной лимит переливается.
+# Наш стресс-прогон меряет это прямо: сценарий flood даёт 103% дневного лимита, тот же поток
+# с этой политикой (сценарий reserved_limits) — 99.4%.
+#
+# Почему не по умолчанию: правило строже буквы ТЗ, а автопроверка организаторов считает
+# допустимость по формуле ТЗ. С резервированием наш пул допустимых стал бы её подмножеством,
+# и эталонные кейсы могли бы разойтись. Сдаём daily_limit, эту политику показываем как более
+# безопасную для денег — и как вопрос к экспертам.
+#
+# Сравнить:
+#   payout_router stress --scenario flood reserved_limits
+
+name: strict_limits
+description: >
+  Дневной лимит резервируется под заявки в обработке: перебор дневного максимума
+  невозможен даже на длинной очереди с медленными ответами провайдеров.
+
+fallback_provider: spacepayments
+
+hard_constraints:
+  - provider_active
+  - currency
+  - traffic_enabled
+  - amount_range
+  - daily_limit_reserved   # вместо daily_limit: оборот + in-progress + amount <= daily_amount_limit
+  - in_progress_count
+  - in_progress_amount
+  - requisites
+  - margin
+  - bank_filter
+  - rate_limit
+  - daily_turnover_max
+  - circuit_breaker
+
+selection:
+  mode: weighted
+  normalization: pool
+
+goals:
+  traffic_share: 0.30
+  volume_share: 0.10
+  cascade_priority: 0.10
+  amount_band: 0.10
+  conversion: 0.10
+  bank_affinity: 0.05
+  load: 0.15
+  turnover_min: 0.05
+  rate_headroom: 0.05
+
+tie_breakers: [priority, conversion, name]
+
+amount_bands:
+  - { min: 500,    max: 50000,  prefer: [payflow] }
+  - { min: 50001,  max: 100000, prefer: [vipay] }
+  - { min: 100001, max: null,   prefer: [quickpay] }
+
+providers:
+  vipay:
+    volume_share_pct: 50
+    requests_per_minute_limit: 15
+    daily_turnover_max: 5000000
+  payflow:
+    volume_share_pct: 30
+    requests_per_minute_limit: 7
+    daily_turnover_min: 2000000
+  quickpay:
+    volume_share_pct: 20
+    requests_per_minute_limit: 15
+
+circuit_breaker:
+  failures: 3
+  cooldown_sec: 300
+
+simulation:
+  mode: optimistic
+  seed: 42
+  timeout: cascade

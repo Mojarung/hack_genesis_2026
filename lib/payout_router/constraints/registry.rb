@@ -4,8 +4,9 @@ module PayoutRouter
   module Constraints
     module Registry
       ALL = [
-        ProviderActive, TrafficEnabled, Currency, AmountRange, DailyLimit, InProgressCount, InProgressAmount,
-        Requisites, Margin, BankFilter, RateLimit, DailyTurnoverMax, CircuitBreaker
+        ProviderActive, TrafficEnabled, Currency, AmountRange, DailyLimit, DailyLimitReserved,
+        InProgressCount, InProgressAmount, Requisites, Margin, BankFilter, RateLimit,
+        DailyTurnoverMax, CircuitBreaker
       ].freeze
       BY_KEY = ALL.to_h { |klass| [klass.key, klass] }.freeze
 
@@ -19,7 +20,9 @@ module PayoutRouter
         "traffic_enabled" => "traffic_percentage > 0 (0 — провайдер выведен из ротации)",
         "currency" => "валюта заявки совпадает с валютой провайдера/шлюза (если обе заданы)",
         "amount_range" => "limit_amount_min <= amount <= limit_amount_max",
-        "daily_limit" => "daily_approved_amount + amount <= daily_amount_limit",
+        "daily_limit" => "daily_approved_amount + amount <= daily_amount_limit (формула ТЗ)",
+        "daily_limit_reserved" => "оборот + in-progress + amount <= daily_amount_limit " \
+                                  "(строже ТЗ: лимит резервируется под неотвеченные заявки)",
         "in_progress_count" => "in_progress_count + 1 <= in_progress_count_limit",
         "in_progress_amount" => "in_progress_amount + amount <= in_progress_amount_limit",
         "requisites" => "available_requisites > 0",

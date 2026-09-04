@@ -64,6 +64,12 @@ module PayoutRouter
               warnings: warnings)
     end
 
+    # Стресс-прогон: сценарии строятся от сырого снимка — политика накладывается внутри каталога.
+    def stress(keys = nil)
+      catalog = Stress::Catalog.new(snapshot: raw_snapshot, policy: policy)
+      Stress::Suite.new(catalog, history: history_stats).call(keys)
+    end
+
     def backtest
       Analytics::Backtest.new(records: history_records, snapshot: snapshot, policy: policy, history: history_stats).call
     end

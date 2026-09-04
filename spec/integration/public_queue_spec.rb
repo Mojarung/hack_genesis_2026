@@ -115,12 +115,29 @@ RSpec.describe "публичная очередь организаторов" do
     Dir[config_path("policies/*.yml")].each do |policy_path|
       preset = default_runner(policy_path: policy_path)
       result = preset.call(data_path("operations_queue_10.json"))
+      # Эталонные кейсы организаторов сверяем только у политик с формулой ТЗ. strict_limits
+      # резервирует дневной лимит под in-progress и потому режет payflow — расхождение
+      # осознанное и проверяется отдельным примером ниже.
+      literal = preset.policy.hard_constraints.include?(PayoutRouter::Constraints::DailyLimit.key)
       validation = PayoutRouter::Validation::DecisionsValidator.new(
         decisions: result.serialized_decisions, operations: result.operations, snapshot: preset.snapshot,
-        policy: preset.policy, reference: reference
+        policy: preset.policy, reference: literal ? reference : nil
       ).call
       expect(validation.failed).to eq(0),
                                    "#{File.basename(policy_path)}: #{validation.checks.select(&:fail?).map(&:message)}"
     end
+  end
+
+  it "цена строгого дневного лимита: payflow выпадает целиком, op_107 уходит на self-provider" do
+    # payflow: оборот 2 900 000 + 120 000 в обработке против лимита 3 000 000 — при резервировании
+    # места не остаётся ни под одну заявку. op_107 (800 ₽) по минимальному чеку мог уйти только
+    # к нему, поэтому уходит на self-provider. Формула ТЗ этого не видит: она не считает in-progress.
+    # Тест фиксирует цену более безопасного правила, чтобы её нельзя было забыть на защите.
+    run = default_runner(policy_path: config_path("policies/strict_limits.yml"))
+          .call(data_path("operations_queue_10.json"))
+
+    expect(run.decision("op_107").selected_provider).to eq("spacepayments")
+    expect(run.report["distribution"]["payflow"]["count"]).to be_zero
+    expect(run.decision("op_107").attempts.map(&:reason)).to include("daily_limit_exceeded")
   end
 end

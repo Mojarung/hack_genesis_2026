@@ -5,7 +5,7 @@ RSpec.describe "CLI: справочник стратегий и цепочка" 
     result = run_cli("strategies", "--policy", config_path("policies/custom_strategy.yml"))
 
     expect(result.status).to eq(0)
-    expect(result.stdout).to include("Hard-правила (13)", "bank_affinity", "bank_table", "strategy_chain",
+    expect(result.stdout).to include("Hard-правила (14)", "bank_affinity", "bank_table", "strategy_chain",
                                      "custom_strategy")
     expect(result.stdout).to include("плагины: ", "requisites_headroom.rb", "свои цели: fastest_first (field)")
   end

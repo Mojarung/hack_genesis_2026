@@ -31,6 +31,11 @@ task :submit do
   sh "#{CLI} validate routing_decisions_test.json --queue data/operations_queue_test.json"
 end
 
+desc "Стресс-прогон: сценарии давления на роутер, метрики и проверка инвариантов"
+task :stress do
+  sh "#{CLI} stress --out out"
+end
+
 desc "Бенчмарк: синтетическая очередь на N заявок (N=BENCH_N, по умолчанию 50000)"
 task :bench do
   sh "#{CLI} bench --operations #{ENV.fetch("BENCH_N", 50_000)}"

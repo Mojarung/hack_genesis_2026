@@ -25,7 +25,7 @@ Hack.Genesis 2026, задача 2 «Умный роутинг выплат» (о
 |---|---|---|
 | Входы | `lib/payout_router/inputs/*` | `Fields` — проверка полей с адресом ошибки; `PolicyLoader` валидирует ключи по реестрам; `QueueLoader#on_invalid: :skip` — карантин битых заявок; `StateUpdate` — внешний снимок состояния |
 | Домен | `lib/payout_router/domain/*` | `Provider` (Data + дефолты), `Policy#apply`, `Policy#with_goals`, `Policy#to_h_document` |
-| Hard-правила | `lib/payout_router/constraints/*` | `Base#call → pass/violation`, `Registry::ALL` (13) и `Registry::STATIC` — правила для fallback; `CircuitBreaker` (со состоянием) |
+| Hard-правила | `lib/payout_router/constraints/*` | `Base#call → pass/violation`, `Registry::ALL` (14) и `Registry::STATIC` — правила для fallback; `CircuitBreaker` (со состоянием); `DailyLimitReserved` — строгий дневной лимит, по умолчанию выключен (формула ТЗ в `DailyLimit`) |
 | Состояние | `lib/payout_router/state/*` | `Ledger#dispatch!/settle_due` — виртуальные часы и точка линеаризации; `Ledger#sync!` — внешний снимок перед заявкой (`Inputs::StateUpdate`); `ProviderState#record_failure` — предохранитель; `#hold_timeout!` — таймаут без освобождения ёмкости |
 | Цели | `lib/payout_router/strategies/*` | `Base#evaluate → signal(score, note)`, `Base#approval_model`; формула долей `0.5 + (цель − факт)/100`; `Base#target_share` — перенормировка цели на допустимых (`share_targets: attainable`); `Conversion`/`BankAffinity`/`ExpectedValue` — через `Analytics::ApprovalModel` (усадка к приору, `MIN_BANK_SAMPLES = 5`) |
 | Скоринг | `lib/payout_router/scoring/*` | `Scoring.build` → `CompositeScorer` (веса; `selection.normalization: pool` — min-max по пулу кандидатов, `absolute` — как есть) или `ChainScorer` (цепочка, всегда absolute); `Score#summary(versus:)` — решающие цели как перевес над соперником |
@@ -35,6 +35,7 @@ Hack.Genesis 2026, задача 2 «Умный роутинг выплат» (о
 | Аналитика | `lib/payout_router/analytics/*` | `ApprovalModel` (пара × банк, LOO), `Backtest`, `PolicyComparison`, `MonteCarlo`, `WeightTuner`, `recommendations/engine.rb`; `RoutingStats#accumulate_fair_share` — достижимая цель (`proportional_target_pct`) |
 | Выход/CLI | `lib/payout_router/output/*`, `cli.rb`, `runner.rb`, `server.rb` | `Runner` — весь сценарий; `HtmlReport` + `templates/report.html.erb`; `Server::Service` |
 | Проверка | `lib/payout_router/validation/decisions_validator.rb` | повторяет `scripts/validate_10.rb` + инвариант «один selected» |
+| Стресс | `lib/payout_router/stress/*` | `Catalog::ORDER` — 17 сценариев; `Invariants` — жёсткие проверки (сохранение ёмкости, пики, трейс); `Oracles` — пересчёт допустимости и интенсивности заново по решениям; `Suite` → `Outcome` — метрики без порогов; `rake stress` |
 
 ## Правила
 
@@ -48,11 +49,18 @@ Hack.Genesis 2026, задача 2 «Умный роутинг выплат» (о
   константы верхнего уровня — по одной на файл.
 - Проверка «всё живо»: `bundle exec rake validate`. Сдача: `operations_queue_test.json` в `data/`,
   `bundle exec rake submit`, файлы в корне `main`.
+- Новую проверку в `spec/integration/stress_spec.rb` принимаем только после мутации: внести
+  в код настоящую ошибку и убедиться, что тест падает. Проверки, читающие счётчики роутера,
+  мутаций не ловят — оракулы считают заново по решениям и снимку (`Stress::Oracles`).
 
 ## Состояние
 
-195 спеков зелёные (покрытие строк 97.8%), rubocop чист, бэктест conversion_first +4.7% / balanced −5.0% (цена
-удержания долей), бенчмарк ≈2 200 заявок/с на этой машине (без YJIT). Разбор QA-сессии 04.09 с экспертами —
-`docs/checkpoint.md`, раздел 4.3; открытые вопросы к ним — раздел 5 (главные: база для фактической доли
-и какая семантика таймаута нужна в сдаваемом файле).
+211 спеков зелёные (покрытие строк 97.8%), rubocop чист, `rake stress` — 17 сценариев и ~16 000 заявок
+с нулём нарушений инвариантов, бэктест conversion_first +4.7% / balanced −5.0% (цена удержания долей),
+бенчмарк ≈2 200 заявок/с на этой машине (без YJIT). Разбор QA-сессии и чекпоинта 1 (оба 04.09) —
+`docs/checkpoint.md`, разделы 4.3–4.5. Ответы экспертов закрыли почти всё: доля по количеству —
+от заявок прогона, доля по деньгам — оборот дня плюс прогон, таймаут — отдельный кейс на наше
+усмотрение, провайдеры одним JSON, кастомные поля в отчёте можно, валюта одна, важны и доли,
+и одобрения. Открытые вопросы — раздел 5: резервировать ли дневной лимит под in-progress,
+показывать ли отказы в сдаваемом файле, как проверяют отчёт.
 Дальнейшие шаги по дням — `docs/plan.md`, сценарий защиты — `docs/pitch.md`.

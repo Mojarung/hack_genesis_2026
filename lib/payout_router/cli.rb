@@ -127,6 +127,21 @@ module PayoutRouter
       fail_with(e)
     end
 
+    desc "stress", "Стресс-прогон: сценарии давления на роутер — измеренные метрики и проверка инвариантов"
+    option :scenario, type: :array, desc: "только эти сценарии (по умолчанию все)"
+    option :out, type: :string, default: "out", desc: "каталог результата"
+    def stress
+      report = runner.stress(options[:scenario])
+      print_table(Output::Tables.stress(report.outcomes))
+      print_stress_notes(report)
+      path = Output::JSONWriter.write(File.join(options[:out], "stress_report.json"), report.serialize)
+      say "#{report.outcomes.size} сценариев, #{report.outcomes.sum(&:total)} заявок, " \
+          "нарушений инвариантов: #{report.violations.size}; отчёт: #{path}", report.ok? ? :green : :red
+      exit 1 unless report.ok?
+    rescue PayoutRouter::Error => e
+      fail_with(e)
+    end
+
     desc "simulate", "Monte-Carlo: N прогонов очереди с исходами по conversion_24h — разброс одобрений, fallback, долей"
     option :queue, type: :string, default: DEFAULT_QUEUE, desc: "очередь заявок (JSON)"
     option :runs, type: :numeric, default: 200, desc: "число прогонов"
@@ -243,6 +258,13 @@ module PayoutRouter
       print_table(summary.distribution_rows)
       summary.result_lines.each { |line| say line }
       summary.recommendation_lines.each { |line| say line, :yellow }
+    end
+
+    def print_stress_notes(report)
+      report.outcomes.each { |outcome| say "  #{outcome.key}: #{outcome.scenario.note}" if outcome.scenario.note }
+      report.outcomes.reject(&:ok?).each do |outcome|
+        outcome.violations.each { |violation| say_warning("#{outcome.key} ✗ #{violation}") }
+      end
     end
 
     def print_policy_extensions(policy)

@@ -52,6 +52,22 @@ module PayoutRouter
          row.avg_latency_sec.round(1)]
       end
 
+      # Стресс-прогон: по строке на сценарий. Инварианты — да/нет, всё остальное — измеренные
+      # числа без порогов: таблица показывает, что происходит, а не выносит вердикт.
+      def stress(outcomes)
+        header = ["сценарий", "заявок", "с_выбором%", "без_маршрута", "fallback%", "повторов",
+                  "Σ|откл|", "Σ|откл_дост|", "дневной_лимит%", "пик_in_progress%", "перегруз_self",
+                  "карантинов", "заявок/с", "инварианты"]
+        rows = outcomes.map do |outcome|
+          [outcome.key, outcome.total, outcome.contested_pct, outcome.unrouted, outcome.fallback_pct,
+           outcome.retries, outcome.deviation_pp, outcome.proportional_deviation_pp,
+           outcome.max_utilization_pct, outcome.peak_in_progress_pct, outcome.fallback_overload,
+           outcome.circuit_trips, outcome.ops_per_sec,
+           outcome.ok? ? "ок" : "нарушено #{outcome.violations.size}"]
+        end
+        [header, *rows]
+      end
+
       def simulation(summary)
         rows = { "одобрено" => summary.approved, "fallback" => summary.fallback, "повторов" => summary.retries }
         rows.merge!(summary.shares.to_h { |name, values| ["доля #{name} %", values] })
