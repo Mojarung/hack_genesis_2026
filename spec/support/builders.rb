@@ -46,7 +46,7 @@ module Builders
 
   def build_candidate(provider, ledger = nil)
     ledger ||= PayoutRouter::State::Ledger.new(build_snapshot(provider))
-    PayoutRouter::Routing::Candidate.new(provider: provider, state: ledger.state(provider.name))
+    PayoutRouter::Routing::Candidate.new(state: ledger.state(provider.name))
   end
 
   def route_all(providers:, operations:, policy: build_policy, simulator: PayoutRouter::Simulation::Optimistic.new,

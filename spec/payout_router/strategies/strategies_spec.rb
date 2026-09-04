@@ -17,7 +17,7 @@ RSpec.describe "soft-goals" do
 
   # Оценка провайдера из общего снимка (alpha/beta) с общим леджером.
   def evaluate(strategy_class, provider, operation = build_operation)
-    candidate = PayoutRouter::Routing::Candidate.new(provider: provider, state: ledger.state(provider.name))
+    candidate = PayoutRouter::Routing::Candidate.new(state: ledger.state(provider.name))
     strategy_class.new(policy: policy, snapshot: snapshot).evaluate(candidate, context(operation))
   end
 
@@ -25,7 +25,7 @@ RSpec.describe "soft-goals" do
   def evaluate_alone(strategy_class, provider, prepare: nil)
     own = PayoutRouter::State::Ledger.new(build_snapshot(provider))
     prepare&.call(own)
-    candidate = PayoutRouter::Routing::Candidate.new(provider: provider, state: own.state(provider.name))
+    candidate = PayoutRouter::Routing::Candidate.new(state: own.state(provider.name))
     strategy_class.new(policy: policy, snapshot: snapshot).evaluate(candidate, context(with: own))
   end
 

@@ -7,7 +7,7 @@ RSpec.describe PayoutRouter::Scoring::ChainScorer do
   let(:snapshot) { build_snapshot(alpha, beta, gamma) }
   let(:ledger) { PayoutRouter::State::Ledger.new(snapshot) }
   let(:candidates) do
-    [alpha, beta, gamma].map { |p| PayoutRouter::Routing::Candidate.new(provider: p, state: ledger.state(p.name)) }
+    [alpha, beta, gamma].map { |p| PayoutRouter::Routing::Candidate.new(state: ledger.state(p.name)) }
   end
   let(:bands) { [{ "min" => 0, "max" => 20_000, "prefer" => ["gamma"] }] }
 

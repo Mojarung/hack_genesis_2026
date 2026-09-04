@@ -6,7 +6,7 @@ RSpec.describe PayoutRouter::Scoring::CompositeScorer do
   let(:snapshot) { build_snapshot(alpha, beta) }
   let(:ledger) { PayoutRouter::State::Ledger.new(snapshot) }
   let(:context) { PayoutRouter::Scoring::Context.new(operation: build_operation, ledger: ledger, now: Builders::T0) }
-  let(:candidates) { [alpha, beta].map { |provider| PayoutRouter::Routing::Candidate.new(provider: provider, state: ledger.state(provider.name)) } }
+  let(:candidates) { [alpha, beta].map { |provider| PayoutRouter::Routing::Candidate.new(state: ledger.state(provider.name)) } }
 
   def rank(policy, pool = candidates) = described_class.new(policy: policy, snapshot: snapshot).rank(pool, context)
 

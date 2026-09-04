@@ -20,7 +20,7 @@ RSpec.describe "цели на истории и марже" do
   end
 
   def evaluate(strategy_class, provider, bank: "alfa", with_history: history)
-    candidate = PayoutRouter::Routing::Candidate.new(provider: provider, state: ledger.state(provider.name))
+    candidate = PayoutRouter::Routing::Candidate.new(state: ledger.state(provider.name))
     context = PayoutRouter::Scoring::Context.new(operation: build_operation(bank: bank), ledger: ledger, now: Builders::T0)
     strategy_class.new(policy: policy, snapshot: snapshot, history: with_history).evaluate(candidate, context)
   end

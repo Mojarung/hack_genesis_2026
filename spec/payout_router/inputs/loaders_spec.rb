@@ -161,6 +161,36 @@ RSpec.describe "загрузчики входных данных" do
       expect do
         build_policy("simulation" => { "mode" => "random" })
       end.to raise_error(PayoutRouter::PolicyError, /simulation.mode/)
+      expect do
+        build_policy("simulation" => { "timeout" => "ignore" })
+      end.to raise_error(PayoutRouter::PolicyError, %r{simulation.timeout.*cascade/hold})
+    end
+  end
+
+  describe PayoutRouter::Inputs::StateUpdate do
+    it "принимает и массив в формате providers.json, и объект «провайдер → поля»" do
+      from_array = described_class.parse([{ "payment_system" => "vipay", "in_progress_count" => 7,
+                                            "status" => "inactive", "avg_latency_sec" => nil }])
+      expect(from_array).to eq("vipay" => { in_progress_count: 7, status: "inactive" })
+
+      expect(described_class.parse({ "vipay" => { "available_requisites" => 0 } }))
+        .to eq("vipay" => { available_requisites: 0 })
+      expect(described_class.parse(nil)).to eq({})
+    end
+
+    it "проверяет типы и диапазоны и не молчит про неизвестное поле" do
+      expect do
+        described_class.parse({ "vipay" => { "in_progress_count" => -1 } })
+      end.to raise_error(PayoutRouter::InputError, /in_progress_count = -1 меньше допустимого 0/)
+      expect do
+        described_class.parse({ "vipay" => { "conversion_24h" => 1.5 } })
+      end.to raise_error(PayoutRouter::InputError, /conversion_24h/)
+      expect do
+        described_class.parse({ "vipay" => { "in_progres_count" => 1 } })
+      end.to raise_error(PayoutRouter::InputError, /нельзя обновлять извне/)
+      expect do
+        described_class.parse("что-то не то")
+      end.to raise_error(PayoutRouter::InputError, /массив провайдеров или объект/)
     end
   end
 end

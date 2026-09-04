@@ -15,7 +15,8 @@ module PayoutRouter
       end
 
       def call(operations)
-        ledger = State::Ledger.new(@snapshot, circuit_breaker: @policy.circuit_breaker)
+        ledger = State::Ledger.new(@snapshot, circuit_breaker: @policy.circuit_breaker,
+                                              hold_timeouts: @policy.simulation.hold_timeouts?)
         router = Router.new(snapshot: @snapshot, policy: @policy, ledger: ledger, simulator: @simulator,
                             history: @history)
         decisions = Array.new(operations.size)

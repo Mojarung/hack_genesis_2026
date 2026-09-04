@@ -9,15 +9,18 @@ module PayoutRouter
       def serialized_decisions = decisions.map(&:serialize)
     end
 
-    def initialize(providers_path:, policy_path:, history_path: nil, simulation_mode: nil, seed: nil)
+    def initialize(providers_path:, policy_path:, history_path: nil, simulation_mode: nil, seed: nil, timeout: nil)
       @providers_path = providers_path
       @policy_path = policy_path
       @history_path = history_path
       @simulation_mode = simulation_mode
       @seed = seed
+      @timeout = timeout
     end
 
-    def policy = @policy ||= Inputs::PolicyLoader.load(@policy_path)
+    # Политика из файла плюс переопределения симуляции из командной строки — чтобы роутер,
+    # симулятор и отчёт видели одни и те же настройки, а не файл против флагов.
+    def policy = @policy ||= override_simulation(Inputs::PolicyLoader.load(@policy_path))
 
     # Снимок без наложенной политики — для сравнения нескольких политик на одних данных.
     def raw_snapshot = @raw_snapshot ||= Inputs::ProvidersLoader.load(@providers_path)
@@ -28,10 +31,7 @@ module PayoutRouter
 
     def history_stats = @history_stats ||= Analytics::HistoryStats.new(history_records)
 
-    def simulation
-      @simulation ||= policy.simulation.with(mode: @simulation_mode || policy.simulation.mode,
-                                             seed: @seed || policy.simulation.seed)
-    end
+    def simulation = policy.simulation
 
     def load_queue(queue_path) = Inputs::QueueLoader.load(queue_path, default_time: snapshot.snapshot_at)
 
@@ -86,6 +86,15 @@ module PayoutRouter
                 "заявки без допустимых провайдеров останутся без маршрута"
       end
       list
+    end
+
+    private
+
+    def override_simulation(loaded)
+      settings = loaded.simulation
+      loaded.with(simulation: settings.with(mode: @simulation_mode || settings.mode,
+                                            seed: @seed || settings.seed,
+                                            timeout: @timeout || settings.timeout))
     end
   end
 end

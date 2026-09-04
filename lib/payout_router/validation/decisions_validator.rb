@@ -122,7 +122,7 @@ module PayoutRouter
       def eligible_names(pipeline, operation)
         ledger = State::Ledger.new(@snapshot)
         @snapshot.providers.filter_map do |provider|
-          candidate = Routing::Candidate.new(provider: provider, state: ledger.state(provider.name))
+          candidate = Routing::Candidate.new(state: ledger.state(provider.name))
           provider.name if pipeline.evaluate(candidate, operation, operation.created_at).eligible?
         end
       end

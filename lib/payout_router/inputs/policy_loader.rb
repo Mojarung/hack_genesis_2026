@@ -134,26 +134,25 @@ module PayoutRouter
         raw = @doc.fetch("selection", {})
         raise PolicyError, "#{@source}: selection должен быть объектом" unless raw.is_a?(Hash)
 
-        mode = raw.fetch("mode", "weighted").to_s
-        unless Domain::Policy::Selection::MODES.include?(mode)
-          raise PolicyError, "#{@source}: selection.mode должен быть одним из #{Domain::Policy::Selection::MODES.join("/")}"
-        end
-
+        selection = Domain::Policy::Selection
+        mode = one_of(raw, "mode", selection::MODES, "weighted", where: "selection.mode")
         chain = Array(raw["chain"]).each_with_index.map { |step, index| chain_step(step, index) }
         if mode == "chain" && chain.empty?
           raise PolicyError,
                 "#{@source}: selection.mode: chain требует непустой selection.chain"
         end
 
-        Domain::Policy::Selection.new(mode: mode, chain: chain, normalization: normalization(raw))
+        normalization = one_of(raw, "normalization", selection::NORMALIZATIONS, "pool",
+                               where: "selection.normalization")
+        selection.new(mode: mode, chain: chain, normalization: normalization)
       end
 
-      def normalization(raw)
-        value = raw.fetch("normalization", "pool").to_s
-        return value if Domain::Policy::Selection::NORMALIZATIONS.include?(value)
+      # Значение из закрытого списка — с адресом поля в тексте ошибки.
+      def one_of(raw, key, allowed, default, where:)
+        value = raw.fetch(key, default).to_s
+        return value if allowed.include?(value)
 
-        raise PolicyError, "#{@source}: selection.normalization должен быть одним из " \
-                           "#{Domain::Policy::Selection::NORMALIZATIONS.join("/")}"
+        raise PolicyError, "#{@source}: #{where} должен быть одним из #{allowed.join("/")}"
       end
 
       def chain_step(raw, index)
@@ -232,15 +231,13 @@ module PayoutRouter
         raw = @doc.fetch("simulation", {})
         raise PolicyError, "#{@source}: simulation должен быть объектом" unless raw.is_a?(Hash)
 
-        mode = raw.fetch("mode", "optimistic").to_s
-        unless Domain::Policy::SimulationSettings::MODES.include?(mode)
-          raise PolicyError, "#{@source}: simulation.mode должен быть одним из " \
-                             "#{Domain::Policy::SimulationSettings::MODES.join("/")}"
-        end
         seed = raw.fetch("seed", 42)
         raise PolicyError, "#{@source}: simulation.seed должен быть целым числом" unless seed.is_a?(Integer)
 
-        Domain::Policy::SimulationSettings.new(mode: mode, seed: seed)
+        settings = Domain::Policy::SimulationSettings
+        settings.new(seed: seed,
+                     mode: one_of(raw, "mode", settings::MODES, "optimistic", where: "simulation.mode"),
+                     timeout: one_of(raw, "timeout", settings::TIMEOUTS, "cascade", where: "simulation.timeout"))
       end
 
       def list(key)

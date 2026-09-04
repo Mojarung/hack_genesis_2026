@@ -63,6 +63,21 @@ RSpec.describe PayoutRouter::Routing::Router do
     expect(decision.retries).to eq(2)
   end
 
+  it "при simulation.timeout: hold таймаут закрывает каскад и удерживает ёмкость провайдера" do
+    policy = build_policy("simulation" => { "mode" => "optimistic", "timeout" => "hold" })
+    result = route_all(providers: [alpha, beta, fallback], policy: policy,
+                       operations: [build_operation(amount: 10_000, bank: "sberbank")],
+                       simulator: ScriptedSimulator.new("expired", "approved"))
+    decision = result.decisions.first
+
+    expect([decision.selected_provider, decision.simulated_result, decision.retries]).to eq(["alpha", "expired", 0])
+    expect(decision.attempts.first.details).to include("timeout without provider status")
+    expect(decision.attempts.map { |a| [a.provider, a.decision] }).to eq([%w[alpha selected], %w[beta skipped]])
+
+    held = result.ledger.state("alpha")
+    expect([held.in_progress_count, held.held_timeout_count, held.daily_approved_amount]).to eq([1, 1, 0])
+  end
+
   it "без fallback и допустимых провайдеров заявка остаётся без маршрута" do
     decision = decide(build_operation(amount: 80_000, bank: "alfa"), providers: [alpha, beta])
 

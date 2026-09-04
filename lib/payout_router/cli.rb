@@ -23,6 +23,8 @@ module PayoutRouter
     option :simulation, type: :string, enum: %w[optimistic conversion],
                         desc: "режим симуляции исхода (по умолчанию из политики)"
     option :seed, type: :numeric, desc: "seed для режима conversion"
+    option :timeout, type: :string, enum: %w[cascade hold],
+                     desc: "таймаут: cascade — к следующему провайдеру (ТЗ), hold — оставить заявку и удержать ёмкость"
     option :html, type: :boolean, default: true, desc: "писать routing_report.html"
     option :quiet, type: :boolean, default: false, desc: "только пути к файлам"
     def route
@@ -39,6 +41,7 @@ module PayoutRouter
     option :queue, type: :string, default: DEFAULT_QUEUE, desc: "очередь заявок (JSON)"
     option :simulation, type: :string, enum: %w[optimistic conversion]
     option :seed, type: :numeric
+    option :timeout, type: :string, enum: %w[cascade hold]
     option :verbose, type: :boolean, default: false, desc: "показать разложение скора для всех кандидатов"
     option :why_not, type: :string, desc: "показать только попытку указанного провайдера"
     def explain(operation_id)
@@ -205,7 +208,7 @@ module PayoutRouter
 
     def runner
       Runner.new(providers_path: options[:providers], policy_path: options[:policy], history_path: history_path,
-                 simulation_mode: options[:simulation], seed: options[:seed])
+                 simulation_mode: options[:simulation], seed: options[:seed], timeout: options[:timeout])
     end
 
     def history_path = options[:history].to_s.empty? ? nil : options[:history]

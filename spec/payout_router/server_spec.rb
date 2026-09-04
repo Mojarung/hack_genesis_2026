@@ -62,6 +62,27 @@ RSpec.describe PayoutRouter::Server do
     expect(metrics).to include("payout_router_provider_in_progress_count{provider=\"payflow\"}")
   end
 
+  it "принимает состояние провайдеров вместе с заявкой и решает по нему" do
+    envelope = { "operation" => operation,
+                 "providers" => [{ "payment_system" => "vipay", "status" => "inactive" }] }
+    decision = JSON.parse(request(:post, "/route", JSON.generate(envelope)).body)
+
+    expect(decision["selected_provider"]).to eq("payflow")
+    expect(decision["attempts"].first).to include("provider" => "vipay", "reason" => "provider_inactive")
+
+    state = JSON.parse(request(:get, "/state").body)
+    expect(state["providers"]["vipay"]["in_progress_count"]).to eq(4)
+    expect(state["providers"]["payflow"]["in_progress_count"]).to eq(3)
+  end
+
+  it "отвечает 400 на битый конверт состояния" do
+    envelope = { "operation" => operation, "providers" => { "vipay" => { "in_progress_count" => -3 } } }
+    response = request(:post, "/route", JSON.generate(envelope))
+
+    expect(response.code).to eq("400")
+    expect(JSON.parse(response.body)["error"]).to include("in_progress_count")
+  end
+
   it "отвечает 400 на невалидную заявку и сбрасывает состояние по /reset" do
     bad = request(:post, "/route", JSON.generate("operation_id" => "x", "amount" => -5))
     expect(bad.code).to eq("400")

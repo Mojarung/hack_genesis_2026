@@ -21,7 +21,8 @@ module PayoutRouter
 
       def reset!
         @mutex.synchronize do
-          @ledger = State::Ledger.new(@snapshot, circuit_breaker: @policy.circuit_breaker)
+          @ledger = State::Ledger.new(@snapshot, circuit_breaker: @policy.circuit_breaker,
+                                                 hold_timeouts: @policy.simulation.hold_timeouts?)
           simulator = Simulation.build(@runner.simulation, history_stats: @runner.history_stats)
           @router = Routing::Router.new(snapshot: @snapshot, policy: @policy, ledger: @ledger, simulator: simulator,
                                         history: @runner.history_stats)
@@ -31,11 +32,18 @@ module PayoutRouter
       end
 
       # Заявка в формате operations_queue.json → решение. Без created_at берём текущее время.
+      # Конверт { "operation": {...}, "providers": [...] } позволяет прислать вместе с заявкой свежее
+      # состояние провайдеров: тогда источник истины — вызывающая система, а не наши счётчики.
+      # Без конверта роутер ведёт состояние сам — обе схемы эксперты назвали допустимыми.
       def route(payload)
-        raise InputError, "тело запроса должно быть объектом заявки или массивом заявок" unless payload.is_a?(Hash)
+        unless payload.is_a?(Hash)
+          raise InputError, "тело запроса должно быть заявкой или конвертом { operation, providers }"
+        end
 
-        operation = Inputs::QueueLoader.new([payload], source: "request", default_time: Time.now).call.first
+        raw, updates = unwrap(payload)
+        operation = Inputs::QueueLoader.new([raw], source: "request", default_time: Time.now).call.first
         @mutex.synchronize do
+          @ledger.sync!(updates) unless updates.empty?
           decision = @router.route(operation)
           @decisions << decision
           decision
@@ -72,6 +80,14 @@ module PayoutRouter
       end
 
       private
+
+      # Заявка приходит либо сама по себе, либо в конверте вместе со снимком состояния провайдеров.
+      def unwrap(payload)
+        return [payload, {}] unless payload.key?("operation")
+        raise InputError, "request: operation должен быть объектом заявки" unless payload["operation"].is_a?(Hash)
+
+        [payload["operation"], Inputs::StateUpdate.parse(payload["providers"], source: "request")]
+      end
 
       def decision_metrics
         counts = @decisions.group_by { |decision| [decision.selected_provider || "none", decision.simulated_result] }

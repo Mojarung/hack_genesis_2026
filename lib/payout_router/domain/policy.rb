@@ -14,10 +14,18 @@ module PayoutRouter
         def label = "#{min || 0}..#{max || "∞"}"
       end
 
-      class SimulationSettings < Data.define(:mode, :seed)
+      # mode — как разыгрывается ответ провайдера; timeout — что делать с истёкшей попыткой:
+      #   cascade — буква ТЗ: «при отказе/таймауте исключить провайдера из пула и выбрать следующего»;
+      #   hold    — разъяснение экспертов (QA 04.09.2026): статуса от провайдера нет, значит заявка
+      #             могла уйти — повторно её никуда не отправляем, а занятые ёмкости не освобождаем,
+      #             потому что освобождать их можно только по полученному статусу.
+      class SimulationSettings < Data.define(:mode, :seed, :timeout)
         MODES = %w[optimistic conversion].freeze
+        TIMEOUTS = %w[cascade hold].freeze
 
-        def initialize(mode: "optimistic", seed: 42) = super
+        def initialize(mode: "optimistic", seed: 42, timeout: "cascade") = super
+
+        def hold_timeouts? = timeout == "hold"
       end
 
       # Предохранитель: после failures отказов/таймаутов подряд провайдер выбывает на cooldown_sec.
@@ -106,7 +114,8 @@ module PayoutRouter
           "amount_bands" => amount_bands.map { |band| band.to_h.transform_keys(&:to_s) },
           "providers" => provider_overrides.transform_values { |fields| fields.transform_keys(&:to_s) },
           "circuit_breaker" => circuit_breaker.to_h.transform_keys(&:to_s),
-          "simulation" => { "mode" => simulation.mode, "seed" => simulation.seed }
+          "simulation" => { "mode" => simulation.mode, "seed" => simulation.seed,
+                            "timeout" => simulation.timeout }
         }
       end
 

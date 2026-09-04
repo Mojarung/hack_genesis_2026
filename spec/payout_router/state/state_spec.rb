@@ -3,6 +3,7 @@
 RSpec.describe "состояние провайдеров" do
   let(:approved) { PayoutRouter::Simulation::Outcome.new(result: "approved", latency_sec: 30) }
   let(:rejected) { PayoutRouter::Simulation::Outcome.new(result: "rejected", latency_sec: 10) }
+  let(:expired) { PayoutRouter::Simulation::Outcome.new(result: "expired", latency_sec: 600) }
 
   describe PayoutRouter::State::ProviderState do
     subject(:state) do
@@ -27,6 +28,36 @@ RSpec.describe "состояние провайдеров" do
       state.settle!(operation, rejected)
       expect(state.daily_approved_amount).to eq(1_000)
       expect(state.rejected_count).to eq(1)
+    end
+
+    it "по умолчанию таймаут освобождает ёмкость так же, как отказ" do
+      operation = build_operation(amount: 200)
+      state.dispatch!(operation, Builders::T0)
+      state.settle!(operation, expired)
+
+      expect([state.in_progress_count, state.in_progress_amount, state.available_requisites]).to eq([1, 500, 3])
+      expect([state.expired_count, state.held_timeout_count]).to eq([1, 0])
+    end
+
+    it "с hold_timeouts таймаут ничего не освобождает и не идёт в дневной оборот" do
+      operation = build_operation(amount: 200)
+      holding = described_class.new(build_provider(daily_approved_amount: 1_000, in_progress_count: 1,
+                                                   in_progress_amount: 500, available_requisites: 3),
+                                    hold_timeouts: true)
+      holding.dispatch!(operation, Builders::T0)
+      holding.settle!(operation, expired)
+
+      expect([holding.in_progress_count, holding.in_progress_amount, holding.available_requisites]).to eq([2, 700, 2])
+      expect(holding.daily_approved_amount).to eq(1_000)
+      expect([holding.expired_count, holding.held_timeout_count]).to eq([1, 1])
+    end
+
+    it "принимает внешний снимок: счётчики перетирает, остальное обновляет как конфигурацию" do
+      state.sync!(in_progress_count: 7, available_requisites: 0, status: "inactive")
+
+      expect([state.in_progress_count, state.available_requisites]).to eq([7, 0])
+      expect(state.provider.status).to eq("inactive")
+      expect(state.provider.name).to eq("alpha")
     end
 
     it "считает отправки в скользящем окне" do
@@ -96,6 +127,13 @@ RSpec.describe "состояние провайдеров" do
       ledger.select!(ledger.state("beta"), build_operation(amount: 100))
       expect(ledger.count_share_pct(ledger.state("beta"))).to be_within(0.01).of(66.67)
       expect(ledger.selected_amount_total).to eq(300)
+    end
+
+    it "применяет внешний снимок состояния и пропускает незнакомых провайдеров" do
+      ledger.sync!("alpha" => { daily_approved_amount: 900 }, "чужой" => { in_progress_count: 3 })
+
+      expect(ledger.state("alpha").daily_approved_amount).to eq(900)
+      expect(ledger.state("beta").daily_approved_amount).to eq(100)
     end
 
     it "разделяет внешних провайдеров и fallback" do

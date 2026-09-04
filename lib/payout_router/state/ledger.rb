@@ -9,9 +9,9 @@ module PayoutRouter
 
       attr_reader :states, :selected_total, :selected_amount_total
 
-      def initialize(snapshot, circuit_breaker: nil)
+      def initialize(snapshot, circuit_breaker: nil, hold_timeouts: false)
         @states = snapshot.providers.to_h do |provider|
-          [provider.name, ProviderState.new(provider, breaker: circuit_breaker)]
+          [provider.name, ProviderState.new(provider, breaker: circuit_breaker, hold_timeouts: hold_timeouts)]
         end.freeze
         @external = @states.values.select { |state| state.provider.external? }.freeze
         @fallback = @states.values.find { |state| state.provider.fallback? }
@@ -23,6 +23,18 @@ module PayoutRouter
       def state(name) = @states.fetch(name) { raise Error, "нет состояния провайдера #{name}" }
       def external_states = @external
       def fallback_state = @fallback
+
+      # Внешний снимок состояния провайдеров перед очередной заявкой: { "vipay" => { in_progress_count: 7 } }.
+      # Эксперты на QA 04.09 подтвердили обе схемы — снимок от системы и счётчики, которые роутер
+      # ведёт сам; вторая работает всегда, эта позволяет системе оставаться источником истины.
+      # Провайдеров, которых нет в снимке роутера, пропускаем: состав пула задаёт providers.json.
+      def sync!(updates)
+        updates.each do |name, fields|
+          state = @states[name.to_s]
+          state&.sync!(fields)
+        end
+        self
+      end
 
       # Заявка ушла провайдеру; ответ придёт через latency — до тех пор она висит in-progress.
       def dispatch!(state, operation, outcome, now)

@@ -13,15 +13,16 @@ module PayoutRouter
       def initialize(snapshot:, policy:, ledger:, simulator:, history: nil)
         @ledger = ledger
         @simulator = simulator
+        @hold_timeouts = policy.simulation.hold_timeouts?
         @constraints = Constraints::Pipeline.new(policy.hard_constraints)
         @fallback_constraints = Constraints::Pipeline.new(policy.fallback_rules)
         @scorer = Scoring.build(policy: policy, snapshot: snapshot, history: history)
         @external = ledger.external_states
                           .sort_by { |state| [state.provider.priority, state.name] }
-                          .map { |state| Candidate.new(provider: state.provider, state: state) }
+                          .map { |state| Candidate.new(state: state) }
                           .freeze
         fallback = ledger.fallback_state
-        @fallback = fallback && Candidate.new(provider: fallback.provider, state: fallback)
+        @fallback = fallback && Candidate.new(state: fallback)
       end
 
       def route(operation)
@@ -56,7 +57,7 @@ module PayoutRouter
       def try_ranked(ranked, operation, now, attempts)
         ranked.each_with_index do |score, index|
           outcome = dispatch(score.candidate, operation, now)
-          unless outcome.approved?
+          unless final?(outcome)
             attempts << failed_attempt(score, outcome)
             next
           end
@@ -74,6 +75,10 @@ module PayoutRouter
         @ledger.dispatch!(candidate.state, operation, outcome, now)
         outcome
       end
+
+      # Попытка закрывает каскад: одобрение — всегда; таймаут — если политика велит его удерживать
+      # (simulation.timeout: hold). Без статуса от провайдера повтор у соседа рискует двойной выплатой.
+      def final?(outcome) = outcome.approved? || (@hold_timeouts && outcome.expired?)
 
       def fallback(operation, attempts, now, cause:)
         if @fallback
@@ -103,6 +108,7 @@ module PayoutRouter
                  end
         summary = score.summary(versus: ranked[index + 1])
         details = index.positive? ? "retry ##{index} after failure; #{summary}" : summary
+        details = "#{details}; timeout without provider status: kept here, capacity held" if outcome.expired?
         Attempt.selected(score.name, reason, details,
                          score: score.total, breakdown: score.breakdown,
                          simulated_result: outcome.result, latency_sec: outcome.latency_sec)

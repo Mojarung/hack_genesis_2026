@@ -7,7 +7,7 @@ RSpec.describe "свои стратегии" do
   let(:ledger) { PayoutRouter::State::Ledger.new(snapshot) }
 
   def evaluate(policy, key, provider, bank: "alfa")
-    candidate = PayoutRouter::Routing::Candidate.new(provider: provider, state: ledger.state(provider.name))
+    candidate = PayoutRouter::Routing::Candidate.new(state: ledger.state(provider.name))
     context = PayoutRouter::Scoring::Context.new(operation: build_operation(bank: bank), ledger: ledger, now: Builders::T0)
     PayoutRouter::Strategies.instantiate(key, policy: policy, snapshot: snapshot).evaluate(candidate, context)
   end
