@@ -73,6 +73,17 @@ RSpec.describe "soft-goals" do
     expect(evaluate(PayoutRouter::Strategies::CascadePriority, beta).score).to eq(0.0)
   end
 
+  it "amount_band: с ramp оценка плавно сходится к 0.5 у границы диапазона" do
+    ramped = build_policy("amount_bands" => [{ "min" => 0, "max" => 50_000, "prefer" => ["beta"], "ramp" => 10_000 }])
+    strategy = PayoutRouter::Strategies::AmountBand.new(policy: ramped, snapshot: snapshot)
+    beta_candidate = PayoutRouter::Routing::Candidate.new(state: ledger.state("beta"))
+    score = ->(amount) { strategy.evaluate(beta_candidate, context(build_operation(amount: amount))).score }
+
+    expect(score.call(30_000)).to eq(1.0)   # глубже ramp от обеих границ
+    expect(score.call(45_000)).to eq(0.75)  # на полпути к верхней границе
+    expect(score.call(50_000)).to eq(0.5)   # ровно на границе — нейтрально
+  end
+
   it "amount_band: предпочтительный провайдер диапазона получает 1, остальные 0, вне диапазона 0.5" do
     expect(evaluate(PayoutRouter::Strategies::AmountBand, beta).score).to eq(1.0)
     expect(evaluate(PayoutRouter::Strategies::AmountBand, alpha).score).to eq(0.0)

@@ -58,7 +58,8 @@ module PayoutRouter
       result = Routing::BatchRouter.new(snapshot: snapshot, policy: policy, simulator: simulator,
                                         history: history_stats).call(operations)
       report = Analytics::ReportBuilder.new(decisions: result.decisions, ledger: result.ledger, snapshot: snapshot,
-                                            policy: policy, history_stats: history_stats, simulation: simulation).build
+                                            policy: policy, history_stats: history_stats, simulation: simulation,
+                                            cascade: cascade_demo(operations)).build
       Run.new(snapshot: snapshot, policy: policy, operations: operations, decisions: result.decisions,
               ledger: result.ledger, report: report, history_stats: history_stats, simulation: simulation,
               warnings: warnings)
@@ -114,6 +115,15 @@ module PayoutRouter
     end
 
     private
+
+    # В optimistic отказов в решениях нет по построению — отчёт несёт отдельный прогон с отказами.
+    # В conversion каскад и так в самих решениях, второй прогон не нужен.
+    def cascade_demo(operations)
+      return nil unless simulation.mode == "optimistic"
+
+      Analytics::CascadeDemo.new(snapshot: snapshot, policy: policy, operations: operations,
+                                 history: history_stats, seed: simulation.seed).call
+    end
 
     def override_simulation(loaded)
       settings = loaded.simulation

@@ -6,12 +6,15 @@ module PayoutRouter
     # (period, total_operations, distribution, skip_reasons, projected_daily_utilization,
     # recommendations) плюс расширенная аналитика.
     class ReportBuilder
-      def initialize(decisions:, ledger:, snapshot:, policy:, history_stats:, simulation:)
+      # cascade — Analytics::CascadeDemo#call (или nil): демонстрация каскада с отказами,
+      # когда основной прогон шёл в optimistic и в решениях отказов нет по построению.
+      def initialize(decisions:, ledger:, snapshot:, policy:, history_stats:, simulation:, cascade: nil)
         @decisions = decisions
         @snapshot = snapshot
         @policy = policy
         @history = history_stats
         @simulation = simulation
+        @cascade = cascade
         @stats = RoutingStats.new(decisions: decisions, ledger: ledger, snapshot: snapshot)
       end
 
@@ -20,10 +23,11 @@ module PayoutRouter
           Recommendations::Context.new(stats: @stats, history: @history, snapshot: @snapshot, policy: @policy)
         )
         header.merge(body).merge(
+          "cascade_demonstration" => @cascade,
           "history_analysis" => history_section,
           "recommendations" => recommendations.map(&:message),
           "recommendation_details" => recommendations.map(&:serialize)
-        )
+        ).compact
       end
 
       private

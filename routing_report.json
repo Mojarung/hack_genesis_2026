@@ -303,6 +303,46 @@
       }
     }
   },
+  "cascade_demonstration": {
+    "note": "основной прогон — optimistic, отказов в routing_decisions нет по построению. Здесь та же очередь и политика, исходы разыграны по conversion_24h (seed 42): видно переход к следующему провайдеру и fallback",
+    "simulation": {
+      "mode": "conversion",
+      "seed": 42
+    },
+    "operations": 10,
+    "dispatches": 12,
+    "failed_dispatches": 2,
+    "final_results": {
+      "approved": 10
+    },
+    "operations_with_retry": 2,
+    "retries_after_failure": 2,
+    "fallback_used": 0,
+    "examples": [
+      {
+        "operation_id": "op_102",
+        "path": [
+          "payflow: provider_rejected (rejected)",
+          "quickpay: fallback_after_failure (approved)"
+        ],
+        "selected_provider": "quickpay",
+        "simulated_result": "approved",
+        "retries": 1,
+        "fallback_used": false
+      },
+      {
+        "operation_id": "op_110",
+        "path": [
+          "payflow: provider_rejected (rejected)",
+          "quickpay: fallback_after_failure (approved)"
+        ],
+        "selected_provider": "quickpay",
+        "simulated_result": "approved",
+        "retries": 1,
+        "fallback_used": false
+      }
+    ]
+  },
   "history_analysis": {
     "operations": 100,
     "volume": 3391500,

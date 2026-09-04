@@ -171,6 +171,30 @@
   </section>
 
   <section>
+    <h2>Каскад при отказах <small>та же очередь, исходы по conversion_24h, seed 42</small></h2>
+    <p class="note">основной прогон — optimistic, отказов в routing_decisions нет по построению. Здесь та же очередь и политика, исходы разыграны по conversion_24h (seed 42): видно переход к следующему провайдеру и fallback</p>
+    <div class="chips">
+      <span class="chip">отправок 12</span>
+      <span class="chip">неудачных 2</span>
+      <span class="chip">заявок с повтором 2</span>
+      <span class="chip">fallback 0</span>
+    </div>
+    <table>
+      <tr><th>Заявка</th><th>Путь по каскаду</th><th>Итог</th></tr>
+      <tr>
+        <td><b>op_102</b></td>
+        <td>payflow: provider_rejected (rejected) → quickpay: fallback_after_failure (approved)</td>
+        <td>quickpay · approved</td>
+      </tr>
+      <tr>
+        <td><b>op_110</b></td>
+        <td>payflow: provider_rejected (rejected) → quickpay: fallback_after_failure (approved)</td>
+        <td>quickpay · approved</td>
+      </tr>
+    </table>
+  </section>
+
+  <section>
     <h2>Достижимость целевых долей <small>в какой доле заявок провайдер вообще допустим</small></h2>
     <table>
       <tr><th>Провайдер</th><th>Допустим</th><th class="num">Заявок</th><th>Что блокирует</th><th>Банки, не прошедшие фильтр</th></tr>

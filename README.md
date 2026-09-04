@@ -17,14 +17,18 @@
 
 ## Быстрый старт
 
-```powershell
-winget install --id RubyInstallerTeam.RubyWithDevKit.4.0 -e   # Ruby 4.0.6, один раз
+Нужен Ruby 4.0 (эксперты подтвердили: 4.0 подходит; проверено на 4.0.6, чистая копия — в Docker). Windows: `winget install --id
+RubyInstallerTeam.RubyWithDevKit.4.0 -e`; Linux/macOS: `rbenv install 4.0.6` или образ `ruby:4.0`.
+
+```sh
 bundle install
 bundle exec rake            # тесты + линтер
 bundle exec rake validate   # роутинг публичной очереди + автопроверка организаторов
+bundle exec rake stress     # 17 сценариев давления, инварианты и метрики
 ```
 
-Или в Docker: `docker build -t payout_router . && docker run --rm payout_router route`.
+Или без установки Ruby — в Docker: `docker build -t payout_router . && docker run --rm payout_router route`.
+В образе `ruby:4.0` включается YJIT: ~3 300 заявок/с против ~2 700 без него.
 
 ## Команды
 
@@ -284,9 +288,15 @@ selection:
 ```
 
 `routing_report.json` — `period`, `total_operations`, `distribution` (доля/цель/отклонение по количеству
-и объёму), `skip_reasons`, `projected_daily_utilization`, `recommendations` — плюс `results` (исходы и конверсия
-по провайдерам, срабатывания предохранителя), `attempts`, `target_attainability`, `history_analysis`
-(включая конверсию по банкам и дрейф заявленной конверсии) и `recommendation_details`.
+и объёму, достижимая цель), `skip_reasons`, `projected_daily_utilization`, `recommendations` — плюс `results`
+(исходы и конверсия по провайдерам, срабатывания предохранителя), `attempts`, `target_attainability`,
+`goal_activity`, `history_analysis` (включая конверсию по банкам и дрейф заявленной конверсии)
+и `recommendation_details`.
+
+`cascade_demonstration` появляется в отчёте, когда прогон шёл в `optimistic`: в самих решениях тогда
+отказов нет по построению, поэтому отчёт несёт ту же очередь с исходами по `conversion_24h` (seed записан)
+и настоящие трейсы каскада — `payflow: provider_rejected → quickpay: fallback_after_failure`. Так каскад
+виден и тому, кто читает только JSON.
 
 ## Качество
 

@@ -26,8 +26,11 @@ task :public do
 end
 
 desc "Итоговые файлы для жюри из data/operations_queue_test.json (routing_*_test.json в корне)"
+# --on-invalid skip: неожиданная строка в тестовой очереди не должна оставить нас без файла.
+# Пропущенные заявки уходят в предупреждения, а валидатор следом сравнит покрытие с очередью
+# и упадёт, если решений не хватает, — неполный файл не проскочит незамеченным.
 task :submit do
-  sh "#{CLI} route --queue data/operations_queue_test.json --out . --suffix _test"
+  sh "#{CLI} route --queue data/operations_queue_test.json --out . --suffix _test --on-invalid skip"
   sh "#{CLI} validate routing_decisions_test.json --queue data/operations_queue_test.json"
 end
 

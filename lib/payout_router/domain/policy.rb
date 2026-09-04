@@ -13,9 +13,23 @@ module PayoutRouter
       #   attainable — процент пересчитывается на допустимых кандидатов заявки (см. Strategies::Base#target_share).
       SHARE_TARGETS = %w[absolute attainable].freeze
       # Стратегия «по сумме чека»: диапазон и провайдеры, которых в нём предпочитаем.
-      class AmountBand < Data.define(:min, :max, :prefer)
+      # ramp — ширина плавного перехода у границ (в валюте): без него 49 999 ₽ и 50 001 ₽ получают
+      # противоположные оценки, с ним оценка сходится к нейтральной по мере приближения к границе.
+      class AmountBand < Data.define(:min, :max, :prefer, :ramp)
+        def initialize(ramp: 0, **rest) = super
+
         def cover?(amount) = (min.nil? || amount >= min) && (max.nil? || amount <= max)
         def label = "#{min || 0}..#{max || "∞"}"
+
+        # Насколько сумма «внутри» диапазона: 1 — дальше ramp от любой границы, 0 — ровно на границе.
+        def depth(amount)
+          return 1.0 unless ramp.to_f.positive?
+
+          distances = [min && (amount - min), max && (max - amount)].compact
+          return 1.0 if distances.empty?
+
+          (distances.min / ramp.to_f).clamp(0.0, 1.0)
+        end
       end
 
       # mode — как разыгрывается ответ провайдера; timeout — что делать с истёкшей попыткой:

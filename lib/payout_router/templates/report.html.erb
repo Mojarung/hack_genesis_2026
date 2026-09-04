@@ -124,6 +124,29 @@
     </div>
   </section>
 
+  <%- if (demo = report["cascade_demonstration"]) && demo["examples"] -%>
+  <section>
+    <h2>Каскад при отказах <small>та же очередь, исходы по conversion_24h, seed <%= demo["simulation"]["seed"] %></small></h2>
+    <p class="note"><%= h(demo["note"]) %></p>
+    <div class="chips">
+      <span class="chip">отправок <%= demo["dispatches"] %></span>
+      <span class="chip">неудачных <%= demo["failed_dispatches"] %></span>
+      <span class="chip">заявок с повтором <%= demo["operations_with_retry"] %></span>
+      <span class="chip">fallback <%= demo["fallback_used"] %></span>
+    </div>
+    <table>
+      <tr><th>Заявка</th><th>Путь по каскаду</th><th>Итог</th></tr>
+      <%- demo["examples"].each do |example| -%>
+      <tr>
+        <td><b><%= h(example["operation_id"]) %></b></td>
+        <td><%= example["path"].map { |step| h(step) }.join(" → ") %></td>
+        <td><%= h(example["selected_provider"]) %> · <%= h(example["simulated_result"]) %></td>
+      </tr>
+      <%- end -%>
+    </table>
+  </section>
+  <%- end -%>
+
   <section>
     <h2>Достижимость целевых долей <small>в какой доле заявок провайдер вообще допустим</small></h2>
     <table>

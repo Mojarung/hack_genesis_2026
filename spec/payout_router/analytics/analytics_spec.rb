@@ -45,6 +45,19 @@ RSpec.describe "аналитика" do
       expect(report["distribution"]["vipay"]["deviation_pp"]).to eq(report["distribution"]["vipay"]["share_pct"] - 40)
     end
 
+    it "в optimistic несёт демонстрацию каскада с настоящими отказами, в conversion — нет" do
+      demo = report["cascade_demonstration"]
+      expect(demo["simulation"]["mode"]).to eq("conversion")
+      expect(demo["retries_after_failure"]).to be_positive
+      # Пример — реальный трейс: отправка с отказом, затем следующий провайдер или fallback.
+      example = demo["examples"].first
+      expect(example["path"].size).to be > 1
+      expect(example["path"].first).to match(/provider_(rejected|timeout)/)
+
+      with_failures = default_runner(simulation_mode: "conversion", seed: 6).call(data_path("operations_queue_10.json"))
+      expect(with_failures.report).not_to have_key("cascade_demonstration")
+    end
+
     it "считает достижимую цель: сколько дал бы пропорциональный роутинг по допустимым" do
       external = report["distribution"].except("spacepayments")
       # Каждая заявка делит между допустимыми ровно 100%, поэтому достижимые цели дают в сумме 100%.

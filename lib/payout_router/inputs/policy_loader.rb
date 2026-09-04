@@ -192,7 +192,8 @@ module PayoutRouter
           Domain::Policy::AmountBand.new(
             min: optional_number(raw, "min", where),
             max: optional_number(raw, "max", where),
-            prefer: Array(raw["prefer"]).map(&:to_s)
+            prefer: Array(raw["prefer"]).map(&:to_s),
+            ramp: optional_number(raw, "ramp", where) || 0
           )
         end
       end
