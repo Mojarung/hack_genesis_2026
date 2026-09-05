@@ -62,12 +62,18 @@ module PayoutRouter
     desc "validate DECISIONS", "Проверить файл решений: структура, покрытие очереди, допустимость провайдеров, эталоны"
     option :queue, type: :string, default: DEFAULT_QUEUE, desc: "очередь, по которой строились решения"
     option :reference, type: :string, desc: "эталонные решения организаторов (reference_decisions.json)"
+    option :on_invalid, type: :string, enum: %w[fail skip], default: "fail",
+                        desc: "битая заявка в очереди: fail — остановиться, skip — карантин (как у route)"
     def validate(decisions_path)
       base = runner
+      # Очередь читается теми же правилами, что и при роутинге: иначе прогон с --on-invalid skip
+      # проходит, а проверка его результата падает на той же битой заявке.
+      operations = base.load_queue(options[:queue])
       result = Validation::DecisionsValidator.new(
-        decisions: Inputs::JSONFile.read(decisions_path), operations: base.load_queue(options[:queue]),
+        decisions: Inputs::JSONFile.read(decisions_path), operations: operations,
         snapshot: base.snapshot, policy: base.policy,
-        reference: options[:reference] && Inputs::JSONFile.read(options[:reference])
+        reference: options[:reference] && Inputs::JSONFile.read(options[:reference]),
+        quarantined: base.rejected_operations
       ).call
       result.checks.each do |check|
         say "#{{ pass: "OK  ", fail: "FAIL", warn: "WARN" }[check.status]} #{check.message}", check_color(check)

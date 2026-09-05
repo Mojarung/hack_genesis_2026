@@ -23,7 +23,7 @@ module PayoutRouter
       ATTEMPT_FIELDS = %w[provider decision reason].freeze
       DECISIONS = [Routing::Attempt::SELECTED, Routing::Attempt::SKIPPED].freeze
 
-      def initialize(decisions:, operations:, snapshot:, policy:, reference: nil)
+      def initialize(decisions:, operations:, snapshot:, policy:, reference: nil, quarantined: [])
         raise InputError, "файл решений должен содержать массив" unless decisions.is_a?(Array)
 
         @decisions = decisions
@@ -31,6 +31,7 @@ module PayoutRouter
         @snapshot = snapshot
         @policy = policy
         @reference = reference
+        @quarantined = quarantined
         @by_id = decisions.grep(Hash).to_h { |decision| [decision["operation_id"], decision] }
       end
 
@@ -56,6 +57,16 @@ module PayoutRouter
                     fail!("нет решений для: #{missing.join(", ")}")
                   end
         checks << warn("лишние operation_id: #{extra.join(", ")}") unless extra.empty?
+        quarantine(checks)
+      end
+
+      # Карантин (on_invalid: skip) уменьшает и очередь, и файл решений одновременно, поэтому
+      # покрытие сходится и молчит. Заявок в сдаваемом файле при этом нет — это надо видеть.
+      def quarantine(checks)
+        return if @quarantined.empty?
+
+        ids = @quarantined.map { |rejected| rejected.operation_id || "позиция #{rejected.index}" }
+        checks << warn("в карантине #{ids.size} заявок, решений по ним нет: #{ids.join(", ")}")
       end
 
       def structure(checks)

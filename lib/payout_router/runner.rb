@@ -21,6 +21,9 @@ module PayoutRouter
       @rejected_operations = []
     end
 
+    # Заявки, ушедшие в карантин при последней загрузке очереди (on_invalid: skip).
+    attr_reader :rejected_operations
+
     # Политика из файла плюс переопределения симуляции из командной строки — чтобы роутер,
     # симулятор и отчёт видели одни и те же настройки, а не файл против флагов.
     def policy = @policy ||= override_simulation(Inputs::PolicyLoader.load(@policy_path))

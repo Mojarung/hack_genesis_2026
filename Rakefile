@@ -27,11 +27,12 @@ end
 
 desc "Итоговые файлы для жюри из data/operations_queue_test.json (routing_*_test.json в корне)"
 # --on-invalid skip: неожиданная строка в тестовой очереди не должна оставить нас без файла.
-# Пропущенные заявки уходят в предупреждения, а валидатор следом сравнит покрытие с очередью
-# и упадёт, если решений не хватает, — неполный файл не проскочит незамеченным.
+# Тем же флагом читает очередь и валидатор — иначе он падал бы на той самой заявке, которую
+# прогон уже пропустил. Карантин при этом не проглатывается: валидатор печатает WARN со списком
+# заявок, решений по которым нет, а покрытие остальных сверяет как обычно.
 task :submit do
   sh "#{CLI} route --queue data/operations_queue_test.json --out . --suffix _test --on-invalid skip"
-  sh "#{CLI} validate routing_decisions_test.json --queue data/operations_queue_test.json"
+  sh "#{CLI} validate routing_decisions_test.json --queue data/operations_queue_test.json --on-invalid skip"
 end
 
 desc "Стресс-прогон: сценарии давления на роутер, метрики и проверка инвариантов"

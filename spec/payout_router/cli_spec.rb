@@ -95,6 +95,25 @@ RSpec.describe PayoutRouter::CLI do
     expect(JSON.parse(File.read(File.join(out, "routing_decisions.json"))).size).to eq(9)
   end
 
+  it "validate читает очередь как route: без флага падает, с --on-invalid skip проверяет уцелевшие" do
+    broken = File.join(out, "broken_queue.json")
+    rows = JSON.parse(File.read(queue))
+    rows[2]["amount"] = "много"
+    File.write(broken, JSON.generate(rows))
+    run_cli("route", "--out", out, "--queue", broken, "--on-invalid", "skip", "--quiet")
+    decisions = File.join(out, "routing_decisions.json")
+
+    strict = run_cli("validate", decisions, "--queue", broken)
+    expect(strict.status).to eq(2)
+    expect(strict.stderr).to include("amount должно быть числом")
+
+    lenient = run_cli("validate", decisions, "--queue", broken, "--on-invalid", "skip")
+    expect(lenient.status).to eq(0)
+    expect(lenient.stdout).to include("все 9 заявок из очереди покрыты",
+                                      "в карантине 1 заявок, решений по ним нет: op_103",
+                                      "ошибок 0, предупреждений 1")
+  end
+
   it "сообщает об ошибке политики" do
     policy = File.join(out, "policy.yml")
     File.write(policy, "goals:\n  nope: 1\n")
