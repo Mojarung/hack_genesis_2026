@@ -38,6 +38,7 @@ selection:
 # Soft-goals и их веса. Скор кандидата = Σ(вес × оценка по пулу) / Σ весов. Вес 0 — цель выключена.
 goals:
   traffic_share: 0.30      # стратегия 1: доля по числу заявок (traffic_percentage)
+  share_deficit: 0.00      # та же доля, но в заявках (deficit round-robin) — см. docs/search.md
   volume_share: 0.10       # стратегия 2: доля по объёму (volume_share_pct)
   cascade_priority: 0.10   # стратегия 3: очередь в каскаде (priority)
   amount_band: 0.10        # стратегия 4: предпочтения по диапазону суммы (amount_bands ниже)
