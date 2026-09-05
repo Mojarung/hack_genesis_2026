@@ -11,7 +11,8 @@
 
 ТЗ: [docs/tz.md](docs/tz.md) · данные и их аудит: [docs/data.md](docs/data.md),
 [docs/data_audit.md](docs/data_audit.md) · архитектура: [docs/architecture.md](docs/architecture.md) ·
-питч: [docs/pitch.md](docs/pitch.md) · план: [docs/plan.md](docs/plan.md).
+питч: [docs/pitch.md](docs/pitch.md) · план: [docs/plan.md](docs/plan.md) ·
+перебор конфигураций и его выводы: [docs/search.md](docs/search.md).
 Каталог `analysis/` — офлайн-разведка данных на Python (polars), к решению не относится и в сборке
 ответа не участвует; `scripts/history_stats.rb` — калибровка по истории на Ruby.
 
@@ -46,6 +47,7 @@ bundle exec rake stress     # 17 сценариев давления, инвар
 | `route --on-invalid skip` | неразобранная заявка не валит прогон, а уходит в карантин с предупреждением в stderr |
 | `simulate --runs 200` | Monte-Carlo по отказам: перцентили одобрений, fallback и долей |
 | `tune --synthetic 200` | подбор весов целей под бизнес-цель, результат в `policy_tuned.yml` |
+| `search [--samples N] [--grid …]` | перебор конфигураций политики через настоящий роутер: структурные варианты × веса → граница Парето и лидеры по каждой метрике ([docs/search.md](docs/search.md)) |
 | `serve --port 8080` | HTTP-сервис: `POST /route`, `GET /report`, `/state`, `/metrics` (Prometheus), `/health` |
 | `strategies` | справочник: hard-правила, цели (встроенные, плагины, декларативные), пресеты политик |
 | `stress [--scenario flood]` | 17 сценариев давления на роутер: измеренные метрики и проверка инвариантов |
@@ -300,11 +302,12 @@ selection:
 
 ## Качество
 
-- `bundle exec rspec` — 211 примеров, покрытие строк 97.8%; интеграционные тесты гоняют скрипт организаторов, сверяют формат обоих файлов с образцом ТЗ поле за полем и пул допустимых с эталоном,
+- `bundle exec rspec` — 235 примеров, покрытие строк 96.3% (ветви 79.9%); интеграционные тесты гоняют скрипт организаторов, сверяют формат обоих файлов с образцом ТЗ поле за полем и пул допустимых с эталоном,
   регресс-тест на плотную очередь (все заявки в одну секунду) проверяет, что ни одна не остаётся без маршрута.
 - `bundle exec rubocop` — без замечаний (Ruby 4.0, rubocop 1.90 + rubocop-rspec).
-- `rake bench` — полный конвейер с симуляцией отказов на ноутбуке под Windows (RubyInstaller собран
-  без YJIT): 5 000 заявок → 2678 в секунду, 20 000 → 2715, 50 000 → 2697, 200 000 → 2616.
+- `rake bench` — полный конвейер с симуляцией отказов, Windows, RubyInstaller без YJIT.
+  Ryzen 7 9700X: 50 000 заявок → 10 642 в секунду, 200 000 → 10 323. Ноутбук разработки:
+  5 000 → 2678, 20 000 → 2715, 50 000 → 2697, 200 000 → 2616.
   Время растёт линейно, деградации на объёме нет. `bin/payout_router` включает YJIT там,
   где он есть (официальный образ `ruby:4.0` — есть), так что в Docker цифра выше.
 - CI (GitHub Actions): тесты, линтер, автопроверка организаторов, бэктест.
@@ -318,14 +321,16 @@ data/                      вводные организаторов
 lib/payout_router/
   domain/                  Provider, Operation, Policy, Snapshot, HistoryRecord (неизменяемые Data)
   inputs/                  загрузчики JSON/CSV/YAML с проверкой полей
-  constraints/             hard-правила (Base + 12 классов, Registry, Pipeline)
-  strategies/              soft-goals (Base + 12 классов, Registry с плагинами, custom/ — декларативные цели)
+  constraints/             hard-правила (Base + 14 классов, Registry, Pipeline)
+  strategies/              soft-goals (Base + 13 классов, Registry с плагинами, custom/ — декларативные цели)
   scoring/                 CompositeScorer (веса), ChainScorer (цепочка), TieBreaker, Score
   state/                   ProviderState, Ledger, SettlementQueue (виртуальные часы, предохранитель)
   routing/                 Router, BatchRouter, Attempt, Decision, Reasons
   simulation/              Optimistic, Conversion, Outcome
   analytics/               RoutingStats, HistoryStats, ApprovalModel, Backtest, PolicyComparison,
-                           MonteCarlo, WeightTuner, ReportBuilder, recommendations/*
+                           MonteCarlo, WeightTuner, ReportBuilder, recommendations/*,
+                           AssignmentBound + MinCostFlow (эталонное распределение очереди)
+  search/                  перебор конфигураций: Battery, Space, Front, Engine, Metrics, Outcome
   validation/              DecisionsValidator (как у жюри + инварианты)
   output/                  JSONWriter, YAMLWriter, HtmlReport, Summary, Explanation, Tables
   server.rb                HTTP-сервис (WEBrick): /route, /report, /state, /metrics
