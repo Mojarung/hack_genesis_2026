@@ -31,7 +31,7 @@ Routing::BatchRouter (сортирует по created_at, отдаёт в пор
        │    approved → Decision; rejected/expired → следующий по рангу
        └─ fallback → self-provider (тоже через Pipeline) → иначе unrouted
                                   │
-Analytics::RoutingStats + HistoryStats ─► ReportBuilder ─► Recommendations::Engine
+Analytics::RoutingStats + HistoryStats ─► ReportBuilder ─► Recommendations::Engine + DecisionExamples
 Output::JSONWriter ─► routing_decisions.json, routing_report.json
 ```
 

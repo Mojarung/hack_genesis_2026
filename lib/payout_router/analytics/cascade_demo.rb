@@ -9,6 +9,9 @@ module PayoutRouter
     # fallback_after_failure и fallback_self_provider. Seed подбирается так, чтобы хотя бы одна заявка
     # прошла через отказ, и записывается в отчёт — прогон воспроизводим.
     class CascadeDemo
+      # summary уходит в отчёт как есть, decisions — в разобранные примеры (Analytics::DecisionExamples).
+      Result = Data.define(:summary, :decisions)
+
       MAX_OPERATIONS = 500
       EXAMPLES = 3
       SEED_ATTEMPTS = 25
@@ -21,12 +24,13 @@ module PayoutRouter
         @seed = seed
       end
 
-      # nil — очередь слишком велика для второго прогона; тогда отчёт говорит, как получить то же вручную.
+      # nil-decisions — очередь слишком велика для второго прогона; тогда отчёт говорит,
+      # как получить то же вручную.
       def call
-        return too_large if @operations.size > MAX_OPERATIONS
+        return Result.new(summary: too_large, decisions: []) if @operations.size > MAX_OPERATIONS
 
         seed, decisions = first_cascading_run
-        summary(seed, decisions)
+        Result.new(summary: summary(seed, decisions), decisions: decisions)
       end
 
       private
@@ -36,17 +40,22 @@ module PayoutRouter
                     "каскад с отказами: route --simulation conversion --seed #{@seed}" }
       end
 
-      # Идём по seed от заданного, пока хотя бы одна заявка не пройдёт через отказ.
+      # Идём по seed от заданного, пока не найдём прогон, где видно и переотправку после отказа,
+      # и уход на self-provider: экспертам на чекпоинте 2 важно, чтобы обе ветки были в отчёте примерами.
+      # Если такого seed нет — берём прогон хотя бы с отказом, иначе первый попавшийся.
       def first_cascading_run
-        fallback = nil
+        with_retry = nil
+        any = nil
         SEED_ATTEMPTS.times do |offset|
           seed = @seed + offset
           decisions = run(seed)
-          return [seed, decisions] if decisions.any? { |decision| decision.retries.positive? }
+          retried = decisions.any? { |decision| decision.retries.positive? }
+          return [seed, decisions] if retried && decisions.any?(&:fallback_used)
 
-          fallback ||= [seed, decisions]
+          with_retry ||= [seed, decisions] if retried
+          any ||= [seed, decisions]
         end
-        fallback
+        with_retry || any
       end
 
       def run(seed)

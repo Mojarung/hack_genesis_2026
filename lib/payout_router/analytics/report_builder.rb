@@ -6,7 +6,7 @@ module PayoutRouter
     # (period, total_operations, distribution, skip_reasons, projected_daily_utilization,
     # recommendations) плюс расширенная аналитика.
     class ReportBuilder
-      # cascade — Analytics::CascadeDemo#call (или nil): демонстрация каскада с отказами,
+      # cascade — Analytics::CascadeDemo::Result (или nil): демонстрация каскада с отказами,
       # когда основной прогон шёл в optimistic и в решениях отказов нет по построению.
       def initialize(decisions:, ledger:, snapshot:, policy:, history_stats:, simulation:, cascade: nil)
         @decisions = decisions
@@ -23,7 +23,8 @@ module PayoutRouter
           Recommendations::Context.new(stats: @stats, history: @history, snapshot: @snapshot, policy: @policy)
         )
         header.merge(body).merge(
-          "cascade_demonstration" => @cascade,
+          "examples" => examples,
+          "cascade_demonstration" => @cascade&.summary,
           "history_analysis" => history_section,
           "recommendations" => recommendations.map(&:message),
           "recommendation_details" => recommendations.map(&:serialize)
@@ -68,6 +69,12 @@ module PayoutRouter
           "target_attainability" => @stats.attainability,
           "goal_activity" => @stats.goal_activity
         }
+      end
+
+      # Разобранные примеры решений — просьба экспертов на чекпоинте 2: по отчёту должно быть видно
+      # логику отказа и поиска нового провайдера, а не только агрегаты.
+      def examples
+        DecisionExamples.new(decisions: @decisions, cascade_decisions: @cascade&.decisions || []).call
       end
 
       def period

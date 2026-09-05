@@ -124,6 +124,38 @@
     </div>
   </section>
 
+  <%- if (cases = report["examples"]) -%>
+  <section>
+    <h2>Разобранные примеры <small>кого выбрали, почему отсеяли остальных и что при отказе</small></h2>
+    <p class="note"><%= h(cases["note"]) %></p>
+    <%- cases.each do |key, example| -%>
+    <%- next unless example.is_a?(Hash) -%>
+    <details>
+      <summary><b><%= h(example["operation"]["operation_id"]) %></b> · <%= h(example["what_it_shows"]) %></summary>
+      <p class="note"><%= h(example["operation"]["amount"]) %> ₽ · <%= h(example["operation"]["bank"]) %></p>
+      <table>
+        <tr><th>Провайдер</th><th>Решение</th><th>Почему</th></tr>
+        <%- if (won = example["selected"]) -%>
+        <tr>
+          <td><b><%= h(won["provider"]) %></b></td>
+          <td>+ <%= h(won["reason"]) %></td>
+          <td><%= h(won["why"]) %></td>
+        </tr>
+        <%- end -%>
+        <%- example["skipped"].each do |lost| -%>
+        <tr>
+          <td><%= h(lost["provider"]) %></td>
+          <td>− <%= h(lost["reason"]) %></td>
+          <td><%= h(lost["why"]) %></td>
+        </tr>
+        <%- end -%>
+      </table>
+      <p class="note">где в коде: <code><%= h(example["source"]) %></code></p>
+    </details>
+    <%- end -%>
+  </section>
+  <%- end -%>
+
   <%- if (demo = report["cascade_demonstration"]) && demo["examples"] -%>
   <section>
     <h2>Каскад при отказах <small>та же очередь, исходы по conversion_24h, seed <%= demo["simulation"]["seed"] %></small></h2>

@@ -7,7 +7,7 @@
 
 | Команда | Что ожидать |
 |---|---|
-| `bundle exec rake` | 236 спеков зелёные, RuboCop без замечаний |
+| `bundle exec rake` | 241 спек зелёный, RuboCop без замечаний |
 | `bundle exec rake validate` | таблица распределения vipay 4 / payflow 3 / quickpay 3, затем скрипт организаторов: `Пройдено: 29, Ошибок: 0` и наш валидатор `ошибок 0` |
 | `pr strategies` | 14 hard-правил, 13 целей, 3 декларативных типа, 10 пресетов |
 
@@ -65,6 +65,7 @@
 | `pr backtest --policy config/policies/conversion_first.yml` | ожидаемые одобрения: фактический роутинг 72.2, наш 75.6 (+4.7%) |
 | `pr backtest` | политика balanced: 68.6 против факта 72.2 (−5.0%) — цена удержания долей, говорим сами |
 | `pr backtest --policy config/policies/bank_affinity_first.yml` | 76.0 (+5.2%): пара «провайдер × банк» сильнее заявленной конверсии |
+| `routing_report.json` → `examples` | четыре разобранных случая: `choice_among_several`, `single_eligible`, `retry_after_failure`, `fallback_to_self_provider`. У каждого — кто выбран, почему отсеяны остальные и `source` с файлом и методом |
 | `routing_report.json` → `recommendations` | конкретные параметры: `payflow: дневной лимит 99.6% — снизить traffic_percentage с 35 до 20 или поднять daily_amount_limit до 3 800 000 ₽` |
 
 ## 7. Где предел: перебор конфигураций и эталон (доп. идеи, полнота)

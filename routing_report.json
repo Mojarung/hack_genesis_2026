@@ -303,11 +303,150 @@
       }
     }
   },
+  "examples": {
+    "note": "разобранные примеры: кого выбрали, почему отсеяли остальных и что происходит при отказе. У каждого примера source — где в коде принимается это решение. Полный трейс по всем заявкам — в routing_decisions.json",
+    "choice_among_several": {
+      "what_it_shows": "среди нескольких допустимых выбран лучший по сумме взвешенных целей",
+      "operation": {
+        "operation_id": "op_101",
+        "amount": 15000,
+        "bank": "sberbank"
+      },
+      "selected": {
+        "provider": "vipay",
+        "reason": "best_score",
+        "why": "score 0.7495; decisive vs payflow: traffic_share (+0.1), conversion (+0.1)",
+        "score": 0.7495
+      },
+      "skipped": [
+        {
+          "provider": "payflow",
+          "reason": "lower_score",
+          "why": "score 0.4221 < 0.7495 (vipay)"
+        },
+        {
+          "provider": "quickpay",
+          "reason": "lower_score",
+          "why": "score 0.3425 < 0.7495 (vipay)"
+        }
+      ],
+      "outcome": {
+        "simulated_result": "approved",
+        "retries": 0,
+        "fallback_used": false
+      },
+      "source": "lib/payout_router/scoring/composite_scorer.rb → CompositeScorer#rank (нормировка по пулу кандидатов и взвешенная сумма целей)"
+    },
+    "single_eligible": {
+      "what_it_shows": "hard-правила оставили одного кандидата — скоринг уже ничего не решает",
+      "operation": {
+        "operation_id": "op_103",
+        "amount": 150000,
+        "bank": "sberbank"
+      },
+      "selected": {
+        "provider": "quickpay",
+        "reason": "only_eligible_provider",
+        "why": "score 0.6769; decisive: traffic_share (+0.225), load (+0.129)",
+        "score": 0.6769
+      },
+      "skipped": [
+        {
+          "provider": "vipay",
+          "reason": "amount_exceeds_limit",
+          "why": "150000 > limit_amount_max 100000"
+        },
+        {
+          "provider": "payflow",
+          "reason": "amount_exceeds_limit",
+          "why": "150000 > limit_amount_max 50000"
+        }
+      ],
+      "outcome": {
+        "simulated_result": "approved",
+        "retries": 0,
+        "fallback_used": false
+      },
+      "source": "lib/payout_router/constraints/pipeline.rb → Pipeline#evaluate (правила из policy.hard_constraints, коды причин — routing/reasons.rb)"
+    },
+    "retry_after_failure": {
+      "what_it_shows": "провайдер отказал: заявка переотправлена следующему по рангу",
+      "operation": {
+        "operation_id": "op_106",
+        "amount": 52000,
+        "bank": "sberbank"
+      },
+      "selected": {
+        "provider": "quickpay",
+        "reason": "fallback_after_failure",
+        "why": "retry #1 after failure; score 0.225; decisive: load (+0.15), rate_headroom (+0.05)",
+        "score": 0.225
+      },
+      "skipped": [
+        {
+          "provider": "payflow",
+          "reason": "amount_exceeds_limit",
+          "why": "52000 > limit_amount_max 50000"
+        },
+        {
+          "provider": "vipay",
+          "reason": "provider_timeout",
+          "why": "dispatched, simulated result: expired after 567s (score 0.775; decisive: traffic_share (+0.3), volume_share (+0.1))",
+          "dispatched": true,
+          "simulated_result": "expired"
+        }
+      ],
+      "outcome": {
+        "simulated_result": "approved",
+        "retries": 1,
+        "fallback_used": false
+      },
+      "source": "lib/payout_router/routing/router.rb → Router#try_ranked (отправка, разбор исхода и переход к следующему кандидату по рангу)"
+    },
+    "fallback_to_self_provider": {
+      "what_it_shows": "внешние кандидаты кончились — заявка ушла на self-provider",
+      "operation": {
+        "operation_id": "op_107",
+        "amount": 800,
+        "bank": "sberbank"
+      },
+      "selected": {
+        "provider": "spacepayments",
+        "reason": "fallback_self_provider",
+        "why": "all 1 eligible providers failed: vipay: amount_below_minimum; quickpay: amount_below_minimum; payflow: provider_timeout"
+      },
+      "skipped": [
+        {
+          "provider": "vipay",
+          "reason": "amount_below_minimum",
+          "why": "800 < limit_amount_min 1000"
+        },
+        {
+          "provider": "quickpay",
+          "reason": "amount_below_minimum",
+          "why": "800 < limit_amount_min 1000"
+        },
+        {
+          "provider": "payflow",
+          "reason": "provider_timeout",
+          "why": "dispatched, simulated result: expired after 631s (score 0.5683; decisive: traffic_share (+0.205), amount_band (+0.1))",
+          "dispatched": true,
+          "simulated_result": "expired"
+        }
+      ],
+      "outcome": {
+        "simulated_result": "approved",
+        "retries": 1,
+        "fallback_used": true
+      },
+      "source": "lib/payout_router/routing/router.rb → Router#fallback (пул внешних исчерпан — self-provider по policy.fallback_rules)"
+    }
+  },
   "cascade_demonstration": {
-    "note": "основной прогон — optimistic, отказов в routing_decisions нет по построению. Здесь та же очередь и политика, исходы разыграны по conversion_24h (seed 42): видно переход к следующему провайдеру и fallback",
+    "note": "основной прогон — optimistic, отказов в routing_decisions нет по построению. Здесь та же очередь и политика, исходы разыграны по conversion_24h (seed 46): видно переход к следующему провайдеру и fallback",
     "simulation": {
       "mode": "conversion",
-      "seed": 42
+      "seed": 46
     },
     "operations": 10,
     "dispatches": 12,
@@ -317,12 +456,12 @@
     },
     "operations_with_retry": 2,
     "retries_after_failure": 2,
-    "fallback_used": 0,
+    "fallback_used": 1,
     "examples": [
       {
-        "operation_id": "op_102",
+        "operation_id": "op_106",
         "path": [
-          "payflow: provider_rejected (rejected)",
+          "vipay: provider_timeout (expired)",
           "quickpay: fallback_after_failure (approved)"
         ],
         "selected_provider": "quickpay",
@@ -331,15 +470,15 @@
         "fallback_used": false
       },
       {
-        "operation_id": "op_110",
+        "operation_id": "op_107",
         "path": [
-          "payflow: provider_rejected (rejected)",
-          "quickpay: fallback_after_failure (approved)"
+          "payflow: provider_timeout (expired)",
+          "spacepayments: fallback_self_provider (approved)"
         ],
-        "selected_provider": "quickpay",
+        "selected_provider": "spacepayments",
         "simulated_result": "approved",
         "retries": 1,
-        "fallback_used": false
+        "fallback_used": true
       }
     ]
   },
