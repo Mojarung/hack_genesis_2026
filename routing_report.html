@@ -171,25 +171,127 @@
   </section>
 
   <section>
-    <h2>Каскад при отказах <small>та же очередь, исходы по conversion_24h, seed 42</small></h2>
-    <p class="note">основной прогон — optimistic, отказов в routing_decisions нет по построению. Здесь та же очередь и политика, исходы разыграны по conversion_24h (seed 42): видно переход к следующему провайдеру и fallback</p>
+    <h2>Разобранные примеры <small>кого выбрали, почему отсеяли остальных и что при отказе</small></h2>
+    <p class="note">разобранные примеры: кого выбрали, почему отсеяли остальных и что происходит при отказе. У каждого примера source — где в коде принимается это решение. Полный трейс по всем заявкам — в routing_decisions.json</p>
+    <details>
+      <summary><b>op_101</b> · среди нескольких допустимых выбран лучший по сумме взвешенных целей</summary>
+      <p class="note">15000 ₽ · sberbank</p>
+      <table>
+        <tr><th>Провайдер</th><th>Решение</th><th>Почему</th></tr>
+        <tr>
+          <td><b>vipay</b></td>
+          <td>+ best_score</td>
+          <td>score 0.7495; decisive vs payflow: traffic_share (+0.1), conversion (+0.1)</td>
+        </tr>
+        <tr>
+          <td>payflow</td>
+          <td>− lower_score</td>
+          <td>score 0.4221 &lt; 0.7495 (vipay)</td>
+        </tr>
+        <tr>
+          <td>quickpay</td>
+          <td>− lower_score</td>
+          <td>score 0.3425 &lt; 0.7495 (vipay)</td>
+        </tr>
+      </table>
+      <p class="note">где в коде: <code>lib/payout_router/scoring/composite_scorer.rb → CompositeScorer#rank (нормировка по пулу кандидатов и взвешенная сумма целей)</code></p>
+    </details>
+    <details>
+      <summary><b>op_103</b> · hard-правила оставили одного кандидата — скоринг уже ничего не решает</summary>
+      <p class="note">150000 ₽ · sberbank</p>
+      <table>
+        <tr><th>Провайдер</th><th>Решение</th><th>Почему</th></tr>
+        <tr>
+          <td><b>quickpay</b></td>
+          <td>+ only_eligible_provider</td>
+          <td>score 0.6769; decisive: traffic_share (+0.225), load (+0.129)</td>
+        </tr>
+        <tr>
+          <td>vipay</td>
+          <td>− amount_exceeds_limit</td>
+          <td>150000 &gt; limit_amount_max 100000</td>
+        </tr>
+        <tr>
+          <td>payflow</td>
+          <td>− amount_exceeds_limit</td>
+          <td>150000 &gt; limit_amount_max 50000</td>
+        </tr>
+      </table>
+      <p class="note">где в коде: <code>lib/payout_router/constraints/pipeline.rb → Pipeline#evaluate (правила из policy.hard_constraints, коды причин — routing/reasons.rb)</code></p>
+    </details>
+    <details>
+      <summary><b>op_106</b> · провайдер отказал: заявка переотправлена следующему по рангу</summary>
+      <p class="note">52000 ₽ · sberbank</p>
+      <table>
+        <tr><th>Провайдер</th><th>Решение</th><th>Почему</th></tr>
+        <tr>
+          <td><b>quickpay</b></td>
+          <td>+ fallback_after_failure</td>
+          <td>retry #1 after failure; score 0.225; decisive: load (+0.15), rate_headroom (+0.05)</td>
+        </tr>
+        <tr>
+          <td>payflow</td>
+          <td>− amount_exceeds_limit</td>
+          <td>52000 &gt; limit_amount_max 50000</td>
+        </tr>
+        <tr>
+          <td>vipay</td>
+          <td>− provider_timeout</td>
+          <td>dispatched, simulated result: expired after 567s (score 0.775; decisive: traffic_share (+0.3), volume_share (+0.1))</td>
+        </tr>
+      </table>
+      <p class="note">где в коде: <code>lib/payout_router/routing/router.rb → Router#try_ranked (отправка, разбор исхода и переход к следующему кандидату по рангу)</code></p>
+    </details>
+    <details>
+      <summary><b>op_107</b> · внешние кандидаты кончились — заявка ушла на self-provider</summary>
+      <p class="note">800 ₽ · sberbank</p>
+      <table>
+        <tr><th>Провайдер</th><th>Решение</th><th>Почему</th></tr>
+        <tr>
+          <td><b>spacepayments</b></td>
+          <td>+ fallback_self_provider</td>
+          <td>all 1 eligible providers failed: vipay: amount_below_minimum; quickpay: amount_below_minimum; payflow: provider_timeout</td>
+        </tr>
+        <tr>
+          <td>vipay</td>
+          <td>− amount_below_minimum</td>
+          <td>800 &lt; limit_amount_min 1000</td>
+        </tr>
+        <tr>
+          <td>quickpay</td>
+          <td>− amount_below_minimum</td>
+          <td>800 &lt; limit_amount_min 1000</td>
+        </tr>
+        <tr>
+          <td>payflow</td>
+          <td>− provider_timeout</td>
+          <td>dispatched, simulated result: expired after 631s (score 0.5683; decisive: traffic_share (+0.205), amount_band (+0.1))</td>
+        </tr>
+      </table>
+      <p class="note">где в коде: <code>lib/payout_router/routing/router.rb → Router#fallback (пул внешних исчерпан — self-provider по policy.fallback_rules)</code></p>
+    </details>
+  </section>
+
+  <section>
+    <h2>Каскад при отказах <small>та же очередь, исходы по conversion_24h, seed 46</small></h2>
+    <p class="note">основной прогон — optimistic, отказов в routing_decisions нет по построению. Здесь та же очередь и политика, исходы разыграны по conversion_24h (seed 46): видно переход к следующему провайдеру и fallback</p>
     <div class="chips">
       <span class="chip">отправок 12</span>
       <span class="chip">неудачных 2</span>
       <span class="chip">заявок с повтором 2</span>
-      <span class="chip">fallback 0</span>
+      <span class="chip">fallback 1</span>
     </div>
     <table>
       <tr><th>Заявка</th><th>Путь по каскаду</th><th>Итог</th></tr>
       <tr>
-        <td><b>op_102</b></td>
-        <td>payflow: provider_rejected (rejected) → quickpay: fallback_after_failure (approved)</td>
+        <td><b>op_106</b></td>
+        <td>vipay: provider_timeout (expired) → quickpay: fallback_after_failure (approved)</td>
         <td>quickpay · approved</td>
       </tr>
       <tr>
-        <td><b>op_110</b></td>
-        <td>payflow: provider_rejected (rejected) → quickpay: fallback_after_failure (approved)</td>
-        <td>quickpay · approved</td>
+        <td><b>op_107</b></td>
+        <td>payflow: provider_timeout (expired) → spacepayments: fallback_self_provider (approved)</td>
+        <td>spacepayments · approved</td>
       </tr>
     </table>
   </section>

@@ -58,6 +58,20 @@ RSpec.describe "аналитика" do
       expect(with_failures.report).not_to have_key("cascade_demonstration")
     end
 
+    it "на большой очереди демонстрацию каскада делает на выборке, а не отказывается от неё" do
+      operations = Array.new(PayoutRouter::Analytics::CascadeDemo::MAX_OPERATIONS + 20) do |index|
+        build_operation(id: "op_#{index}", amount: 15_000, at: Builders::T0 + (index * 30))
+      end
+      demo = PayoutRouter::Analytics::CascadeDemo.new(
+        snapshot: run.snapshot, policy: run.policy, operations: operations,
+        history: run.history_stats, seed: 42
+      ).call
+
+      expect(demo.summary["operations"]).to eq(PayoutRouter::Analytics::CascadeDemo::MAX_OPERATIONS)
+      expect(demo.summary["note"]).to include("первые 500 заявок из 520")
+      expect(demo.decisions).not_to be_empty
+    end
+
     it "считает достижимую цель: сколько дал бы пропорциональный роутинг по допустимым" do
       external = report["distribution"].except("spacepayments")
       # Каждая заявка делит между допустимыми ровно 100%, поэтому достижимые цели дают в сумме 100%.
