@@ -7,9 +7,9 @@
 
 | Команда | Что ожидать |
 |---|---|
-| `bundle exec rake` | 181 спек зелёный, RuboCop без замечаний |
+| `bundle exec rake` | 213 спеков зелёные, RuboCop без замечаний |
 | `bundle exec rake validate` | таблица распределения vipay 4 / payflow 3 / quickpay 3, затем скрипт организаторов: `Пройдено: 29, Ошибок: 0` и наш валидатор `ошибок 0` |
-| `pr strategies` | 13 hard-правил, 12 целей, 3 декларативных типа, 8 пресетов |
+| `pr strategies` | 14 hard-правил, 13 целей, 3 декларативных типа, 10 пресетов |
 
 ## 2. Hard-constraints и объяснимость (критерии «корректность», «объяснимость»)
 
@@ -80,6 +80,6 @@
 
 | Команда | Что ожидать |
 |---|---|
-| `pr bench --operations 50000` | ≈15 с, ≈3 400 заявок/с |
+| `pr bench --operations 50000` | ≈5 с, ≈10 600 заявок/с на машине демо (на ноутбуке разработки ≈15 с, ≈2 700/с) |
 | скопировать `data/operations_queue_10.json` в `data/operations_queue_test.json`, `bundle exec rake submit` | в корне `routing_decisions_test.json` и `routing_report_test.json`, валидатор 0 ошибок |
 | `docker build -t payout_router . && docker run --rm payout_router route` | тот же результат без установленного Ruby |
