@@ -110,6 +110,24 @@ module PayoutRouter
       fail_with(e)
     end
 
+    desc "bound", "Эталонное распределение очереди: сколько одобрений можно было взять и сколько взяли мы"
+    option :queue, type: :string, default: DEFAULT_QUEUE, desc: "очередь заявок (JSON)"
+    option :synthetic, type: :numeric, default: 0, desc: "вместо очереди — N синтетических заявок из истории"
+    option :seed, type: :numeric, default: 1, desc: "seed синтетической очереди"
+    option :out, type: :string, default: "out", desc: "каталог результата"
+    def bound
+      base = runner
+      result = base.bound(synthetic_or_queue(base))
+      print_table(Output::Tables.bound(result))
+      say format("до оптимума %+.2f%%; взяли %.0f%% разброса допустимых назначений; " \
+                 "требование держать доли стоило бы ещё %.2f одобрения",
+                 result.gap_to_free, result.capture * 100, result.share_cost), :cyan
+      path = Output::JSONWriter.write(File.join(options[:out], "assignment_bound.json"), result.serialize)
+      say "отчёт: #{path}", :green
+    rescue PayoutRouter::Error => e
+      fail_with(e)
+    end
+
     desc "compare", "Сравнить политики на одной очереди: доли, отклонение, fallback, ожидаемые одобрения и маржа"
     option :queue, type: :string, default: DEFAULT_QUEUE, desc: "очередь заявок (JSON)"
     option :policies, type: :array, desc: "пути к политикам (по умолчанию --policy и config/policies/*.yml)"

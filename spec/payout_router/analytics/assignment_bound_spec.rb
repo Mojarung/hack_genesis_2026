@@ -12,11 +12,12 @@ RSpec.describe "эталонное распределение очереди" do
     PayoutRouter::Inputs::QueueLoader.new(PayoutRouter::Inputs::JSONFile.read(data_path("operations_queue_10.json")),
                                           source: "queue", default_time: snapshot.snapshot_at).call
   end
-  let(:decisions) do
+  let(:result) do
     PayoutRouter::Routing::BatchRouter.new(snapshot: snapshot, policy: policy,
                                            simulator: PayoutRouter::Simulation::Optimistic.new,
                                            history: history).call(operations).decisions
   end
+  let(:decisions) { result }
 
   describe PayoutRouter::Analytics::AssignmentBound do
     subject(:bound) do
@@ -24,9 +25,10 @@ RSpec.describe "эталонное распределение очереди" do
                           operations: operations, decisions: decisions).call
     end
 
-    it "оптимум со свободными долями не хуже оптимума с квотами, а тот — не хуже худшего допустимого" do
+    it "оптимум — верхняя граница: наш роутинг его не превосходит, а квоты его только опускают" do
+      expect(bound.free_optimum).to be >= bound.ours - 1e-9
       expect(bound.free_optimum).to be >= bound.quota_optimum - 1e-9
-      expect(bound.quota_optimum).to be >= bound.worst - 1e-9
+      expect(bound.free_optimum).to be >= bound.worst - 1e-9
       expect(bound.operations).to eq(operations.size)
     end
 
@@ -35,15 +37,23 @@ RSpec.describe "эталонное распределение очереди" do
       expect(bound.quotas.keys).to match_array(snapshot.external.map(&:name))
     end
 
-    it "наш роутинг лежит между худшим допустимым и оптимумом при тех же квотах" do
+    it "эталону разрешено столько self-provider, сколько использовал роутер" do
+      used = result.count { |decision| decision.selected_provider == snapshot.fallback.name }
+
+      expect(bound.self_budget).to eq(used)
+    end
+
+    it "наш роутинг лежит между худшим допустимым назначением и оптимумом" do
+      expect(bound.ours).to be_between(bound.worst - 1e-9, bound.free_optimum + 1e-9)
       expect(bound.capture).to be_between(0.0, 1.0)
     end
 
     it "сериализуется с разрывами и ценой соблюдения долей" do
       serialized = bound.serialize
 
-      expect(serialized).to include("expected_approvals_ours", "optimum_free_shares", "optimum_with_target_shares",
-                                    "gap_to_free_pct", "share_compliance_cost_approvals")
+      expect(serialized).to include("expected_approvals_ours", "optimum_same_self_provider_budget",
+                                    "optimum_with_target_shares", "gap_to_optimum_pct",
+                                    "share_compliance_cost_approvals")
       expect(serialized["share_compliance_cost_approvals"]).to be >= 0
     end
   end
