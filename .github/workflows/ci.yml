@@ -20,3 +20,7 @@ jobs:
         run: bundle exec rake validate
       - name: Бэктест на истории
         run: bundle exec ruby -Ilib bin/payout_router backtest --policy config/policies/conversion_first.yml --out out
+      - name: Стресс-прогон, инварианты
+        run: bundle exec rake stress
+      - name: Эталонное распределение очереди
+        run: bundle exec ruby -Ilib bin/payout_router bound --out out

@@ -75,6 +75,13 @@ module PayoutRouter
       Analytics::Backtest.new(records: history_records, snapshot: snapshot, policy: policy, history: history_stats).call
     end
 
+    # Эталонное распределение очереди: наш роутинг против оптимального назначения.
+    def bound(operations)
+      result = route(operations)
+      Analytics::AssignmentBound.new(snapshot: snapshot, policy: policy, history: history_stats,
+                                     operations: operations, decisions: result.decisions).call
+    end
+
     def comparison(operations)
       Analytics::PolicyComparison.new(base_snapshot: raw_snapshot, operations: operations, history: history_stats)
     end
