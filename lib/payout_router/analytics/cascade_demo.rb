@@ -6,12 +6,16 @@ module PayoutRouter
     # и совпадает с эталонами организаторов, но в файле решений по построению нет ни одного отказа:
     # жюри, читающее только JSON, каскада «отказ → следующий → fallback» не увидит. Поэтому отчёт
     # несёт ту же очередь с исходами по conversion_24h: настоящие трейсы с provider_rejected,
-    # fallback_after_failure и fallback_self_provider. Seed подбирается так, чтобы хотя бы одна заявка
-    # прошла через отказ, и записывается в отчёт — прогон воспроизводим.
+    # fallback_after_failure и fallback_self_provider. Seed подбирается так, чтобы в отчёт попали
+    # обе ветки каскада, и записывается в отчёт — прогон воспроизводим.
     class CascadeDemo
       # summary уходит в отчёт как есть, decisions — в разобранные примеры (Analytics::DecisionExamples).
       Result = Data.define(:summary, :decisions)
 
+      # Большую очередь прогоняем не целиком, а первыми MAX_OPERATIONS заявками: второй прогон нужен
+      # ради примеров каскада, и на выборке они получаются те же. Отказаться от него совсем нельзя —
+      # эксперты на чекпоинте 2 просили, чтобы логика отказа и поиска нового провайдера была видна
+      # в отчёте, а в сдаваемом optimistic-прогоне отказов нет по построению.
       MAX_OPERATIONS = 500
       EXAMPLES = 3
       SEED_ATTEMPTS = 25
@@ -24,24 +28,25 @@ module PayoutRouter
         @seed = seed
       end
 
-      # nil-decisions — очередь слишком велика для второго прогона; тогда отчёт говорит,
-      # как получить то же вручную.
       def call
-        return Result.new(summary: too_large, decisions: []) if @operations.size > MAX_OPERATIONS
-
         seed, decisions = first_cascading_run
         Result.new(summary: summary(seed, decisions), decisions: decisions)
       end
 
       private
 
-      def too_large
-        { "note" => "очередь из #{@operations.size} заявок слишком велика для второго прогона в отчёте; " \
-                    "каскад с отказами: route --simulation conversion --seed #{@seed}" }
+      def sample = @sample ||= @operations.first(MAX_OPERATIONS)
+
+      def truncated? = @operations.size > MAX_OPERATIONS
+
+      def scope_note
+        return "" unless truncated?
+
+        " (первые #{MAX_OPERATIONS} заявок из #{@operations.size} — второй прогон делаем на выборке)"
       end
 
       # Идём по seed от заданного, пока не найдём прогон, где видно и переотправку после отказа,
-      # и уход на self-provider: экспертам на чекпоинте 2 важно, чтобы обе ветки были в отчёте примерами.
+      # и уход на self-provider: экспертам важно, чтобы обе ветки были в отчёте примерами.
       # Если такого seed нет — берём прогон хотя бы с отказом, иначе первый попавшийся.
       def first_cascading_run
         with_retry = nil
@@ -61,16 +66,14 @@ module PayoutRouter
       def run(seed)
         simulator = Simulation::Conversion.new(seed: seed, history_stats: @history)
         Routing::BatchRouter.new(snapshot: @snapshot, policy: @policy, simulator: simulator, history: @history)
-                            .call(@operations).decisions
+                            .call(sample).decisions
       end
 
       def summary(seed, decisions)
         attempts = decisions.flat_map { |decision| decision.attempts.select(&:dispatched?) }
         cascading = decisions.select { |decision| decision.retries.positive? }
         {
-          "note" => "основной прогон — optimistic, отказов в routing_decisions нет по построению. Здесь та же " \
-                    "очередь и политика, исходы разыграны по conversion_24h (seed #{seed}): видно переход " \
-                    "к следующему провайдеру и fallback",
+          "note" => note(seed),
           "simulation" => { "mode" => "conversion", "seed" => seed },
           "operations" => decisions.size,
           "dispatches" => attempts.size,
@@ -81,6 +84,12 @@ module PayoutRouter
           "fallback_used" => decisions.count(&:fallback_used),
           "examples" => cascading.first(EXAMPLES).map { |decision| example(decision) }
         }
+      end
+
+      def note(seed)
+        "основной прогон — optimistic, отказов в routing_decisions нет по построению. Здесь та же " \
+          "очередь#{scope_note} и политика, исходы разыграны по conversion_24h (seed #{seed}): " \
+          "видно переход к следующему провайдеру и fallback"
       end
 
       # Путь заявки по каскаду: только реальные отправки, в порядке рассмотрения.
