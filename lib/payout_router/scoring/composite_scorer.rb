@@ -13,14 +13,27 @@ module PayoutRouter
     class CompositeScorer
       Goal = Data.define(:strategy, :weight)
 
-      # Шкала одной цели по пулу кандидатов.
-      class Scale < Data.define(:min, :spread)
+      # Шкала одной цели по пулу кандидатов. damping — добавка к разбросу в знаменателе:
+      # при 0 это обычная min-max нормировка (режим pool), при 0.25 цель с разбросом 0.01
+      # получает вклад в 25 раз меньше цели с разбросом 0.25 — то есть вес снова умножается
+      # на то, насколько цель вообще различает кандидатов, а не только на её важность.
+      class Scale < Data.define(:min, :spread, :damping)
         EPSILON = 1e-9
 
-        def self.of(values) = new(min: values.min, spread: values.max - values.min)
+        def self.of(values, damping = 0.0)
+          new(min: values.min, spread: values.max - values.min, damping: damping)
+        end
 
-        def apply(value) = spread <= EPSILON ? Strategies::Base::NEUTRAL : (value - min) / spread
+        def apply(value)
+          denominator = spread + damping
+          return Strategies::Base::NEUTRAL if denominator <= EPSILON
+
+          (value - min) / denominator
+        end
       end
+
+      # Насколько сильно демпфируем разброс в режиме damped.
+      DAMPING = 0.25
 
       attr_reader :goals
 
@@ -33,7 +46,9 @@ module PayoutRouter
 
         @total_weight = @goals.sum(&:weight)
         @tie_breaker = TieBreaker.new(policy.tie_breakers)
-        @pool = (normalization || policy.selection.normalization) == "pool"
+        mode = normalization || policy.selection.normalization
+        @pool = mode != "absolute"
+        @damping = mode == "damped" ? DAMPING : 0.0
       end
 
       # Кандидаты по убыванию привлекательности.
@@ -46,9 +61,7 @@ module PayoutRouter
         signals = candidates.map { |candidate| evaluate(candidate, context) }
         scales = if @pool && candidates.size > 1
                    @goals.each_index.map do |i|
-                     Scale.of(signals.map do |row|
-                       row[i].score
-                     end)
+                     Scale.of(signals.map { |row| row[i].score }, @damping)
                    end
                  end
         candidates.each_with_index.map { |candidate, index| build(candidate, signals[index], scales) }

@@ -6,6 +6,26 @@ module PayoutRouter
     module Tables
       module_function
 
+      # Граница Парето перебора: строки от «держим доли» до «максимум одобрений».
+      def search_front(outcome)
+        rows = outcome.front.map { |candidate| search_row(candidate) }
+        [%w[конфигурация происхождение веса откл_пп конверсия маржа_на_заявку бэктест_%], *rows]
+      end
+
+      # Лидеры по каждой отдельной метрике плюс базовая политика для сравнения.
+      def search_bests(outcome)
+        rows = outcome.bests.map { |key, candidate| [key, *search_row(candidate)] }
+        rows << ["base", *search_row(outcome.base)] if outcome.base
+        [%w[метрика конфигурация происхождение веса откл_пп конверсия маржа_на_заявку бэктест_%], *rows]
+      end
+
+      def search_row(candidate)
+        metrics = candidate.metrics
+        [candidate.structural, candidate.origin, candidate.weights_label,
+         metrics.deviation_pp.round(2), metrics.conversion.round(4), metrics.margin_per_op.round(1),
+         format("%+.2f", metrics.backtest_uplift_pct)]
+      end
+
       def history(stats)
         rows = stats.providers.map do |name|
           provider = stats.serialize["providers"][name]

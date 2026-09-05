@@ -66,15 +66,18 @@ module PayoutRouter
       # Способ выбора среди допустимых: weighted — все цели сразу с весами; chain — по очереди.
       # normalization — как взвешенный скоринг приводит оценки целей к общей шкале:
       #   pool     — по разбросу среди кандидатов заявки (лучший 1, худший 0): вес = важность цели;
-      #   absolute — оценка стратегии как есть (0..1): вес = цена единицы оценки.
+      #   absolute — оценка стратегии как есть (0..1): вес = цена единицы оценки;
+      #   damped   — то же, что pool, но разброс в знаменателе увеличен на константу: цель,
+      #              которая почти не различает кандидатов, и вклад даёт почти нулевой.
+      #              Лечит вырождение pool при двух кандидатах, где любая разница растягивается до 0/1.
       class Selection < Data.define(:mode, :chain, :normalization)
         MODES = %w[weighted chain].freeze
-        NORMALIZATIONS = %w[pool absolute].freeze
+        NORMALIZATIONS = %w[pool absolute damped].freeze
 
         def initialize(mode: "weighted", chain: [], normalization: "pool") = super
 
         def chain? = mode == "chain"
-        def pool_normalization? = normalization == "pool"
+        def pool_normalization? = normalization != "absolute"
       end
 
       # Декларативная цель из YAML: type — field / table / bank_table, options — её параметры.

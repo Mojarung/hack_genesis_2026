@@ -1,0 +1,80 @@
+# Максимум одобрений через историю пар «провайдер × банк».
+#
+# Найдено перебором (docs/search.md): на 113 000 проверенных конфигураций лучший рычаг
+# для одобрений — не заявленная провайдером conversion_24h, а наблюдаемая проходимость
+# конкретной пары «провайдер × банк». Заявленная конверсия врёт: payflow объявляет 0.91,
+# по 19 историческим операциям факт 0.47, и модель одобрения усаживает её до 0.62.
+#
+# Против conversion_first на отложенных очередях (другие seed, см. docs/search.md):
+#   конверсия  0.7635 против 0.7622
+#   маржа      172.1 ₽ против 169.9 ₽ на заявку
+#   бэктест    +5.25% против +4.71% ожидаемых одобрений
+# Цена та же, что у conversion_first: доли партнёров не держатся (≈82 п.п. отклонения
+# против 67 у balanced). Это политика для «максимум денег», а не для обязательств.
+#
+# Сравнить:
+#   payout_router compare --policies config/policies/conversion_first.yml \
+#                                    config/policies/bank_affinity_first.yml
+#   payout_router backtest --policy config/policies/bank_affinity_first.yml
+
+name: bank_affinity_first
+description: >
+  Приоритет паре «провайдер × банк» по истории: куда именно этот банк проходит лучше.
+  Заявленная конверсия — второй по важности сигнал, доли партнёров — фоном.
+
+fallback_provider: spacepayments
+
+hard_constraints:
+  - provider_active
+  - currency
+  - traffic_enabled
+  - amount_range
+  - daily_limit
+  - in_progress_count
+  - in_progress_amount
+  - requisites
+  - margin
+  - bank_filter
+  - rate_limit
+  - daily_turnover_max
+  - circuit_breaker
+
+selection:
+  mode: weighted
+  normalization: pool
+
+goals:
+  bank_affinity: 0.50    # конверсия пары провайдер × банк по истории, усаженная к провайдеру
+  conversion: 0.20       # стратегия 5: conversion_24h, откалиброванная по истории
+  load: 0.15             # свободная ёмкость: перегруженный провайдер чаще не отвечает
+  traffic_share: 0.10    # стратегия 1: доли держим фоном, чтобы никого не обнулить совсем
+  rate_headroom: 0.05    # стратегия 6: запас по интенсивности
+
+tie_breakers: [conversion, priority, name]
+
+amount_bands:
+  - { min: 500,    max: 50000,  prefer: [payflow] }
+  - { min: 50001,  max: 100000, prefer: [vipay] }
+  - { min: 100001, max: null,   prefer: [quickpay] }
+
+providers:
+  vipay:
+    volume_share_pct: 50
+    requests_per_minute_limit: 15
+    daily_turnover_max: 5000000
+  payflow:
+    volume_share_pct: 30
+    requests_per_minute_limit: 7
+    daily_turnover_min: 2000000
+  quickpay:
+    volume_share_pct: 20
+    requests_per_minute_limit: 15
+
+circuit_breaker:
+  failures: 3
+  cooldown_sec: 300
+
+simulation:
+  mode: optimistic
+  seed: 42
+  timeout: cascade

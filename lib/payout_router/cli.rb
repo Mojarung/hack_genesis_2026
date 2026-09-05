@@ -177,6 +177,27 @@ module PayoutRouter
       fail_with(e)
     end
 
+    desc "search", "Перебор конфигураций политики: структурные варианты × веса целей → граница Парето"
+    option :queue, type: :string, default: DEFAULT_QUEUE, desc: "очередь в батарее оценки"
+    option :synthetic, type: :numeric, default: 200, desc: "размер синтетических очередей батареи"
+    option :seeds, type: :string, default: "1,2,3", desc: "seed синтетических очередей через запятую"
+    option :samples, type: :numeric, default: 300, desc: "случайных точек симплекса на структурный вариант"
+    option :grid, type: :string, default: Search::Space::GRID_GOALS.join(","),
+                  desc: "цели исчерпывающей сетки через запятую (4^N точек на вариант; пусто — без сетки)"
+    option :seed, type: :numeric, default: 1, desc: "seed перебора"
+    option :out, type: :string, default: "out", desc: "каталог результата (search_report.json)"
+    def search
+      PayoutRouter.eager_load!
+      outcome = run_search
+      print_table(Output::Tables.search_front(outcome))
+      print_table(Output::Tables.search_bests(outcome))
+      path = Output::JSONWriter.write(File.join(options[:out], "search_report.json"), outcome.serialize)
+      say format("%d конфигураций за %.1f с; на границе Парето %d; доминируют базу %d; отчёт: %s",
+                 outcome.evaluations, outcome.elapsed_sec, outcome.front.size, outcome.dominating_base, path), :green
+    rescue PayoutRouter::Error => e
+      fail_with(e)
+    end
+
     desc "serve", "HTTP-сервис: POST /route принимает заявку и сразу отдаёт решение; GET /report, /state, /metrics"
     option :host, type: :string, default: "127.0.0.1", desc: "адрес"
     option :port, type: :numeric, default: 8080, desc: "порт"
@@ -235,6 +256,16 @@ module PayoutRouter
     end
 
     def history_path = options[:history].to_s.empty? ? nil : options[:history]
+
+    def run_search
+      base = runner
+      base.search(base.load_queue(options[:queue]),
+                  synthetic: options[:synthetic],
+                  seeds: options[:seeds].split(",").map(&:to_i),
+                  random_samples: options[:samples],
+                  seed: options[:seed],
+                  grid_goals: options[:grid].to_s.split(","))
+    end
 
     # Очередь для сравнения и подбора весов: либо файл --queue, либо N синтетических заявок из истории.
     def synthetic_or_queue(base)

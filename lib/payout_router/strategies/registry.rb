@@ -38,12 +38,13 @@ module PayoutRouter
 
       BUILTIN = [
         TrafficShare, VolumeShare, CascadePriority, AmountBand, Conversion, Load,
-        TurnoverMin, RateHeadroom, Latency, Margin, BankAffinity, ExpectedValue
+        TurnoverMin, RateHeadroom, Latency, Margin, BankAffinity, ExpectedValue, ShareDeficit
       ].freeze
       BUILTIN.each { |klass| register(klass) }
 
       DESCRIPTIONS = {
         "traffic_share" => "стратегия 1: целевая доля по числу заявок (traffic_percentage); недобор поднимает оценку",
+        "share_deficit" => "стратегия 1 в заявках: недобор = цель × обработано − выдано; доли сходятся точнее",
         "volume_share" => "стратегия 2: целевая доля по объёму (volume_share_pct); база — оборот дня + сессия",
         "cascade_priority" => "стратегия 3: очередь в каскаде по priority; первый — 1.0, последний — 0.0",
         "amount_band" => "стратегия 4: предпочтительный провайдер для диапазона суммы (amount_bands)",

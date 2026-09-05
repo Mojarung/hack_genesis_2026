@@ -3,6 +3,8 @@
 /tmp/
 /out/
 /coverage/
+/data/derived/
+__pycache__/
 *.gem
 *.log
 .env
