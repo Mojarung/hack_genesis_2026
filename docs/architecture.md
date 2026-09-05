@@ -35,6 +35,16 @@ Analytics::RoutingStats + HistoryStats ─► ReportBuilder ─► Recommendatio
 Output::JSONWriter ─► routing_decisions.json, routing_report.json
 ```
 
+Поверх этого конвейера стоят два инструмента, которые сами роутинг не выполняют, а измеряют его:
+
+- `Search::*` (команда `search`) — перебор конфигураций политики. `Battery` гоняет кандидата
+  по фиксированному набору очередей плюс бэктест, `Space` порождает структурные варианты и веса,
+  `Front` держит границу Парето инкрементально, `Engine` сводит это в `Outcome`. Каждая точка —
+  полный прогон роутера, никакой аппроксимации.
+- `Analytics::AssignmentBound` + `MinCostFlow` (команда `bound`) — та же очередь, распределённая
+  целиком как транспортная задача «банк × провайдер» и решённая точно. Верхняя граница, с которой
+  сравнивается онлайновое решение.
+
 ## Модель времени
 
 Заявки обрабатываются в хронологическом порядке. Отправка провайдеру занимает реквизит и место
@@ -49,6 +59,11 @@ Output::JSONWriter ─► routing_decisions.json, routing_report.json
 Два механизма выбора среди допустимых (`Scoring.build` по `policy.selection.mode`):
 
 - **weighted** (`CompositeScorer`): все цели сразу, `total = Σ weight_i × score_i / Σ weight_i`.
+  Оценки целей живут в разных диапазонах, поэтому перед взвешиванием их приводят к общей шкале —
+  `selection.normalization`: `pool` (min-max по кандидатам заявки: вес = важность цели), `absolute`
+  (оценки как есть: вес = цена единицы оценки) или `damped` (как `pool`, но разброс в знаменателе
+  увеличен на константу, поэтому цель, почти не различающая кандидатов, и вклад даёт почти нулевой —
+  лечит вырождение `pool` при двух кандидатах, где любая разница растягивается до 0/1).
 - **chain** (`ChainScorer`): стратегии по очереди. Шаг делит пул на ярусы по своей оценке (с допуском `tolerance`);
   верхний ярус из одного провайдера означает «стратегия решила», иначе ярус передаётся следующему шагу, после
   последнего — tie-breakers. Стратегия, не применимая к заявке, даёт всем одинаковую нейтральную оценку и тем
@@ -61,7 +76,10 @@ Output::JSONWriter ─► routing_decisions.json, routing_report.json
 
 Формулы долей: `0.5 + (target − actual) / 100`. Провайдер на цели получает 0.5, каждые 10 п.п.
 недобора добавляют 0.1. Первую заявку получает провайдер с наибольшей целью, затем недобирающие —
-получается взвешенный round-robin без явного счётчика.
+получается взвешенный round-robin без явного счётчика. Альтернатива — цель `share_deficit`: тот же
+недобор, но в заявках (`цель × обработано − выдано`), то есть сигнал растёт вместе с очередью.
+По умолчанию выключена: перебор показал, что на этих данных она даёт то же распределение,
+потому что выбор упирается в допустимость, а не в закон управления (`docs/search.md`).
 
 Конфликт целей решается весами: «vipay хочет 40%, но исчерпал дневной лимит» — `traffic_share` даёт
 ему высокую оценку, `load` — низкую, итог зависит от весов, и это видно в `breakdown`. Недостижимая
@@ -90,9 +108,10 @@ Output::JSONWriter ─► routing_decisions.json, routing_report.json
 
 ## Рекомендации
 
-`Analytics::Recommendations::Engine` прогоняет 11 правил (`daily_limit_pressure`, `share_shortfall`,
+`Analytics::Recommendations::Engine` прогоняет 13 правил (`daily_limit_pressure`, `share_shortfall`,
 `share_overflow`, `fallback_usage`, `amount_coverage_gap`, `low_conversion_overload`, `conversion_drift`,
-`turnover_min_unmet`, `rate_limit_hits`, `in_progress_pressure`, `expired_heavy`). Каждое возвращает
+`turnover_min_unmet`, `rate_limit_hits`, `in_progress_pressure`, `expired_heavy`, `circuit_trips`,
+`dead_goal`). Каждое возвращает
 `Recommendation(provider, severity, parameter, current, suggested, message)` — не «обратите внимание»,
 а «поднять `limit_amount_max` у quickpay с 200000 до 250000».
 
@@ -108,6 +127,7 @@ Output::JSONWriter ─► routing_decisions.json, routing_report.json
 | Правило рекомендаций | `lib/payout_router/analytics/recommendations/` | наследник `Base#call(context) → [recommend(...)]`; класс в `Engine::RULES` |
 | Параметр провайдера | `Domain::Provider` | поле в `Data.define` — его сразу можно задавать в `policy.yml → providers` |
 | Режим симуляции | `lib/payout_router/simulation/` | класс с `call(candidate, operation) → Outcome`; ветка в `Simulation.build` |
+| Метрика для перебора | `lib/payout_router/search/metrics.rb` | поле в `Metrics` + строка в `Outcome::OBJECTIVES` (везде «меньше — лучше») |
 
 ## Производительность
 

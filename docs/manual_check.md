@@ -7,7 +7,7 @@
 
 | Команда | Что ожидать |
 |---|---|
-| `bundle exec rake` | 213 спеков зелёные, RuboCop без замечаний |
+| `bundle exec rake` | 236 спеков зелёные, RuboCop без замечаний |
 | `bundle exec rake validate` | таблица распределения vipay 4 / payflow 3 / quickpay 3, затем скрипт организаторов: `Пройдено: 29, Ошибок: 0` и наш валидатор `ошибок 0` |
 | `pr strategies` | 14 hard-правил, 13 целей, 3 декларативных типа, 10 пресетов |
 
@@ -38,7 +38,7 @@
 
 | Команда | Что ожидать |
 |---|---|
-| `pr compare` | семь политик на одной очереди с разным распределением, Σ отклонений, ожидаемыми одобрениями и маржой |
+| `pr compare` | одиннадцать политик на одной очереди с разным распределением, Σ отклонений, ожидаемыми одобрениями и маржой |
 | `pr route --policy config/policies/strategy_chain.yml --out out/chain` и `pr explain op_101 --policy config/policies/strategy_chain.yml` | в breakdown шаги `1·amount_band` (decisive step) … `not consulted` |
 | `pr explain op_105 --policy config/policies/strategy_chain.yml` | шаги 1 и 2 не различают vipay и quickpay (tie, passed to the next step), решает шаг 3 traffic_share |
 | `pr route --policy config/policies/custom_strategy.yml --out out/custom` | работает плагин `requisites_headroom` и декларативные цели `fastest_first`, `q3_partner_deal`, `alfa_to_quickpay` |
@@ -53,7 +53,7 @@
 | Команда | Что ожидать |
 |---|---|
 | `pr route` и открыть `out/routing_report.json` → `projected_daily_utilization` | payflow `utilization_pct` 99.6: после трёх заявок дневной лимит почти исчерпан |
-| `pr explain op_110` | у payflow в `load` видна загрузка ~99%; следующая заявка дороже остатка ушла бы другому (`daily_limit_exceeded`) |
+| `pr explain op_110` | у payflow в `load` видна загрузка 98.3%; следующая заявка дороже остатка ушла бы другому (`daily_limit_exceeded`) |
 | `pr serve` в одном терминале, в другом отправить одну заявку дважды: `Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8080/route -ContentType application/json -Body '{"operation_id":"x1","amount":15000,"bank":"sberbank"}'` и `Invoke-RestMethod http://127.0.0.1:8080/state` | `in_progress_count` у выбранного провайдера растёт между запросами; `/metrics` отдаёт `payout_router_*` |
 
 ## 6. Аналитика и рекомендации (10 + 11 баллов)
@@ -62,11 +62,23 @@
 |---|---|
 | открыть `routing_report.html` в браузере | доли против целей, загрузка лимитов, причины отсева, достижимость целей, рекомендации, трейс каждой заявки |
 | `pr history` | доли и конверсия по истории, конверсия по сумме чека (50–100 тыс. → 81%), интервалы Уилсона: у payflow заявленная 0.91 вне [0.273, 0.683] |
-| `pr backtest --policy config/policies/conversion_first.yml` | ожидаемые одобрения: фактический роутинг 64.0, наш 68.4 (+6.9%) |
-| `pr backtest` | политика balanced держит доли при паритете одобрений |
+| `pr backtest --policy config/policies/conversion_first.yml` | ожидаемые одобрения: фактический роутинг 72.2, наш 75.6 (+4.7%) |
+| `pr backtest` | политика balanced: 68.6 против факта 72.2 (−5.0%) — цена удержания долей, говорим сами |
+| `pr backtest --policy config/policies/bank_affinity_first.yml` | 76.0 (+5.2%): пара «провайдер × банк» сильнее заявленной конверсии |
 | `routing_report.json` → `recommendations` | конкретные параметры: `payflow: дневной лимит 99.6% — снизить traffic_percentage с 35 до 20 или поднять daily_amount_limit до 3 800 000 ₽` |
 
-## 7. Ошибки и граничные случаи
+## 7. Где предел: перебор конфигураций и эталон (доп. идеи, полнота)
+
+| Команда | Что ожидать |
+|---|---|
+| `pr search --samples 60` | ~1 минута, около 2 000 конфигураций: граница Парето «отклонение против конверсии» и лидеры по каждой метрике. База `balanced` — на самой границе, доминирующих её конфигураций единицы и на уровне шума |
+| `pr bound` | публичная очередь: наш роутинг 6.54 ожидаемых одобрения против оптимума 7.80 |
+| `pr bound --synthetic 200 --seed 11` | 145.92 против 158.40 — на потоке берём 92–96% от всезнающего пакетного оптимума |
+| `pr backtest --policy config/policies/bank_affinity_first.yml` | 76.0 (+5.2%) — пресет, найденный перебором |
+
+Выводы и цифры целиком — `docs/search.md`; сверка с критериями трека — `docs/criteria.md`.
+
+## 8. Ошибки и граничные случаи
 
 | Команда | Что ожидать |
 |---|---|
@@ -76,7 +88,7 @@
 | очередь без `created_at` | заявки получают время снимка, порядок сохраняется |
 | `--history ""` | без истории всё работает, `bank_affinity` нейтральна |
 
-## 8. Производительность и сдача
+## 9. Производительность и сдача
 
 | Команда | Что ожидать |
 |---|---|
