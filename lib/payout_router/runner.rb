@@ -84,6 +84,17 @@ module PayoutRouter
                                 runs: runs, seed: seed).call
     end
 
+    # Перебор конфигураций политики. Батарея — переданная очередь плюс синтетические очереди
+    # на нескольких seed: политика, подобранная на одной очереди, обычно на ней же и переобучена.
+    def search(operations, synthetic:, seeds:, random_samples:, seed: 1, grid_goals: Search::Space::GRID_GOALS)
+      queues = { "queue" => operations }
+      seeds.each { |item| queues["syn#{synthetic}_s#{item}"] = synthetic_queue(synthetic, seed: item) }
+      battery = Search::Battery.new(base_snapshot: raw_snapshot, history: history_stats,
+                                    queues: queues, records: history_records)
+      Search::Engine.new(battery: battery, policy: policy, random_samples: random_samples, seed: seed,
+                         grid_goals: grid_goals).call
+    end
+
     def tune(operations, candidates:, seed:)
       Analytics::WeightTuner.new(comparison: comparison(operations), policy: policy, candidates: candidates,
                                  seed: seed).call
