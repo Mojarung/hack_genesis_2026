@@ -56,6 +56,34 @@ RSpec.describe "эталонное распределение очереди" do
                                     "share_compliance_cost_approvals")
       expect(serialized["share_compliance_cost_approvals"]).to be >= 0
     end
+
+    it "главная цифра считается от настоящей верхней границы и потому не превышает 100%" do
+      expect(bound.score_vs_optimum).to be_within(1e-6).of(bound.ours * 100.0 / bound.free_optimum)
+      expect(bound.score_vs_optimum).to be <= 100.0
+      expect(bound.serialize["score_vs_optimum_pct"]).to eq(bound.score_vs_optimum.round(2))
+    end
+
+    it "отставание раскладывается на цену долей и цену онлайн-решений без остатка" do
+      expect(bound.share_loss + bound.online_loss).to be_within(1e-9).of(bound.free_optimum - bound.ours)
+    end
+
+    # Регресс: доли у роутера — мягкая цель, поэтому на длинной очереди он законно обходит
+    # quota_optimum. Если считать долю оптимума от него, метрика вылезает за 100%.
+    it "роутер, обошедший оптимум с жёсткими долями, не даёт больше 100% и показывает это минусом" do
+      beat = PayoutRouter::Analytics::AssignmentBound::Result.new(
+        operations: 200, ours: 147.74, all_to_self: 190.0, free_optimum: 157.0, quota_optimum: 141.77,
+        worst: 90.0, quotas: {}, self_budget: 0, eligible_pairs: 12
+      )
+
+      expect(beat.score_vs_optimum).to be_within(0.01).of(94.1)
+      expect(beat.online_loss).to be_negative
+      expect(beat.share_loss + beat.online_loss).to be_within(1e-9).of(beat.free_optimum - beat.ours)
+    end
+
+    it "формулировка называет обе величины сравнения, чтобы цифру нельзя было прочитать в отрыве" do
+      expect(bound.headline).to include(bound.ours.round(2).to_s, bound.free_optimum.round(2).to_s,
+                                        "min-cost flow")
+    end
   end
 
   describe PayoutRouter::Analytics::MinCostFlow do

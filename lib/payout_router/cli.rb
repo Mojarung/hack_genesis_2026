@@ -125,8 +125,11 @@ module PayoutRouter
     def bound
       base = runner
       result = base.bound(synthetic_or_queue(base))
+      raise InputError, "очередь пуста: сравнивать не с чем" if result.nil?
+
       print_table(Output::Tables.bound(result))
-      say format("до оптимума %+.2f%%; взяли %.0f%% разброса допустимых назначений; " \
+      say result.headline, :cyan
+      say format("до свободного оптимума %+.2f%%; взяли %.0f%% разброса допустимых назначений; " \
                  "требование держать доли стоило бы ещё %.2f одобрения",
                  result.gap_to_free, result.capture * 100, result.share_cost), :cyan
       path = Output::JSONWriter.write(File.join(options[:out], "assignment_bound.json"), result.serialize)
@@ -320,6 +323,7 @@ module PayoutRouter
       say summary.headline, :cyan
       print_table(summary.distribution_rows)
       summary.result_lines.each { |line| say line }
+      summary.optimality_lines.each { |line| say line, :cyan }
       summary.recommendation_lines.each { |line| say line, :yellow }
     end
 

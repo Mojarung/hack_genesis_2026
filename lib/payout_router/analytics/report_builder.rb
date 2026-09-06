@@ -8,13 +8,17 @@ module PayoutRouter
     class ReportBuilder
       # cascade — Analytics::CascadeDemo::Result (или nil): демонстрация каскада с отказами,
       # когда основной прогон шёл в optimistic и в решениях отказов нет по построению.
-      def initialize(decisions:, ledger:, snapshot:, policy:, history_stats:, simulation:, cascade: nil)
+      # optimality — Analytics::AssignmentBound::Result (или nil): сколько наш онлайн-роутинг взял
+      # от точного оптимума этой очереди.
+      def initialize(decisions:, ledger:, snapshot:, policy:, history_stats:, simulation:, cascade: nil,
+                     optimality: nil)
         @decisions = decisions
         @snapshot = snapshot
         @policy = policy
         @history = history_stats
         @simulation = simulation
         @cascade = cascade
+        @optimality = optimality
         @stats = RoutingStats.new(decisions: decisions, ledger: ledger, snapshot: snapshot)
       end
 
@@ -23,6 +27,7 @@ module PayoutRouter
           Recommendations::Context.new(stats: @stats, history: @history, snapshot: @snapshot, policy: @policy)
         )
         header.merge(body).merge(
+          "optimality" => @optimality&.serialize,
           "examples" => examples,
           "cascade_demonstration" => @cascade&.summary,
           "history_analysis" => history_section,
