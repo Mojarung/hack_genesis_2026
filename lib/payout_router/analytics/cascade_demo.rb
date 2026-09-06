@@ -89,7 +89,8 @@ module PayoutRouter
       def note(seed)
         "основной прогон — optimistic, отказов в routing_decisions нет по построению. Здесь та же " \
           "очередь#{scope_note} и политика, исходы разыграны по conversion_24h (seed #{seed}): " \
-          "видно переход к следующему провайдеру и fallback"
+          "видно переход к следующему провайдеру и fallback. Полные решения этого прогона в формате " \
+          "routing_decisions — в routing_cascade_demo*.json рядом с отчётом"
       end
 
       # Путь заявки по каскаду: только реальные отправки, в порядке рассмотрения.

@@ -3,10 +3,20 @@
 module PayoutRouter
   # Сценарий «загрузить входы → отроутить очередь → собрать отчёт». CLI лишь оборачивает его.
   class Runner
+    # cascade — Analytics::CascadeDemo::Result или nil: второй прогон с отказами, когда сдаваемый шёл в optimistic.
     Run = Data.define(:snapshot, :policy, :operations, :decisions, :ledger, :report,
-                      :history_stats, :simulation, :warnings) do
+                      :history_stats, :simulation, :warnings, :cascade) do
       def decision(operation_id) = decisions.find { |decision| decision.operation_id == operation_id }
       def serialized_decisions = decisions.map(&:serialize)
+
+      # Файл-демонстрация каскада: тот же формат решений, что и routing_decisions, плюс пояснение и seed —
+      # для проверяющего, который открывает только JSON решений и в optimistic-файле отказов не увидит.
+      def serialized_cascade
+        return nil if cascade.nil?
+
+        cascade.summary.slice("note", "simulation", "operations")
+               .merge("decisions" => cascade.decisions.map(&:serialize))
+      end
     end
 
     def initialize(providers_path:, policy_path:, history_path: nil, simulation_mode: nil, seed: nil, timeout: nil,
@@ -60,12 +70,13 @@ module PayoutRouter
       simulator = Simulation.build(simulation, history_stats: history_stats)
       result = Routing::BatchRouter.new(snapshot: snapshot, policy: policy, simulator: simulator,
                                         history: history_stats).call(operations)
+      cascade = cascade_demo(operations)
       report = Analytics::ReportBuilder.new(decisions: result.decisions, ledger: result.ledger, snapshot: snapshot,
                                             policy: policy, history_stats: history_stats, simulation: simulation,
-                                            cascade: cascade_demo(operations)).build
+                                            cascade: cascade).build
       Run.new(snapshot: snapshot, policy: policy, operations: operations, decisions: result.decisions,
               ledger: result.ledger, report: report, history_stats: history_stats, simulation: simulation,
-              warnings: warnings)
+              warnings: warnings, cascade: cascade)
     end
 
     # Стресс-прогон: сценарии строятся от сырого снимка — политика накладывается внутри каталога.

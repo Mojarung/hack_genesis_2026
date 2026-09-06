@@ -81,7 +81,10 @@ bundle exec rake stress     # 17 сценариев давления, инвар
 | `history`, `bench` | показатели истории; 50 000 синтетических заявок через полный конвейер |
 
 Сдача итоговых файлов: положить `operations_queue_test.json` в `data/`, выполнить `bundle exec rake submit`,
-закоммитить `routing_decisions_test.json` и `routing_report_test.json` из корня в `main`.
+закоммитить `routing_decisions_test.json` и `routing_report_test.json` из корня в `main`. Рядом с ними
+появляются `routing_report_test.html` (тот же отчёт страницей) и `routing_cascade_demo_test.json` — та же
+очередь с отказами по `conversion_24h` в формате решений: пример «отказ → следующий провайдер → fallback»
+для проверяющего, который читает только JSON решений.
 
 ### Кто ведёт состояние провайдеров
 
@@ -320,19 +323,22 @@ selection:
 ```
 
 `routing_report.json` — `period`, `total_operations`, `distribution` (доля/цель/отклонение по количеству
-и объёму, достижимая цель), `skip_reasons`, `projected_daily_utilization`, `recommendations` — плюс `results`
+и объёму, достижимая цель), `skip_reasons`, `projected_daily_utilization` (ровно как в образце ТЗ: только
+провайдеры с дневным лимитом, только числа; полная картина по всем, включая self-provider, —
+в `provider_capacity`), `recommendations` — плюс `results`
 (исходы и конверсия по провайдерам, срабатывания предохранителя), `attempts`, `target_attainability`,
 `goal_activity`, `history_analysis` (включая конверсию по банкам и дрейф заявленной конверсии)
 и `recommendation_details`.
 
 `cascade_demonstration` появляется в отчёте, когда прогон шёл в `optimistic`: в самих решениях тогда
 отказов нет по построению, поэтому отчёт несёт ту же очередь с исходами по `conversion_24h` (seed записан)
-и настоящие трейсы каскада — `payflow: provider_rejected → quickpay: fallback_after_failure`. Так каскад
-виден и тому, кто читает только JSON.
+и настоящие трейсы каскада — `payflow: provider_rejected → quickpay: fallback_after_failure`. Полные решения
+этого прогона `route` кладёт рядом в `routing_cascade_demo*.json` (формат `routing_decisions` плюс
+пояснение и seed). Так каскад виден и тому, кто читает только JSON.
 
 ## Качество
 
-- `bundle exec rspec` — 244 примера, покрытие строк 96.2% (ветви 80.3%); интеграционные тесты гоняют скрипт организаторов, сверяют формат обоих файлов с образцом ТЗ поле за полем и пул допустимых с эталоном,
+- `bundle exec rspec` — 247 примеров, покрытие строк 96.2% (ветви 80.3%); интеграционные тесты гоняют скрипт организаторов, сверяют формат обоих файлов с образцом ТЗ поле за полем и пул допустимых с эталоном,
   регресс-тест на плотную очередь (все заявки в одну секунду) проверяет, что ни одна не остаётся без маршрута.
 - `bundle exec rubocop` — без замечаний (Ruby 4.0, rubocop 1.90 + rubocop-rspec).
 - `rake bench` — полный конвейер с симуляцией отказов, Windows, RubyInstaller без YJIT.

@@ -98,7 +98,7 @@
     <h2>Загрузка лимитов <small>после обработки очереди</small></h2>
     <table>
       <tr><th>Провайдер</th><th>Дневной оборот</th><th class="num">Использовано</th><th class="num">Лимит</th><th class="num">In-progress</th><th class="num">Реквизиты</th><th class="num">Одобрено / отказ / таймаут</th><th class="num">Конверсия (сим. / 24h)</th></tr>
-      <%- report["projected_daily_utilization"].each do |name, usage| -%>
+      <%- report["provider_capacity"].each do |name, usage| -%>
       <%- outcome = report["results"]["by_provider"][name] || {} -%>
       <tr>
         <td><b><%= h(name) %></b></td>

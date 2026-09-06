@@ -1,0 +1,1414 @@
+{
+  "note": "основной прогон — optimistic, отказов в routing_decisions нет по построению. Здесь та же очередь и политика, исходы разыграны по conversion_24h (seed 46): видно переход к следующему провайдеру и fallback. Полные решения этого прогона в формате routing_decisions — в routing_cascade_demo*.json рядом с отчётом",
+  "simulation": {
+    "mode": "conversion",
+    "seed": 46
+  },
+  "operations": 10,
+  "decisions": [
+    {
+      "operation_id": "op_101",
+      "selected_provider": "vipay",
+      "reason": "best_score",
+      "attempts": [
+        {
+          "provider": "vipay",
+          "decision": "selected",
+          "reason": "best_score",
+          "details": "score 0.7495; decisive vs payflow: traffic_share (+0.1), conversion (+0.1)",
+          "score": 0.7495,
+          "breakdown": {
+            "traffic_share": {
+              "score": 0.9,
+              "normalized": 1.0,
+              "weight": 0.3,
+              "weighted": 0.3,
+              "note": "count share 0.0% vs target 40.0% (+40.0 pp)"
+            },
+            "volume_share": {
+              "score": 0.5381,
+              "normalized": 0.9041,
+              "weight": 0.1,
+              "weighted": 0.0904,
+              "note": "volume share 46.2% vs target 50.0% (+3.8 pp)"
+            },
+            "cascade_priority": {
+              "score": 1.0,
+              "weight": 0.1,
+              "weighted": 0.1,
+              "note": "priority 1 (1 of 3)"
+            },
+            "amount_band": {
+              "score": 0.0,
+              "weight": 0.1,
+              "weighted": 0.0,
+              "note": "amounts 500..50000 prefer payflow"
+            },
+            "conversion": {
+              "score": 0.798,
+              "normalized": 1.0,
+              "weight": 0.1,
+              "weighted": 0.1,
+              "note": "conversion_24h 0.87, history 41 ops → calibrated 0.798"
+            },
+            "bank_affinity": {
+              "score": 0.8454,
+              "normalized": 1.0,
+              "weight": 0.05,
+              "weighted": 0.05,
+              "note": "sberbank via vipay: 8 in history, approval 84.5%"
+            },
+            "load": {
+              "score": 0.36,
+              "normalized": 0.394,
+              "weight": 0.15,
+              "weighted": 0.0591,
+              "note": "utilization 64.0% (daily 64.0%, in_progress 40.0%/38.0%)"
+            },
+            "turnover_min": {
+              "score": 0.5,
+              "weight": 0.05,
+              "weighted": 0.025,
+              "note": "no daily_turnover_min"
+            },
+            "rate_headroom": {
+              "score": 1.0,
+              "normalized": 0.5,
+              "weight": 0.05,
+              "weighted": 0.025,
+              "note": "0/15 requests in last 60s"
+            }
+          },
+          "simulated_result": "approved",
+          "latency_sec": 38
+        },
+        {
+          "provider": "payflow",
+          "decision": "skipped",
+          "reason": "lower_score",
+          "details": "score 0.4221 < 0.7495 (vipay)",
+          "score": 0.4221,
+          "breakdown": {
+            "traffic_share": {
+              "score": 0.85,
+              "normalized": 0.6667,
+              "weight": 0.3,
+              "weighted": 0.2,
+              "note": "count share 0.0% vs target 35.0% (+35.0 pp)"
+            },
+            "volume_share": {
+              "score": 0.4103,
+              "normalized": 0.0,
+              "weight": 0.1,
+              "weighted": 0.0,
+              "note": "volume share 39.0% vs target 30.0% (-9.0 pp)"
+            },
+            "cascade_priority": {
+              "score": 0.5,
+              "weight": 0.1,
+              "weighted": 0.05,
+              "note": "priority 2 (2 of 3)"
+            },
+            "amount_band": {
+              "score": 1.0,
+              "weight": 0.1,
+              "weighted": 0.1,
+              "note": "preferred for amounts 500..50000"
+            },
+            "conversion": {
+              "score": 0.6241,
+              "normalized": 0.0,
+              "weight": 0.1,
+              "weighted": 0.0,
+              "note": "conversion_24h 0.91, history 19 ops → calibrated 0.624"
+            },
+            "bank_affinity": {
+              "score": 0.6241,
+              "normalized": 0.4418,
+              "weight": 0.05,
+              "weighted": 0.0221,
+              "note": "sberbank via payflow: 3 in history (< 5), using provider overall: 19 ops, approval 62.4%"
+            },
+            "load": {
+              "score": 0.0333,
+              "normalized": 0.0,
+              "weight": 0.15,
+              "weighted": 0.0,
+              "note": "utilization 96.7% (daily 96.7%, in_progress 25.0%/24.0%)"
+            },
+            "turnover_min": {
+              "score": 0.5,
+              "weight": 0.05,
+              "weighted": 0.025,
+              "note": "daily_turnover_min 2000000 reached (3020000)"
+            },
+            "rate_headroom": {
+              "score": 1.0,
+              "normalized": 0.5,
+              "weight": 0.05,
+              "weighted": 0.025,
+              "note": "0/7 requests in last 60s"
+            }
+          }
+        },
+        {
+          "provider": "quickpay",
+          "decision": "skipped",
+          "reason": "lower_score",
+          "details": "score 0.3425 < 0.7495 (vipay)",
+          "score": 0.3425,
+          "breakdown": {
+            "traffic_share": {
+              "score": 0.75,
+              "normalized": 0.0,
+              "weight": 0.3,
+              "weighted": 0.0,
+              "note": "count share 0.0% vs target 25.0% (+25.0 pp)"
+            },
+            "volume_share": {
+              "score": 0.5516,
+              "normalized": 1.0,
+              "weight": 0.1,
+              "weighted": 0.1,
+              "note": "volume share 14.8% vs target 20.0% (+5.2 pp)"
+            },
+            "cascade_priority": {
+              "score": 0.0,
+              "weight": 0.1,
+              "weighted": 0.0,
+              "note": "priority 3 (3 of 3)"
+            },
+            "amount_band": {
+              "score": 0.0,
+              "weight": 0.1,
+              "weighted": 0.0,
+              "note": "amounts 500..50000 prefer payflow"
+            },
+            "conversion": {
+              "score": 0.698,
+              "normalized": 0.4247,
+              "weight": 0.1,
+              "weighted": 0.0425,
+              "note": "conversion_24h 0.79, history 40 ops → calibrated 0.698"
+            },
+            "bank_affinity": {
+              "score": 0.449,
+              "normalized": 0.0,
+              "weight": 0.05,
+              "weighted": 0.0,
+              "note": "sberbank via quickpay: 5 in history, approval 44.9%"
+            },
+            "load": {
+              "score": 0.8625,
+              "normalized": 1.0,
+              "weight": 0.15,
+              "weighted": 0.15,
+              "note": "utilization 13.8% (daily 13.8%, in_progress 6.7%/2.5%)"
+            },
+            "turnover_min": {
+              "score": 0.5,
+              "weight": 0.05,
+              "weighted": 0.025,
+              "note": "no daily_turnover_min"
+            },
+            "rate_headroom": {
+              "score": 1.0,
+              "normalized": 0.5,
+              "weight": 0.05,
+              "weighted": 0.025,
+              "note": "0/15 requests in last 60s"
+            }
+          }
+        }
+      ],
+      "simulated_result": "approved",
+      "latency_sec": 38,
+      "amount": 15000,
+      "bank": "sberbank",
+      "created_at": "2026-07-30T09:05:00+03:00",
+      "retries": 0,
+      "fallback_used": false
+    },
+    {
+      "operation_id": "op_102",
+      "selected_provider": "payflow",
+      "reason": "best_score",
+      "attempts": [
+        {
+          "provider": "vipay",
+          "decision": "skipped",
+          "reason": "bank_not_in_list",
+          "details": "alfa not in banks [sberbank, tinkoff, vtb]"
+        },
+        {
+          "provider": "payflow",
+          "decision": "selected",
+          "reason": "best_score",
+          "details": "score 0.55; decisive vs quickpay: traffic_share (+0.3), cascade_priority (+0.1)",
+          "score": 0.55,
+          "breakdown": {
+            "traffic_share": {
+              "score": 0.85,
+              "normalized": 1.0,
+              "weight": 0.3,
+              "weighted": 0.3,
+              "note": "count share 0.0% vs target 35.0% (+35.0 pp)"
+            },
+            "volume_share": {
+              "score": 0.4111,
+              "normalized": 0.0,
+              "weight": 0.1,
+              "weighted": 0.0,
+              "note": "volume share 38.9% vs target 30.0% (-8.9 pp)"
+            },
+            "cascade_priority": {
+              "score": 0.5,
+              "normalized": 1.0,
+              "weight": 0.1,
+              "weighted": 0.1,
+              "note": "priority 2 (2 of 3)"
+            },
+            "amount_band": {
+              "score": 1.0,
+              "weight": 0.1,
+              "weighted": 0.1,
+              "note": "preferred for amounts 500..50000"
+            },
+            "conversion": {
+              "score": 0.6241,
+              "normalized": 0.0,
+              "weight": 0.1,
+              "weighted": 0.0,
+              "note": "conversion_24h 0.91, history 19 ops → calibrated 0.624"
+            },
+            "bank_affinity": {
+              "score": 0.4267,
+              "normalized": 0.0,
+              "weight": 0.05,
+              "weighted": 0.0,
+              "note": "alfa via payflow: 7 in history, approval 42.7%"
+            },
+            "load": {
+              "score": 0.0333,
+              "normalized": 0.0,
+              "weight": 0.15,
+              "weighted": 0.0,
+              "note": "utilization 96.7% (daily 96.7%, in_progress 25.0%/24.0%)"
+            },
+            "turnover_min": {
+              "score": 0.5,
+              "weight": 0.05,
+              "weighted": 0.025,
+              "note": "daily_turnover_min 2000000 reached (3020000)"
+            },
+            "rate_headroom": {
+              "score": 1.0,
+              "normalized": 0.5,
+              "weight": 0.05,
+              "weighted": 0.025,
+              "note": "0/7 requests in last 60s"
+            }
+          },
+          "simulated_result": "approved",
+          "latency_sec": 52
+        },
+        {
+          "provider": "quickpay",
+          "decision": "skipped",
+          "reason": "lower_score",
+          "details": "score 0.45 < 0.55 (payflow)",
+          "score": 0.45,
+          "breakdown": {
+            "traffic_share": {
+              "score": 0.75,
+              "normalized": 0.0,
+              "weight": 0.3,
+              "weighted": 0.0,
+              "note": "count share 0.0% vs target 25.0% (+25.0 pp)"
+            },
+            "volume_share": {
+              "score": 0.5519,
+              "normalized": 1.0,
+              "weight": 0.1,
+              "weighted": 0.1,
+              "note": "volume share 14.8% vs target 20.0% (+5.2 pp)"
+            },
+            "cascade_priority": {
+              "score": 0.0,
+              "weight": 0.1,
+              "weighted": 0.0,
+              "note": "priority 3 (3 of 3)"
+            },
+            "amount_band": {
+              "score": 0.0,
+              "weight": 0.1,
+              "weighted": 0.0,
+              "note": "amounts 500..50000 prefer payflow"
+            },
+            "conversion": {
+              "score": 0.698,
+              "normalized": 1.0,
+              "weight": 0.1,
+              "weighted": 0.1,
+              "note": "conversion_24h 0.79, history 40 ops → calibrated 0.698"
+            },
+            "bank_affinity": {
+              "score": 0.7075,
+              "normalized": 1.0,
+              "weight": 0.05,
+              "weighted": 0.05,
+              "note": "alfa via quickpay: 7 in history, approval 70.8%"
+            },
+            "load": {
+              "score": 0.8625,
+              "normalized": 1.0,
+              "weight": 0.15,
+              "weighted": 0.15,
+              "note": "utilization 13.8% (daily 13.8%, in_progress 6.7%/2.5%)"
+            },
+            "turnover_min": {
+              "score": 0.5,
+              "weight": 0.05,
+              "weighted": 0.025,
+              "note": "no daily_turnover_min"
+            },
+            "rate_headroom": {
+              "score": 1.0,
+              "normalized": 0.5,
+              "weight": 0.05,
+              "weighted": 0.025,
+              "note": "0/15 requests in last 60s"
+            }
+          }
+        }
+      ],
+      "simulated_result": "approved",
+      "latency_sec": 52,
+      "amount": 48000,
+      "bank": "alfa",
+      "created_at": "2026-07-30T09:05:30+03:00",
+      "retries": 0,
+      "fallback_used": false
+    },
+    {
+      "operation_id": "op_103",
+      "selected_provider": "quickpay",
+      "reason": "only_eligible_provider",
+      "attempts": [
+        {
+          "provider": "vipay",
+          "decision": "skipped",
+          "reason": "amount_exceeds_limit",
+          "details": "150000 > limit_amount_max 100000"
+        },
+        {
+          "provider": "payflow",
+          "decision": "skipped",
+          "reason": "amount_exceeds_limit",
+          "details": "150000 > limit_amount_max 50000",
+          "violations": [
+            "amount_exceeds_limit",
+            "daily_limit_exceeded"
+          ]
+        },
+        {
+          "provider": "quickpay",
+          "decision": "selected",
+          "reason": "only_eligible_provider",
+          "details": "score 0.6769; decisive: traffic_share (+0.225), load (+0.129)",
+          "score": 0.6769,
+          "breakdown": {
+            "traffic_share": {
+              "score": 0.75,
+              "weight": 0.3,
+              "weighted": 0.225,
+              "note": "count share 0.0% vs target 25.0% (+25.0 pp)"
+            },
+            "volume_share": {
+              "score": 0.5528,
+              "weight": 0.1,
+              "weighted": 0.0553,
+              "note": "volume share 14.7% vs target 20.0% (+5.3 pp)"
+            },
+            "cascade_priority": {
+              "score": 0.0,
+              "weight": 0.1,
+              "weighted": 0.0,
+              "note": "priority 3 (3 of 3)"
+            },
+            "amount_band": {
+              "score": 1.0,
+              "weight": 0.1,
+              "weighted": 0.1,
+              "note": "preferred for amounts 100001..∞"
+            },
+            "conversion": {
+              "score": 0.698,
+              "weight": 0.1,
+              "weighted": 0.0698,
+              "note": "conversion_24h 0.79, history 40 ops → calibrated 0.698"
+            },
+            "bank_affinity": {
+              "score": 0.449,
+              "weight": 0.05,
+              "weighted": 0.0225,
+              "note": "sberbank via quickpay: 5 in history, approval 44.9%"
+            },
+            "load": {
+              "score": 0.8625,
+              "weight": 0.15,
+              "weighted": 0.1294,
+              "note": "utilization 13.8% (daily 13.8%, in_progress 6.7%/2.5%)"
+            },
+            "turnover_min": {
+              "score": 0.5,
+              "weight": 0.05,
+              "weighted": 0.025,
+              "note": "no daily_turnover_min"
+            },
+            "rate_headroom": {
+              "score": 1.0,
+              "weight": 0.05,
+              "weighted": 0.05,
+              "note": "0/15 requests in last 60s"
+            }
+          },
+          "simulated_result": "approved",
+          "latency_sec": 29
+        }
+      ],
+      "simulated_result": "approved",
+      "latency_sec": 29,
+      "amount": 150000,
+      "bank": "sberbank",
+      "created_at": "2026-07-30T09:06:00+03:00",
+      "retries": 0,
+      "fallback_used": false
+    },
+    {
+      "operation_id": "op_104",
+      "selected_provider": "quickpay",
+      "reason": "only_eligible_provider",
+      "attempts": [
+        {
+          "provider": "vipay",
+          "decision": "skipped",
+          "reason": "bank_not_in_list",
+          "details": "gazprombank not in banks [sberbank, tinkoff, vtb]"
+        },
+        {
+          "provider": "payflow",
+          "decision": "skipped",
+          "reason": "bank_not_in_list",
+          "details": "gazprombank not in banks [sberbank, alfa]"
+        },
+        {
+          "provider": "quickpay",
+          "decision": "selected",
+          "reason": "only_eligible_provider",
+          "details": "score 0.4792; decisive: load (+0.127), traffic_share (+0.125)",
+          "score": 0.4792,
+          "breakdown": {
+            "traffic_share": {
+              "score": 0.4167,
+              "weight": 0.3,
+              "weighted": 0.125,
+              "note": "count share 33.3% vs target 25.0% (-8.3 pp)"
+            },
+            "volume_share": {
+              "score": 0.5367,
+              "weight": 0.1,
+              "weighted": 0.0537,
+              "note": "volume share 16.3% vs target 20.0% (+3.7 pp)"
+            },
+            "cascade_priority": {
+              "score": 0.0,
+              "weight": 0.1,
+              "weighted": 0.0,
+              "note": "priority 3 (3 of 3)"
+            },
+            "amount_band": {
+              "score": 0.0,
+              "weight": 0.1,
+              "weighted": 0.0,
+              "note": "amounts 500..50000 prefer payflow"
+            },
+            "conversion": {
+              "score": 0.698,
+              "weight": 0.1,
+              "weighted": 0.0698,
+              "note": "conversion_24h 0.79, history 40 ops → calibrated 0.698"
+            },
+            "bank_affinity": {
+              "score": 0.649,
+              "weight": 0.05,
+              "weighted": 0.0325,
+              "note": "gazprombank via quickpay: 5 in history, approval 64.9%"
+            },
+            "load": {
+              "score": 0.8438,
+              "weight": 0.15,
+              "weighted": 0.1266,
+              "note": "utilization 15.6% (daily 15.6%, in_progress 6.7%/2.5%)"
+            },
+            "turnover_min": {
+              "score": 0.5,
+              "weight": 0.05,
+              "weighted": 0.025,
+              "note": "no daily_turnover_min"
+            },
+            "rate_headroom": {
+              "score": 0.9333,
+              "weight": 0.05,
+              "weighted": 0.0467,
+              "note": "1/15 requests in last 60s"
+            }
+          },
+          "simulated_result": "approved",
+          "latency_sec": 29
+        }
+      ],
+      "simulated_result": "approved",
+      "latency_sec": 29,
+      "amount": 3000,
+      "bank": "gazprombank",
+      "created_at": "2026-07-30T09:06:30+03:00",
+      "retries": 0,
+      "fallback_used": false
+    },
+    {
+      "operation_id": "op_105",
+      "selected_provider": "vipay",
+      "reason": "best_score",
+      "attempts": [
+        {
+          "provider": "payflow",
+          "decision": "skipped",
+          "reason": "bank_not_in_list",
+          "details": "tinkoff not in banks [sberbank, alfa]"
+        },
+        {
+          "provider": "vipay",
+          "decision": "selected",
+          "reason": "best_score",
+          "details": "score 0.775; decisive vs quickpay: traffic_share (+0.3), volume_share (+0.1)",
+          "score": 0.775,
+          "breakdown": {
+            "traffic_share": {
+              "score": 0.65,
+              "normalized": 1.0,
+              "weight": 0.3,
+              "weighted": 0.3,
+              "note": "count share 25.0% vs target 40.0% (+15.0 pp)"
+            },
+            "volume_share": {
+              "score": 0.5487,
+              "normalized": 1.0,
+              "weight": 0.1,
+              "weighted": 0.1,
+              "note": "volume share 45.1% vs target 50.0% (+4.9 pp)"
+            },
+            "cascade_priority": {
+              "score": 1.0,
+              "weight": 0.1,
+              "weighted": 0.1,
+              "note": "priority 1 (1 of 3)"
+            },
+            "amount_band": {
+              "score": 0.0,
+              "normalized": 0.5,
+              "weight": 0.1,
+              "weighted": 0.05,
+              "note": "amounts 500..50000 prefer payflow"
+            },
+            "conversion": {
+              "score": 0.798,
+              "normalized": 1.0,
+              "weight": 0.1,
+              "weighted": 0.1,
+              "note": "conversion_24h 0.87, history 41 ops → calibrated 0.798"
+            },
+            "bank_affinity": {
+              "score": 0.8173,
+              "normalized": 1.0,
+              "weight": 0.05,
+              "weighted": 0.05,
+              "note": "tinkoff via vipay: 6 in history, approval 81.7%"
+            },
+            "load": {
+              "score": 0.357,
+              "normalized": 0.0,
+              "weight": 0.15,
+              "weighted": 0.0,
+              "note": "utilization 64.3% (daily 64.3%, in_progress 40.0%/38.0%)"
+            },
+            "turnover_min": {
+              "score": 0.5,
+              "weight": 0.05,
+              "weighted": 0.025,
+              "note": "no daily_turnover_min"
+            },
+            "rate_headroom": {
+              "score": 1.0,
+              "weight": 0.05,
+              "weighted": 0.05,
+              "note": "0/15 requests in last 60s"
+            }
+          },
+          "simulated_result": "approved",
+          "latency_sec": 38
+        },
+        {
+          "provider": "quickpay",
+          "decision": "skipped",
+          "reason": "lower_score",
+          "details": "score 0.225 < 0.775 (vipay)",
+          "score": 0.225,
+          "breakdown": {
+            "traffic_share": {
+              "score": 0.25,
+              "normalized": 0.0,
+              "weight": 0.3,
+              "weighted": 0.0,
+              "note": "count share 50.0% vs target 25.0% (-25.0 pp)"
+            },
+            "volume_share": {
+              "score": 0.5364,
+              "normalized": 0.0,
+              "weight": 0.1,
+              "weighted": 0.0,
+              "note": "volume share 16.4% vs target 20.0% (+3.6 pp)"
+            },
+            "cascade_priority": {
+              "score": 0.0,
+              "weight": 0.1,
+              "weighted": 0.0,
+              "note": "priority 3 (3 of 3)"
+            },
+            "amount_band": {
+              "score": 0.0,
+              "normalized": 0.5,
+              "weight": 0.1,
+              "weighted": 0.05,
+              "note": "amounts 500..50000 prefer payflow"
+            },
+            "conversion": {
+              "score": 0.698,
+              "normalized": 0.0,
+              "weight": 0.1,
+              "weighted": 0.0,
+              "note": "conversion_24h 0.79, history 40 ops → calibrated 0.698"
+            },
+            "bank_affinity": {
+              "score": 0.6809,
+              "normalized": 0.0,
+              "weight": 0.05,
+              "weighted": 0.0,
+              "note": "tinkoff via quickpay: 6 in history, approval 68.1%"
+            },
+            "load": {
+              "score": 0.8434,
+              "normalized": 1.0,
+              "weight": 0.15,
+              "weighted": 0.15,
+              "note": "utilization 15.7% (daily 15.7%, in_progress 6.7%/2.5%)"
+            },
+            "turnover_min": {
+              "score": 0.5,
+              "weight": 0.05,
+              "weighted": 0.025,
+              "note": "no daily_turnover_min"
+            },
+            "rate_headroom": {
+              "score": 0.9333,
+              "normalized": 0.0,
+              "weight": 0.05,
+              "weighted": 0.0,
+              "note": "1/15 requests in last 60s"
+            }
+          }
+        }
+      ],
+      "simulated_result": "approved",
+      "latency_sec": 38,
+      "amount": 25000,
+      "bank": "tinkoff",
+      "created_at": "2026-07-30T09:07:00+03:00",
+      "retries": 0,
+      "fallback_used": false
+    },
+    {
+      "operation_id": "op_106",
+      "selected_provider": "quickpay",
+      "reason": "fallback_after_failure",
+      "attempts": [
+        {
+          "provider": "payflow",
+          "decision": "skipped",
+          "reason": "amount_exceeds_limit",
+          "details": "52000 > limit_amount_max 50000"
+        },
+        {
+          "provider": "vipay",
+          "decision": "skipped",
+          "reason": "provider_timeout",
+          "details": "dispatched, simulated result: expired after 567s (score 0.775; decisive: traffic_share (+0.3), volume_share (+0.1))",
+          "score": 0.775,
+          "breakdown": {
+            "traffic_share": {
+              "score": 0.5,
+              "normalized": 1.0,
+              "weight": 0.3,
+              "weighted": 0.3,
+              "note": "count share 40.0% vs target 40.0% (+0.0 pp)"
+            },
+            "volume_share": {
+              "score": 0.547,
+              "normalized": 1.0,
+              "weight": 0.1,
+              "weighted": 0.1,
+              "note": "volume share 45.3% vs target 50.0% (+4.7 pp)"
+            },
+            "cascade_priority": {
+              "score": 1.0,
+              "weight": 0.1,
+              "weighted": 0.1,
+              "note": "priority 1 (1 of 3)"
+            },
+            "amount_band": {
+              "score": 1.0,
+              "weight": 0.1,
+              "weighted": 0.1,
+              "note": "preferred for amounts 50001..100000"
+            },
+            "conversion": {
+              "score": 0.798,
+              "normalized": 1.0,
+              "weight": 0.1,
+              "weighted": 0.1,
+              "note": "conversion_24h 0.87, history 41 ops → calibrated 0.798"
+            },
+            "bank_affinity": {
+              "score": 0.8454,
+              "normalized": 1.0,
+              "weight": 0.05,
+              "weighted": 0.05,
+              "note": "sberbank via vipay: 8 in history, approval 84.5%"
+            },
+            "load": {
+              "score": 0.357,
+              "normalized": 0.0,
+              "weight": 0.15,
+              "weighted": 0.0,
+              "note": "utilization 64.3% (daily 64.3%, in_progress 50.0%/40.5%)"
+            },
+            "turnover_min": {
+              "score": 0.5,
+              "weight": 0.05,
+              "weighted": 0.025,
+              "note": "no daily_turnover_min"
+            },
+            "rate_headroom": {
+              "score": 0.9333,
+              "normalized": 0.0,
+              "weight": 0.05,
+              "weighted": 0.0,
+              "note": "1/15 requests in last 60s"
+            }
+          },
+          "simulated_result": "expired",
+          "latency_sec": 567
+        },
+        {
+          "provider": "quickpay",
+          "decision": "selected",
+          "reason": "fallback_after_failure",
+          "details": "retry #1 after failure; score 0.225; decisive: load (+0.15), rate_headroom (+0.05)",
+          "score": 0.225,
+          "breakdown": {
+            "traffic_share": {
+              "score": 0.35,
+              "normalized": 0.0,
+              "weight": 0.3,
+              "weighted": 0.0,
+              "note": "count share 40.0% vs target 25.0% (-15.0 pp)"
+            },
+            "volume_share": {
+              "score": 0.5369,
+              "normalized": 0.0,
+              "weight": 0.1,
+              "weighted": 0.0,
+              "note": "volume share 16.3% vs target 20.0% (+3.7 pp)"
+            },
+            "cascade_priority": {
+              "score": 0.0,
+              "weight": 0.1,
+              "weighted": 0.0,
+              "note": "priority 3 (3 of 3)"
+            },
+            "amount_band": {
+              "score": 0.0,
+              "weight": 0.1,
+              "weighted": 0.0,
+              "note": "amounts 50001..100000 prefer vipay"
+            },
+            "conversion": {
+              "score": 0.698,
+              "normalized": 0.0,
+              "weight": 0.1,
+              "weighted": 0.0,
+              "note": "conversion_24h 0.79, history 40 ops → calibrated 0.698"
+            },
+            "bank_affinity": {
+              "score": 0.449,
+              "normalized": 0.0,
+              "weight": 0.05,
+              "weighted": 0.0,
+              "note": "sberbank via quickpay: 5 in history, approval 44.9%"
+            },
+            "load": {
+              "score": 0.8434,
+              "normalized": 1.0,
+              "weight": 0.15,
+              "weighted": 0.15,
+              "note": "utilization 15.7% (daily 15.7%, in_progress 6.7%/2.5%)"
+            },
+            "turnover_min": {
+              "score": 0.5,
+              "weight": 0.05,
+              "weighted": 0.025,
+              "note": "no daily_turnover_min"
+            },
+            "rate_headroom": {
+              "score": 1.0,
+              "weight": 0.05,
+              "weighted": 0.05,
+              "note": "0/15 requests in last 60s"
+            }
+          },
+          "simulated_result": "approved",
+          "latency_sec": 29
+        }
+      ],
+      "simulated_result": "approved",
+      "latency_sec": 29,
+      "amount": 52000,
+      "bank": "sberbank",
+      "created_at": "2026-07-30T09:07:30+03:00",
+      "retries": 1,
+      "fallback_used": false
+    },
+    {
+      "operation_id": "op_107",
+      "selected_provider": "spacepayments",
+      "reason": "fallback_self_provider",
+      "attempts": [
+        {
+          "provider": "vipay",
+          "decision": "skipped",
+          "reason": "amount_below_minimum",
+          "details": "800 < limit_amount_min 1000"
+        },
+        {
+          "provider": "quickpay",
+          "decision": "skipped",
+          "reason": "amount_below_minimum",
+          "details": "800 < limit_amount_min 1000"
+        },
+        {
+          "provider": "payflow",
+          "decision": "skipped",
+          "reason": "provider_timeout",
+          "details": "dispatched, simulated result: expired after 631s (score 0.5683; decisive: traffic_share (+0.205), amount_band (+0.1))",
+          "score": 0.5683,
+          "breakdown": {
+            "traffic_share": {
+              "score": 0.6833,
+              "weight": 0.3,
+              "weighted": 0.205,
+              "note": "count share 16.7% vs target 35.0% (+18.3 pp)"
+            },
+            "volume_share": {
+              "score": 0.421,
+              "weight": 0.1,
+              "weighted": 0.0421,
+              "note": "volume share 37.9% vs target 30.0% (-7.9 pp)"
+            },
+            "cascade_priority": {
+              "score": 0.5,
+              "weight": 0.1,
+              "weighted": 0.05,
+              "note": "priority 2 (2 of 3)"
+            },
+            "amount_band": {
+              "score": 1.0,
+              "weight": 0.1,
+              "weighted": 0.1,
+              "note": "preferred for amounts 500..50000"
+            },
+            "conversion": {
+              "score": 0.6241,
+              "weight": 0.1,
+              "weighted": 0.0624,
+              "note": "conversion_24h 0.91, history 19 ops → calibrated 0.624"
+            },
+            "bank_affinity": {
+              "score": 0.6241,
+              "weight": 0.05,
+              "weighted": 0.0312,
+              "note": "sberbank via payflow: 3 in history (< 5), using provider overall: 19 ops, approval 62.4%"
+            },
+            "load": {
+              "score": 0.0173,
+              "weight": 0.15,
+              "weighted": 0.0026,
+              "note": "utilization 98.3% (daily 98.3%, in_progress 25.0%/24.0%)"
+            },
+            "turnover_min": {
+              "score": 0.5,
+              "weight": 0.05,
+              "weighted": 0.025,
+              "note": "daily_turnover_min 2000000 reached (3068000)"
+            },
+            "rate_headroom": {
+              "score": 1.0,
+              "weight": 0.05,
+              "weighted": 0.05,
+              "note": "0/7 requests in last 60s"
+            }
+          },
+          "simulated_result": "expired",
+          "latency_sec": 631
+        },
+        {
+          "provider": "spacepayments",
+          "decision": "selected",
+          "reason": "fallback_self_provider",
+          "details": "all 1 eligible providers failed: vipay: amount_below_minimum; quickpay: amount_below_minimum; payflow: provider_timeout",
+          "simulated_result": "approved",
+          "latency_sec": 15
+        }
+      ],
+      "simulated_result": "approved",
+      "latency_sec": 15,
+      "amount": 800,
+      "bank": "sberbank",
+      "created_at": "2026-07-30T09:08:00+03:00",
+      "retries": 1,
+      "fallback_used": true
+    },
+    {
+      "operation_id": "op_108",
+      "selected_provider": "quickpay",
+      "reason": "only_eligible_provider",
+      "attempts": [
+        {
+          "provider": "vipay",
+          "decision": "skipped",
+          "reason": "bank_not_in_list",
+          "details": "raiffeisen not in banks [sberbank, tinkoff, vtb]"
+        },
+        {
+          "provider": "payflow",
+          "decision": "skipped",
+          "reason": "bank_not_in_list",
+          "details": "raiffeisen not in banks [sberbank, alfa]"
+        },
+        {
+          "provider": "quickpay",
+          "decision": "selected",
+          "reason": "only_eligible_provider",
+          "details": "score 0.4554; decisive: load (+0.126), traffic_share (+0.096)",
+          "score": 0.4554,
+          "breakdown": {
+            "traffic_share": {
+              "score": 0.3214,
+              "weight": 0.3,
+              "weighted": 0.0964,
+              "note": "count share 42.9% vs target 25.0% (-17.9 pp)"
+            },
+            "volume_share": {
+              "score": 0.5326,
+              "weight": 0.1,
+              "weighted": 0.0533,
+              "note": "volume share 16.7% vs target 20.0% (+3.3 pp)"
+            },
+            "cascade_priority": {
+              "score": 0.0,
+              "weight": 0.1,
+              "weighted": 0.0,
+              "note": "priority 3 (3 of 3)"
+            },
+            "amount_band": {
+              "score": 0.0,
+              "weight": 0.1,
+              "weighted": 0.0,
+              "note": "amounts 500..50000 prefer payflow"
+            },
+            "conversion": {
+              "score": 0.698,
+              "weight": 0.1,
+              "weighted": 0.0698,
+              "note": "conversion_24h 0.79, history 40 ops → calibrated 0.698"
+            },
+            "bank_affinity": {
+              "score": 0.7075,
+              "weight": 0.05,
+              "weighted": 0.0354,
+              "note": "raiffeisen via quickpay: 7 in history, approval 70.8%"
+            },
+            "load": {
+              "score": 0.8369,
+              "weight": 0.15,
+              "weighted": 0.1255,
+              "note": "utilization 16.3% (daily 16.3%, in_progress 6.7%/2.5%)"
+            },
+            "turnover_min": {
+              "score": 0.5,
+              "weight": 0.05,
+              "weighted": 0.025,
+              "note": "no daily_turnover_min"
+            },
+            "rate_headroom": {
+              "score": 1.0,
+              "weight": 0.05,
+              "weighted": 0.05,
+              "note": "0/15 requests in last 60s"
+            }
+          },
+          "simulated_result": "approved",
+          "latency_sec": 29
+        }
+      ],
+      "simulated_result": "approved",
+      "latency_sec": 29,
+      "amount": 42000,
+      "bank": "raiffeisen",
+      "created_at": "2026-07-30T09:08:30+03:00",
+      "retries": 0,
+      "fallback_used": false
+    },
+    {
+      "operation_id": "op_109",
+      "selected_provider": "vipay",
+      "reason": "best_score",
+      "attempts": [
+        {
+          "provider": "payflow",
+          "decision": "skipped",
+          "reason": "bank_not_in_list",
+          "details": "vtb not in banks [sberbank, alfa]"
+        },
+        {
+          "provider": "vipay",
+          "decision": "selected",
+          "reason": "best_score",
+          "details": "score 0.725; decisive vs quickpay: traffic_share (+0.3), volume_share (+0.1)",
+          "score": 0.725,
+          "breakdown": {
+            "traffic_share": {
+              "score": 0.65,
+              "normalized": 1.0,
+              "weight": 0.3,
+              "weighted": 0.3,
+              "note": "count share 25.0% vs target 40.0% (+15.0 pp)"
+            },
+            "volume_share": {
+              "score": 0.5488,
+              "normalized": 1.0,
+              "weight": 0.1,
+              "weighted": 0.1,
+              "note": "volume share 45.1% vs target 50.0% (+4.9 pp)"
+            },
+            "cascade_priority": {
+              "score": 1.0,
+              "weight": 0.1,
+              "weighted": 0.1,
+              "note": "priority 1 (1 of 3)"
+            },
+            "amount_band": {
+              "score": 0.0,
+              "normalized": 0.5,
+              "weight": 0.1,
+              "weighted": 0.05,
+              "note": "amounts 500..50000 prefer payflow"
+            },
+            "conversion": {
+              "score": 0.798,
+              "normalized": 1.0,
+              "weight": 0.1,
+              "weighted": 0.1,
+              "note": "conversion_24h 0.87, history 41 ops → calibrated 0.798"
+            },
+            "bank_affinity": {
+              "score": 0.7492,
+              "normalized": 0.0,
+              "weight": 0.05,
+              "weighted": 0.0,
+              "note": "vtb via vipay: 7 in history, approval 74.9%"
+            },
+            "load": {
+              "score": 0.352,
+              "normalized": 0.0,
+              "weight": 0.15,
+              "weighted": 0.0,
+              "note": "utilization 64.8% (daily 64.8%, in_progress 50.0%/43.2%)"
+            },
+            "turnover_min": {
+              "score": 0.5,
+              "weight": 0.05,
+              "weighted": 0.025,
+              "note": "no daily_turnover_min"
+            },
+            "rate_headroom": {
+              "score": 1.0,
+              "weight": 0.05,
+              "weighted": 0.05,
+              "note": "0/15 requests in last 60s"
+            }
+          },
+          "simulated_result": "approved",
+          "latency_sec": 38
+        },
+        {
+          "provider": "quickpay",
+          "decision": "skipped",
+          "reason": "lower_score",
+          "details": "score 0.275 < 0.725 (vipay)",
+          "score": 0.275,
+          "breakdown": {
+            "traffic_share": {
+              "score": 0.25,
+              "normalized": 0.0,
+              "weight": 0.3,
+              "weighted": 0.0,
+              "note": "count share 50.0% vs target 25.0% (-25.0 pp)"
+            },
+            "volume_share": {
+              "score": 0.5283,
+              "normalized": 0.0,
+              "weight": 0.1,
+              "weighted": 0.0,
+              "note": "volume share 17.2% vs target 20.0% (+2.8 pp)"
+            },
+            "cascade_priority": {
+              "score": 0.0,
+              "weight": 0.1,
+              "weighted": 0.0,
+              "note": "priority 3 (3 of 3)"
+            },
+            "amount_band": {
+              "score": 0.0,
+              "normalized": 0.5,
+              "weight": 0.1,
+              "weighted": 0.05,
+              "note": "amounts 500..50000 prefer payflow"
+            },
+            "conversion": {
+              "score": 0.698,
+              "normalized": 0.0,
+              "weight": 0.1,
+              "weighted": 0.0,
+              "note": "conversion_24h 0.79, history 40 ops → calibrated 0.698"
+            },
+            "bank_affinity": {
+              "score": 0.8327,
+              "normalized": 1.0,
+              "weight": 0.05,
+              "weighted": 0.05,
+              "note": "vtb via quickpay: 10 in history, approval 83.3%"
+            },
+            "load": {
+              "score": 0.8316,
+              "normalized": 1.0,
+              "weight": 0.15,
+              "weighted": 0.15,
+              "note": "utilization 16.8% (daily 16.8%, in_progress 6.7%/2.5%)"
+            },
+            "turnover_min": {
+              "score": 0.5,
+              "weight": 0.05,
+              "weighted": 0.025,
+              "note": "no daily_turnover_min"
+            },
+            "rate_headroom": {
+              "score": 0.9333,
+              "normalized": 0.0,
+              "weight": 0.05,
+              "weighted": 0.0,
+              "note": "1/15 requests in last 60s"
+            }
+          }
+        }
+      ],
+      "simulated_result": "approved",
+      "latency_sec": 38,
+      "amount": 10000,
+      "bank": "vtb",
+      "created_at": "2026-07-30T09:09:00+03:00",
+      "retries": 0,
+      "fallback_used": false
+    },
+    {
+      "operation_id": "op_110",
+      "selected_provider": "payflow",
+      "reason": "best_score",
+      "attempts": [
+        {
+          "provider": "vipay",
+          "decision": "skipped",
+          "reason": "bank_not_in_list",
+          "details": "alfa not in banks [sberbank, tinkoff, vtb]"
+        },
+        {
+          "provider": "payflow",
+          "decision": "selected",
+          "reason": "best_score",
+          "details": "score 0.55; decisive vs quickpay: traffic_share (+0.3), cascade_priority (+0.1)",
+          "score": 0.55,
+          "breakdown": {
+            "traffic_share": {
+              "score": 0.7389,
+              "normalized": 1.0,
+              "weight": 0.3,
+              "weighted": 0.3,
+              "note": "count share 11.1% vs target 35.0% (+23.9 pp)"
+            },
+            "volume_share": {
+              "score": 0.4234,
+              "normalized": 0.0,
+              "weight": 0.1,
+              "weighted": 0.0,
+              "note": "volume share 37.7% vs target 30.0% (-7.7 pp)"
+            },
+            "cascade_priority": {
+              "score": 0.5,
+              "normalized": 1.0,
+              "weight": 0.1,
+              "weighted": 0.1,
+              "note": "priority 2 (2 of 3)"
+            },
+            "amount_band": {
+              "score": 1.0,
+              "weight": 0.1,
+              "weighted": 0.1,
+              "note": "preferred for amounts 500..50000"
+            },
+            "conversion": {
+              "score": 0.6241,
+              "normalized": 0.0,
+              "weight": 0.1,
+              "weighted": 0.0,
+              "note": "conversion_24h 0.91, history 19 ops → calibrated 0.624"
+            },
+            "bank_affinity": {
+              "score": 0.4267,
+              "normalized": 0.0,
+              "weight": 0.05,
+              "weighted": 0.0,
+              "note": "alfa via payflow: 7 in history, approval 42.7%"
+            },
+            "load": {
+              "score": 0.0173,
+              "normalized": 0.0,
+              "weight": 0.15,
+              "weighted": 0.0,
+              "note": "utilization 98.3% (daily 98.3%, in_progress 37.5%/24.2%)"
+            },
+            "turnover_min": {
+              "score": 0.5,
+              "weight": 0.05,
+              "weighted": 0.025,
+              "note": "daily_turnover_min 2000000 reached (3068800)"
+            },
+            "rate_headroom": {
+              "score": 1.0,
+              "normalized": 0.5,
+              "weight": 0.05,
+              "weighted": 0.025,
+              "note": "0/7 requests in last 60s"
+            }
+          },
+          "simulated_result": "approved",
+          "latency_sec": 52
+        },
+        {
+          "provider": "quickpay",
+          "decision": "skipped",
+          "reason": "lower_score",
+          "details": "score 0.45 < 0.55 (payflow)",
+          "score": 0.45,
+          "breakdown": {
+            "traffic_share": {
+              "score": 0.3056,
+              "normalized": 0.0,
+              "weight": 0.3,
+              "weighted": 0.0,
+              "note": "count share 44.4% vs target 25.0% (-19.4 pp)"
+            },
+            "volume_share": {
+              "score": 0.5285,
+              "normalized": 1.0,
+              "weight": 0.1,
+              "weighted": 0.1,
+              "note": "volume share 17.1% vs target 20.0% (+2.9 pp)"
+            },
+            "cascade_priority": {
+              "score": 0.0,
+              "weight": 0.1,
+              "weighted": 0.0,
+              "note": "priority 3 (3 of 3)"
+            },
+            "amount_band": {
+              "score": 0.0,
+              "weight": 0.1,
+              "weighted": 0.0,
+              "note": "amounts 500..50000 prefer payflow"
+            },
+            "conversion": {
+              "score": 0.698,
+              "normalized": 1.0,
+              "weight": 0.1,
+              "weighted": 0.1,
+              "note": "conversion_24h 0.79, history 40 ops → calibrated 0.698"
+            },
+            "bank_affinity": {
+              "score": 0.7075,
+              "normalized": 1.0,
+              "weight": 0.05,
+              "weighted": 0.05,
+              "note": "alfa via quickpay: 7 in history, approval 70.8%"
+            },
+            "load": {
+              "score": 0.8316,
+              "normalized": 1.0,
+              "weight": 0.15,
+              "weighted": 0.15,
+              "note": "utilization 16.8% (daily 16.8%, in_progress 6.7%/2.5%)"
+            },
+            "turnover_min": {
+              "score": 0.5,
+              "weight": 0.05,
+              "weighted": 0.025,
+              "note": "no daily_turnover_min"
+            },
+            "rate_headroom": {
+              "score": 1.0,
+              "normalized": 0.5,
+              "weight": 0.05,
+              "weighted": 0.025,
+              "note": "0/15 requests in last 60s"
+            }
+          }
+        }
+      ],
+      "simulated_result": "approved",
+      "latency_sec": 52,
+      "amount": 40000,
+      "bank": "alfa",
+      "created_at": "2026-07-30T09:09:30+03:00",
+      "retries": 0,
+      "fallback_used": false
+    }
+  ]
+}

@@ -21,7 +21,7 @@ module PayoutRouter
       def distribution_rows
         header = %w[провайдер заявок доля цель откл. дост.цель откл.дост объём доля_объёма загрузка_дня]
         rows = @report["distribution"].map do |name, share|
-          usage = @report["projected_daily_utilization"][name]
+          usage = @report["provider_capacity"].fetch(name, {})
           [name, share["count"], pct(share["share_pct"]), pct(share["target_pct"]), signed(share["deviation_pp"]),
            pct(share["proportional_target_pct"]), signed(share["proportional_deviation_pp"]),
            share["volume"], pct(share["volume_share_pct"]),

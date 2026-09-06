@@ -93,6 +93,17 @@ RSpec.describe "публичная очередь организаторов" do
     expect(report["recommendations"]).not_to be_empty
   end
 
+  # Ровно как в образце ТЗ: только провайдеры с дневным лимитом и только числа — автопроверка по образцу
+  # на null в limit/utilization_pct упала бы. Self-provider без лимита живёт в provider_capacity.
+  it "отчёт: projected_daily_utilization без self-provider и без null, полная картина — в provider_capacity" do
+    report = run.report
+    expect(report["projected_daily_utilization"].keys).to eq(%w[vipay payflow quickpay])
+    report["projected_daily_utilization"].each_value do |usage|
+      expect(usage).to match(hash_including("used" => Numeric, "limit" => Numeric, "utilization_pct" => Numeric))
+    end
+    expect(report["provider_capacity"].keys).to include("spacepayments")
+  end
+
   it "плотная очередь (все заявки в одну секунду) не оставляет заявок без маршрута и проходит валидатор" do
     raw = PayoutRouter::Inputs::JSONFile.read(data_path("operations_queue_10.json"))
     dense = (1..4).flat_map do |copy|

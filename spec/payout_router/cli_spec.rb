@@ -26,6 +26,8 @@ RSpec.describe PayoutRouter::CLI do
     expect(File).to exist(File.join(out, "routing_decisions_test.json"))
     report = JSON.parse(File.read(File.join(out, "routing_report_test.json")))
     expect(report["simulation"]).to eq("mode" => "conversion", "seed" => 3)
+    # В conversion отказы уже в самих решениях — второй файл не нужен.
+    expect(File).not_to exist(File.join(out, "routing_cascade_demo_test.json"))
   end
 
   it "explain разбирает заявку" do
@@ -44,6 +46,17 @@ RSpec.describe PayoutRouter::CLI do
     validated = run_cli("validate", File.join(out, "routing_decisions_test.json"), "--queue", test_queue)
     expect(validated.status).to eq(0)
     expect(validated.stdout).to include("ошибок 0")
+  end
+
+  # В optimistic-файле решений отказов нет по построению — рядом кладётся прогон с отказами
+  # (эксперты на чекпоинте 3: «покажите пример, где есть отказ и переход»).
+  it "route в optimistic кладёт рядом routing_cascade_demo с отказами и переходами" do
+    run_cli("route", "--out", out, "--suffix", "_test", "--quiet")
+
+    cascade = JSON.parse(File.read(File.join(out, "routing_cascade_demo_test.json")))
+    expect(cascade["simulation"]["mode"]).to eq("conversion")
+    expect(cascade["decisions"].size).to eq(10)
+    expect(cascade["decisions"].map { |d| d["retries"] }.sum).to be_positive
   end
 
   it "validate падает с кодом 1, если решение пустое" do

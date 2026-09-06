@@ -45,7 +45,7 @@ Hack.Genesis 2026, задача 2 «Умный роутинг выплат» (о
 | Роутинг | `lib/payout_router/routing/*` | `Router#route` → `try_ranked` → `fallback` (только `policy.fallback_rules`, ёмкость self-provider не ограничивает) → `unrouted`; коды причин в `Reasons` |
 | Симуляция | `lib/payout_router/simulation/*` | `optimistic` (сдача) / `conversion` (seed, демо каскада); `simulation.timeout: cascade\|hold` — семантика таймаута (ТЗ против разъяснения экспертов), флаг `--timeout` |
 | Аналитика | `lib/payout_router/analytics/*` | `ApprovalModel` (пара × банк, LOO), `Backtest`, `PolicyComparison`, `MonteCarlo`, `WeightTuner`, `recommendations/engine.rb`; `RoutingStats#accumulate_fair_share` — достижимая цель (`proportional_target_pct`); `CascadeDemo` — каскад с отказами в отчёте при optimistic-прогоне |
-| Выход/CLI | `lib/payout_router/output/*`, `cli.rb`, `runner.rb`, `server.rb` | `Runner` — весь сценарий; `HtmlReport` + `templates/report.html.erb`; `Server::Service` |
+| Выход/CLI | `lib/payout_router/output/*`, `cli.rb`, `runner.rb`, `server.rb` | `Runner` — весь сценарий, `Run#serialized_cascade` → `routing_cascade_demo*.json` (прогон с отказами рядом с optimistic-решениями); `HtmlReport` + `templates/report.html.erb`; `Server::Service`. В отчёте `projected_daily_utilization` — только провайдеры с лимитом и без null (образец ТЗ), всё остальное — `provider_capacity` |
 | Проверка | `lib/payout_router/validation/decisions_validator.rb` | повторяет `scripts/validate_10.rb` + инвариант «один selected» |
 | Стресс | `lib/payout_router/stress/*` | `Catalog::ORDER` — 17 сценариев; `Invariants` — жёсткие проверки (сохранение ёмкости, пики, трейс); `Oracles` — пересчёт допустимости и интенсивности заново по решениям; `Suite` → `Outcome` — метрики без порогов; `rake stress` |
 
@@ -71,7 +71,7 @@ Hack.Genesis 2026, задача 2 «Умный роутинг выплат» (о
 
 ## Состояние
 
-244 спека зелёные (покрытие строк 96.2%, ветви 80.3%), rubocop чист, чистая копия в Docker `ruby:4.0` проходит всё (с YJIT ≈3 300 заявок/с), `rake stress` — 17 сценариев и ~16 000 заявок
+247 спеков зелёные (покрытие строк 96.2%, ветви 80.3%), rubocop чист, чистая копия в Docker `ruby:4.0` проходит всё (с YJIT ≈3 300 заявок/с), `rake stress` — 17 сценариев и ~16 000 заявок
 с нулём нарушений инвариантов, бэктест conversion_first +4.7% / balanced −5.0% (цена удержания долей),
 бенчмарк ≈10 600 заявок/с на Ryzen 7 9700X и ≈5 800 на ноутбуке разработки (оба без YJIT), деградации на объёме нет: 200 000 заявок идут с той же скоростью, что 5 000. Разбор QA-сессии и чекпоинта 1 (оба 04.09) —
 `docs/checkpoint.md`, разделы 4.3–4.5. Ответы экспертов закрыли почти всё: доля по количеству —

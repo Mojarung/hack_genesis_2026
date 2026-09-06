@@ -58,6 +58,21 @@ RSpec.describe "аналитика" do
       expect(with_failures.report).not_to have_key("cascade_demonstration")
     end
 
+    # Тот же прогон целиком — отдельным файлом в формате routing_decisions: пояснение, seed, решения.
+    # В решениях есть настоящий отказ и переход, а selected-попытка по-прежнему ровно одна (валидатор жюри).
+    it "сериализует демонстрацию каскада как файл решений с отказами и переходами" do
+      cascade = run.serialized_cascade
+      expect(cascade.keys).to eq(%w[note simulation operations decisions])
+      expect(cascade["decisions"].size).to eq(10)
+      reasons = cascade["decisions"].flat_map { |d| d["attempts"] }.map { |a| a["reason"] }
+      expect(reasons).to include(a_string_matching(/provider_(rejected|timeout)/), "fallback_after_failure")
+      selected_counts = cascade["decisions"].map { |d| d["attempts"].count { |a| a["decision"] == "selected" } }
+      expect(selected_counts).to all(eq(1))
+      # В conversion отказы уже в самих решениях — второго файла нет.
+      with_failures = default_runner(simulation_mode: "conversion", seed: 6).call(data_path("operations_queue_10.json"))
+      expect(with_failures.serialized_cascade).to be_nil
+    end
+
     it "на большой очереди демонстрацию каскада делает на выборке, а не отказывается от неё" do
       operations = Array.new(PayoutRouter::Analytics::CascadeDemo::MAX_OPERATIONS + 20) do |index|
         build_operation(id: "op_#{index}", amount: 15_000, at: Builders::T0 + (index * 30))
