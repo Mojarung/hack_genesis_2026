@@ -25,12 +25,12 @@
       "currency",
       "traffic_enabled",
       "amount_range",
+      "bank_filter",
       "daily_limit",
       "in_progress_count",
       "in_progress_amount",
       "requisites",
       "margin",
-      "bank_filter",
       "rate_limit",
       "daily_turnover_max",
       "circuit_breaker"
@@ -61,7 +61,9 @@
       "volume": 102000,
       "volume_share_pct": 26.4,
       "target_volume_pct": 50,
-      "volume_deviation_pp": -23.6
+      "volume_deviation_pp": -23.6,
+      "volume_share_day_pct": 45.3,
+      "volume_deviation_day_pp": -4.7
     },
     "payflow": {
       "count": 3,
@@ -73,7 +75,9 @@
       "volume": 88800,
       "volume_share_pct": 23.0,
       "target_volume_pct": 30,
-      "volume_deviation_pp": -7.0
+      "volume_deviation_pp": -7.0,
+      "volume_share_day_pct": 38.2,
+      "volume_deviation_day_pp": 8.2
     },
     "quickpay": {
       "count": 3,
@@ -85,7 +89,9 @@
       "volume": 195000,
       "volume_share_pct": 50.5,
       "target_volume_pct": 20,
-      "volume_deviation_pp": 30.5
+      "volume_deviation_pp": 30.5,
+      "volume_share_day_pct": 16.5,
+      "volume_deviation_day_pp": -3.5
     }
   },
   "results": {
@@ -339,7 +345,7 @@
     }
   },
   "optimality": {
-    "headline": "Онлайн-роутинг взял 91.0% от точного оптимума этой очереди (6.54 из 7.19 ожидаемых одобрений; оптимум посчитан min-cost flow по всей очереди сразу). Отставание 0.65 одобрения — цена обязательства держать целевые доли; квотный оптимум (доли как жёсткое правило) даёт 6.09, роутер обошёл его на 0.45 одобрения, держа доли мягко.",
+    "headline": "Онлайн-роутинг взял 91.0% от точного оптимума этой очереди (6.54 из 7.19 ожидаемых одобрений; оптимум посчитан min-cost flow по всей очереди сразу). Из отставания в 0.65 одобрения 1.09 — цена жёстких целевых долей (квотный оптимум 6.09), но роутер, держа доли мягко, отыграл 0.45 из них.",
     "score_vs_optimum_pct": 91.02,
     "approvals_lost_to_share_targets": 1.09,
     "approvals_lost_to_online_decisions": -0.45,
@@ -363,9 +369,10 @@
     "method": "transportation problem bank × provider solved exactly as min-cost flow; static hard rules only, no capacity, requisite or rate limits; the reference knows the whole queue in advance and may use the self-provider at most as many times as our router did"
   },
   "examples": {
-    "note": "разобранные примеры: кого выбрали, почему отсеяли остальных и что происходит при отказе. У каждого примера source — где в коде принимается это решение. Полный трейс по всем заявкам — в routing_decisions.json",
+    "note": "разобранные примеры: кого выбрали, почему отсеяли остальных и что происходит при отказе. У каждого примера source — где в коде принимается это решение, run — из какого прогона взят пример. Полный трейс основного прогона — в routing_decisions.json; примеры с отказом берутся из прогона с отказами (routing_cascade_demo.json), если в основном отказов не было",
     "choice_among_several": {
       "what_it_shows": "среди нескольких допустимых выбран лучший по сумме взвешенных целей",
+      "run": "основной прогон (routing_decisions.json)",
       "operation": {
         "operation_id": "op_101",
         "amount": 15000,
@@ -398,6 +405,7 @@
     },
     "single_eligible": {
       "what_it_shows": "hard-правила оставили одного кандидата — скоринг уже ничего не решает",
+      "run": "основной прогон (routing_decisions.json)",
       "operation": {
         "operation_id": "op_103",
         "amount": 150000,
@@ -430,6 +438,7 @@
     },
     "retry_after_failure": {
       "what_it_shows": "провайдер отказал: заявка переотправлена следующему по рангу",
+      "run": "прогон с отказами, режим conversion (routing_cascade_demo.json)",
       "operation": {
         "operation_id": "op_106",
         "amount": 52000,
@@ -464,6 +473,7 @@
     },
     "fallback_to_self_provider": {
       "what_it_shows": "внешние кандидаты кончились — заявка ушла на self-provider",
+      "run": "прогон с отказами, режим conversion (routing_cascade_demo.json)",
       "operation": {
         "operation_id": "op_107",
         "amount": 800,

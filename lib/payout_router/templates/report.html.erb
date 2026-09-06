@@ -122,7 +122,7 @@
       роутинге среди тех заявок, где он вообще проходит hard-правила. Отклонение от неё показывает работу
       стратегии; отклонение от цели из снимка — ещё и то, насколько сама цель выполнима на этих данных.</p>
     <table>
-      <tr><th>Провайдер</th><th>Доля по заявкам</th><th class="num">Заявок</th><th class="num">Факт</th><th class="num">Цель</th><th class="num">Откл.</th><th class="num">Достижимо</th><th class="num">Откл. от дост.</th><th class="num">Объём</th><th class="num">Доля объёма / цель</th></tr>
+      <tr><th>Провайдер</th><th>Доля по заявкам</th><th class="num">Заявок</th><th class="num">Факт</th><th class="num">Цель</th><th class="num">Откл.</th><th class="num">Достижимо</th><th class="num">Откл. от дост.</th><th class="num">Объём</th><th class="num">Доля объёма в прогоне</th><th class="num">Доля объёма за день / цель</th></tr>
       <%- report["distribution"].each do |name, share| -%>
       <%- deviation = share["deviation_pp"] -%>
       <%- attainable_deviation = share["proportional_deviation_pp"] -%>
@@ -136,10 +136,13 @@
         <td class="num"><%= pct(share["proportional_target_pct"]) %></td>
         <td class="num <%= attainable_deviation.zero? ? "dev-zero" : (attainable_deviation.positive? ? "dev-pos" : "dev-neg") %>"><%= signed(attainable_deviation) %></td>
         <td class="num"><%= money(share["volume"]) %></td>
-        <td class="num"><%= pct(share["volume_share_pct"]) %> / <%= pct(share["target_volume_pct"]) %></td>
+        <td class="num"><%= pct(share["volume_share_pct"]) %></td>
+        <td class="num"><%= pct(share["volume_share_day_pct"]) %> / <%= pct(share["target_volume_pct"]) %></td>
       </tr>
       <%- end -%>
     </table>
+    <p class="note">Доля объёма за день — оборот дня из снимка плюс прогон: именно её держит цель volume_share
+      (по ответу экспертов). Доля в прогоне — только заявки этой очереди, для сверки с файлом решений.</p>
   </section>
 
   <section>
@@ -180,7 +183,7 @@
     <%- next unless example.is_a?(Hash) -%>
     <details>
       <summary><b><%= h(example["operation"]["operation_id"]) %></b> · <%= h(example["what_it_shows"]) %></summary>
-      <p class="note"><%= h(example["operation"]["amount"]) %> ₽ · <%= h(example["operation"]["bank"]) %></p>
+      <p class="note"><%= h(example["operation"]["amount"]) %> ₽ · <%= h(example["operation"]["bank"]) %> · <%= h(example["run"]) %></p>
       <table>
         <tr><th>Провайдер</th><th>Решение</th><th>Почему</th></tr>
         <%- if (won = example["selected"]) -%>

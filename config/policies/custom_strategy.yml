@@ -21,12 +21,12 @@ hard_constraints:
   - currency             # валюта заявки совпадает с валютой провайдера/шлюза (RUB_SBP_WITHDRAW → RUB)
   - traffic_enabled
   - amount_range
+  - bank_filter
   - daily_limit
   - in_progress_count
   - in_progress_amount
   - requisites
   - margin
-  - bank_filter
   - rate_limit
   - daily_turnover_max
   - circuit_breaker

@@ -48,9 +48,20 @@ module PayoutRouter
 
         ["Против оптимума: взято #{block["score_vs_optimum_pct"]}% " \
          "(#{block["expected_approvals_ours"]} из #{block["optimum_same_self_provider_budget"]} ожидаемых " \
-         "одобрений у точного решения всей очереди), из них " \
-         "#{block["approvals_lost_to_share_targets"]} потеряно на удержании целевых долей и " \
-         "#{block["approvals_lost_to_online_decisions"]} — на решениях без знания будущего"]
+         "одобрений у точного решения всей очереди), #{optimality_breakdown(block)}"]
+      end
+
+      # Отрицательная «цена онлайна» — роутер обошёл квотный оптимум, держа доли мягко.
+      def optimality_breakdown(block)
+        online = block["approvals_lost_to_online_decisions"]
+        if online.negative?
+          "из них #{block["approvals_lost_to_share_targets"]} — цена жёстких целевых долей " \
+            "(квотный оптимум #{block["optimum_with_target_shares"]}), но роутер, держа доли мягко, " \
+            "отыграл #{-online} из них"
+        else
+          "из них #{block["approvals_lost_to_share_targets"]} потеряно на удержании целевых долей и " \
+            "#{online} — на решениях без знания будущего"
+        end
       end
 
       def recommendation_lines

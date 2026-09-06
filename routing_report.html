@@ -116,7 +116,7 @@
       роутинге среди тех заявок, где он вообще проходит hard-правила. Отклонение от неё показывает работу
       стратегии; отклонение от цели из снимка — ещё и то, насколько сама цель выполнима на этих данных.</p>
     <table>
-      <tr><th>Провайдер</th><th>Доля по заявкам</th><th class="num">Заявок</th><th class="num">Факт</th><th class="num">Цель</th><th class="num">Откл.</th><th class="num">Достижимо</th><th class="num">Откл. от дост.</th><th class="num">Объём</th><th class="num">Доля объёма / цель</th></tr>
+      <tr><th>Провайдер</th><th>Доля по заявкам</th><th class="num">Заявок</th><th class="num">Факт</th><th class="num">Цель</th><th class="num">Откл.</th><th class="num">Достижимо</th><th class="num">Откл. от дост.</th><th class="num">Объём</th><th class="num">Доля объёма в прогоне</th><th class="num">Доля объёма за день / цель</th></tr>
       <tr>
         <td><b>vipay</b></td>
         <td><div class="bar"><i style="width: 40.0%"></i><b style="left: 40.0%"></b></div></td>
@@ -127,7 +127,8 @@
         <td class="num">22.5%</td>
         <td class="num dev-pos">+17.5</td>
         <td class="num">102 000 ₽</td>
-        <td class="num">26.4% / 50%</td>
+        <td class="num">26.4%</td>
+        <td class="num">45.3% / 50%</td>
       </tr>
       <tr>
         <td><b>payflow</b></td>
@@ -139,7 +140,8 @@
         <td class="num">25.2%</td>
         <td class="num dev-pos">+4.8</td>
         <td class="num">88 800 ₽</td>
-        <td class="num">23.0% / 30%</td>
+        <td class="num">23.0%</td>
+        <td class="num">38.2% / 30%</td>
       </tr>
       <tr>
         <td><b>quickpay</b></td>
@@ -151,9 +153,12 @@
         <td class="num">52.4%</td>
         <td class="num dev-neg">-22.4</td>
         <td class="num">195 000 ₽</td>
-        <td class="num">50.5% / 20%</td>
+        <td class="num">50.5%</td>
+        <td class="num">16.5% / 20%</td>
       </tr>
     </table>
+    <p class="note">Доля объёма за день — оборот дня из снимка плюс прогон: именно её держит цель volume_share
+      (по ответу экспертов). Доля в прогоне — только заявки этой очереди, для сверки с файлом решений.</p>
   </section>
 
   <section>
@@ -214,10 +219,10 @@
 
   <section>
     <h2>Разобранные примеры <small>кого выбрали, почему отсеяли остальных и что при отказе</small></h2>
-    <p class="note">разобранные примеры: кого выбрали, почему отсеяли остальных и что происходит при отказе. У каждого примера source — где в коде принимается это решение. Полный трейс по всем заявкам — в routing_decisions.json</p>
+    <p class="note">разобранные примеры: кого выбрали, почему отсеяли остальных и что происходит при отказе. У каждого примера source — где в коде принимается это решение, run — из какого прогона взят пример. Полный трейс основного прогона — в routing_decisions.json; примеры с отказом берутся из прогона с отказами (routing_cascade_demo.json), если в основном отказов не было</p>
     <details>
       <summary><b>op_101</b> · среди нескольких допустимых выбран лучший по сумме взвешенных целей</summary>
-      <p class="note">15000 ₽ · sberbank</p>
+      <p class="note">15000 ₽ · sberbank · основной прогон (routing_decisions.json)</p>
       <table>
         <tr><th>Провайдер</th><th>Решение</th><th>Почему</th></tr>
         <tr>
@@ -240,7 +245,7 @@
     </details>
     <details>
       <summary><b>op_103</b> · hard-правила оставили одного кандидата — скоринг уже ничего не решает</summary>
-      <p class="note">150000 ₽ · sberbank</p>
+      <p class="note">150000 ₽ · sberbank · основной прогон (routing_decisions.json)</p>
       <table>
         <tr><th>Провайдер</th><th>Решение</th><th>Почему</th></tr>
         <tr>
@@ -263,7 +268,7 @@
     </details>
     <details>
       <summary><b>op_106</b> · провайдер отказал: заявка переотправлена следующему по рангу</summary>
-      <p class="note">52000 ₽ · sberbank</p>
+      <p class="note">52000 ₽ · sberbank · прогон с отказами, режим conversion (routing_cascade_demo.json)</p>
       <table>
         <tr><th>Провайдер</th><th>Решение</th><th>Почему</th></tr>
         <tr>
@@ -286,7 +291,7 @@
     </details>
     <details>
       <summary><b>op_107</b> · внешние кандидаты кончились — заявка ушла на self-provider</summary>
-      <p class="note">800 ₽ · sberbank</p>
+      <p class="note">800 ₽ · sberbank · прогон с отказами, режим conversion (routing_cascade_demo.json)</p>
       <table>
         <tr><th>Провайдер</th><th>Решение</th><th>Почему</th></tr>
         <tr>

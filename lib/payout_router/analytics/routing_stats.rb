@@ -142,6 +142,7 @@ module PayoutRouter
         target = provider.fallback? ? 0 : provider.traffic_percentage
         volume_target = provider.fallback? ? 0 : provider.volume_target_pct
         proportional = provider.fallback? ? 0.0 : proportional_target_pct(provider.name)
+        day_share = provider.fallback? ? 0.0 : @ledger.volume_share_pct(state)
         {
           "count" => state.selected_count,
           "share_pct" => share.round(1),
@@ -152,8 +153,16 @@ module PayoutRouter
           "volume" => state.selected_amount,
           "volume_share_pct" => volume_share.round(1),
           "target_volume_pct" => volume_target,
-          "volume_deviation_pp" => (volume_share - volume_target).round(1)
+          "volume_deviation_pp" => (volume_share - volume_target).round(1),
+          **day_volume_share(day_share, volume_target)
         }
+      end
+
+      # Доля по деньгам за день — база, которой управляет цель volume_share (оборот дня + прогон,
+      # по ответу экспертов); volume_share_pct выше — доля только внутри прогона, для сверки с очередью.
+      def day_volume_share(day_share, volume_target)
+        { "volume_share_day_pct" => day_share.round(1),
+          "volume_deviation_day_pp" => (day_share - volume_target).round(1) }
       end
 
       def results_for(provider)

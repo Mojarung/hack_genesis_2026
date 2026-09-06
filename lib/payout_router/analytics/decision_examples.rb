@@ -11,8 +11,14 @@ module PayoutRouter
     # здесь — четыре характерных случая, по одному на каждый механизм.
     class DecisionExamples
       NOTE = "разобранные примеры: кого выбрали, почему отсеяли остальных и что происходит при отказе. " \
-             "У каждого примера source — где в коде принимается это решение. " \
-             "Полный трейс по всем заявкам — в routing_decisions.json"
+             "У каждого примера source — где в коде принимается это решение, run — из какого прогона " \
+             "взят пример. Полный трейс основного прогона — в routing_decisions.json; примеры с отказом " \
+             "берутся из прогона с отказами (routing_cascade_demo.json), если в основном отказов не было"
+
+      RUNS = {
+        main: "основной прогон (routing_decisions.json)",
+        cascade: "прогон с отказами, режим conversion (routing_cascade_demo.json)"
+      }.freeze
 
       SOURCES = {
         scoring: "lib/payout_router/scoring/composite_scorer.rb → CompositeScorer#rank " \
@@ -73,6 +79,7 @@ module PayoutRouter
       def example(decision, what, source)
         {
           "what_it_shows" => what,
+          "run" => RUNS.fetch(@cascade.any? { |item| item.equal?(decision) } ? :cascade : :main),
           "operation" => { "operation_id" => decision.operation_id, "amount" => decision.operation.amount,
                            "bank" => decision.operation.bank },
           "selected" => selected(decision),

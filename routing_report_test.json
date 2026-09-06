@@ -25,12 +25,12 @@
       "currency",
       "traffic_enabled",
       "amount_range",
+      "bank_filter",
       "daily_limit",
       "in_progress_count",
       "in_progress_amount",
       "requisites",
       "margin",
-      "bank_filter",
       "rate_limit",
       "daily_turnover_max",
       "circuit_breaker"
@@ -61,7 +61,9 @@
       "volume": 628500,
       "volume_share_pct": 18.0,
       "target_volume_pct": 50,
-      "volume_deviation_pp": -32.0
+      "volume_deviation_pp": -32.0,
+      "volume_share_day_pct": 37.4,
+      "volume_deviation_day_pp": -12.6
     },
     "payflow": {
       "count": 10,
@@ -73,7 +75,9 @@
       "volume": 99400,
       "volume_share_pct": 2.8,
       "target_volume_pct": 30,
-      "volume_deviation_pp": -27.2
+      "volume_deviation_pp": -27.2,
+      "volume_share_day_pct": 27.7,
+      "volume_deviation_day_pp": -2.3
     },
     "quickpay": {
       "count": 46,
@@ -85,7 +89,9 @@
       "volume": 2764000,
       "volume_share_pct": 79.1,
       "target_volume_pct": 20,
-      "volume_deviation_pp": 59.1
+      "volume_deviation_pp": 59.1,
+      "volume_share_day_pct": 34.8,
+      "volume_deviation_day_pp": 14.8
     },
     "spacepayments": {
       "count": 4,
@@ -97,7 +103,9 @@
       "volume": 3600,
       "volume_share_pct": 0.1,
       "target_volume_pct": 0,
-      "volume_deviation_pp": 0.1
+      "volume_deviation_pp": 0.1,
+      "volume_share_day_pct": 0.0,
+      "volume_deviation_day_pp": 0.0
     }
   },
   "results": {
@@ -144,10 +152,10 @@
     }
   },
   "skip_reasons": {
-    "bank_not_in_list": 57,
-    "daily_limit_exceeded": 40,
+    "bank_not_in_list": 84,
     "amount_exceeds_limit": 33,
-    "amount_below_minimum": 16
+    "amount_below_minimum": 16,
+    "daily_limit_exceeded": 13
   },
   "skip_reasons_by_provider": {
     "vipay": {
@@ -156,9 +164,9 @@
       "amount_below_minimum": 8
     },
     "payflow": {
-      "daily_limit_exceeded": 40,
+      "bank_not_in_list": 43,
       "amount_exceeds_limit": 23,
-      "bank_not_in_list": 16
+      "daily_limit_exceeded": 13
     },
     "quickpay": {
       "amount_below_minimum": 8
@@ -280,15 +288,15 @@
       "eligible_pct": 12.2,
       "max_attainable_share_pct": 12.2,
       "blocked_by": {
-        "daily_limit_exceeded": 40,
+        "bank_not_in_list": 43,
         "amount_exceeds_limit": 23,
-        "bank_not_in_list": 16
+        "daily_limit_exceeded": 13
       },
       "blocked_banks": {
-        "vtb": 5,
-        "tinkoff": 4,
-        "raiffeisen": 4,
-        "gazprombank": 3
+        "raiffeisen": 12,
+        "gazprombank": 11,
+        "vtb": 10,
+        "tinkoff": 10
       },
       "blocked_amounts": {
         "min": 52000,
@@ -363,7 +371,7 @@
     }
   },
   "optimality": {
-    "headline": "Онлайн-роутинг взял 95.9% от точного оптимума этой очереди (63.55 из 66.27 ожидаемых одобрений; оптимум посчитан min-cost flow по всей очереди сразу). Отставание 2.72 одобрения — цена обязательства держать целевые доли; квотный оптимум (доли как жёсткое правило) даёт 51.67, роутер обошёл его на 11.89 одобрения, держа доли мягко.",
+    "headline": "Онлайн-роутинг взял 95.9% от точного оптимума этой очереди (63.55 из 66.27 ожидаемых одобрений; оптимум посчитан min-cost flow по всей очереди сразу). Из отставания в 2.72 одобрения 14.6 — цена жёстких целевых долей (квотный оптимум 51.67), но роутер, держа доли мягко, отыграл 11.89 из них.",
     "score_vs_optimum_pct": 95.9,
     "approvals_lost_to_share_targets": 14.6,
     "approvals_lost_to_online_decisions": -11.89,
@@ -387,9 +395,10 @@
     "method": "transportation problem bank × provider solved exactly as min-cost flow; static hard rules only, no capacity, requisite or rate limits; the reference knows the whole queue in advance and may use the self-provider at most as many times as our router did"
   },
   "examples": {
-    "note": "разобранные примеры: кого выбрали, почему отсеяли остальных и что происходит при отказе. У каждого примера source — где в коде принимается это решение. Полный трейс по всем заявкам — в routing_decisions.json",
+    "note": "разобранные примеры: кого выбрали, почему отсеяли остальных и что происходит при отказе. У каждого примера source — где в коде принимается это решение, run — из какого прогона взят пример. Полный трейс основного прогона — в routing_decisions.json; примеры с отказом берутся из прогона с отказами (routing_cascade_demo.json), если в основном отказов не было",
     "choice_among_several": {
       "what_it_shows": "среди нескольких допустимых выбран лучший по сумме взвешенных целей",
+      "run": "основной прогон (routing_decisions.json)",
       "operation": {
         "operation_id": "op_111",
         "amount": 8000,
@@ -422,6 +431,7 @@
     },
     "single_eligible": {
       "what_it_shows": "hard-правила оставили одного кандидата — скоринг уже ничего не решает",
+      "run": "основной прогон (routing_decisions.json)",
       "operation": {
         "operation_id": "op_113",
         "amount": 10000,
@@ -454,6 +464,7 @@
     },
     "retry_after_failure": {
       "what_it_shows": "провайдер отказал: заявка переотправлена следующему по рангу",
+      "run": "прогон с отказами, режим conversion (routing_cascade_demo.json)",
       "operation": {
         "operation_id": "op_112",
         "amount": 40000,
@@ -488,6 +499,7 @@
     },
     "fallback_to_self_provider": {
       "what_it_shows": "внешние кандидаты кончились — заявка ушла на self-provider",
+      "run": "прогон с отказами, режим conversion (routing_cascade_demo.json)",
       "operation": {
         "operation_id": "op_116",
         "amount": 20000,
@@ -823,10 +835,10 @@
   },
   "recommendations": [
     "payflow: дневной лимит использован на 100.0% (2 999 400 ₽ из 3 000 000 ₽) — снизить traffic_percentage с 35 до 20 или поднять daily_amount_limit до 3 800 000 ₽",
-    "payflow: доля 11.1% при цели 35% — цель недостижима, провайдер допустим лишь в 12.2% заявок (главная причина: daily_limit_exceeded, 40 раз), а при пропорциональном роутинге по допустимым получил бы 8.7%. Устранить причину daily_limit_exceeded; либо снизить traffic_percentage до достижимых 10",
-    "4 из 90 заявок (4.4%) ушли на self-provider spacepayments: внешние провайдеры отсеяны по причинам amount_below_minimum ×8, daily_limit_exceeded ×3, bank_not_in_list ×1 — расширить лимиты/банки внешних провайдеров или подключить ещё одного",
+    "payflow: доля 11.1% при цели 35% — цель недостижима, провайдер допустим лишь в 12.2% заявок (главная причина: bank_not_in_list, 43 раз), а при пропорциональном роутинге по допустимым получил бы 8.7%. Добавить в banks: raiffeisen, gazprombank, vtb; либо снизить traffic_percentage до достижимых 10",
+    "4 из 90 заявок (4.4%) ушли на self-provider spacepayments: внешние провайдеры отсеяны по причинам amount_below_minimum ×8, bank_not_in_list ×2, daily_limit_exceeded ×2 — расширить лимиты/банки внешних провайдеров или подключить ещё одного",
     "payflow: заявленная conversion_24h 0.91 лежит вне 95% интервала по истории [0.273, 0.683] (19 операций, факт 0.47) — метрика завышена, скоринг по конверсии переоценивает провайдера. Проверить источник conversion_24h или использовать наблюдаемое значение 0.47",
-    "quickpay: доля 51.1% при цели 25% — принимает переток заявок, которые другие провайдеры не прошли (vipay: bank_not_in_list ×41; vipay: amount_exceeds_limit ×10; payflow: daily_limit_exceeded ×40; payflow: amount_exceeds_limit ×23). Либо признать это и поднять traffic_percentage до 50, либо расширить лимиты/банки у остальных",
+    "quickpay: доля 51.1% при цели 25% — принимает переток заявок, которые другие провайдеры не прошли (vipay: bank_not_in_list ×41; vipay: amount_exceeds_limit ×10; payflow: bank_not_in_list ×43; payflow: amount_exceeds_limit ×23). Либо признать это и поднять traffic_percentage до 50, либо расширить лимиты/банки у остальных",
     "quickpay: самая низкая конверсия в пуле (0.79) при доле 51.1% (цель 25%) — примерно 2.8 лишних отказов на 90 заявок. Поднять вес conversion с 0.1 до 0.2 или расширить лимиты провайдеров с конверсией 0.91",
     "payflow: в истории 36.8% заявок истекли по таймауту (средняя задержка 631 с) — включить latency в скоринг (вес 0.1) или снизить traffic_percentage с 35 до 25",
     "quickpay: в истории 15.0% заявок истекли по таймауту (средняя задержка 539 с) — включить latency в скоринг (вес 0.1) или снизить traffic_percentage с 25 до 15",
@@ -846,10 +858,19 @@
       "severity": "warning",
       "rule": "share_shortfall",
       "provider": "payflow",
-      "parameter": "traffic_percentage",
-      "current": 35,
-      "suggested": 10,
-      "message": "payflow: доля 11.1% при цели 35% — цель недостижима, провайдер допустим лишь в 12.2% заявок (главная причина: daily_limit_exceeded, 40 раз), а при пропорциональном роутинге по допустимым получил бы 8.7%. Устранить причину daily_limit_exceeded; либо снизить traffic_percentage до достижимых 10"
+      "parameter": "banks",
+      "current": [
+        "sberbank",
+        "alfa"
+      ],
+      "suggested": [
+        "sberbank",
+        "alfa",
+        "raiffeisen",
+        "gazprombank",
+        "vtb"
+      ],
+      "message": "payflow: доля 11.1% при цели 35% — цель недостижима, провайдер допустим лишь в 12.2% заявок (главная причина: bank_not_in_list, 43 раз), а при пропорциональном роутинге по допустимым получил бы 8.7%. Добавить в banks: raiffeisen, gazprombank, vtb; либо снизить traffic_percentage до достижимых 10"
     },
     {
       "severity": "warning",
@@ -858,7 +879,7 @@
       "parameter": "fallback_operations",
       "current": 4,
       "suggested": 0,
-      "message": "4 из 90 заявок (4.4%) ушли на self-provider spacepayments: внешние провайдеры отсеяны по причинам amount_below_minimum ×8, daily_limit_exceeded ×3, bank_not_in_list ×1 — расширить лимиты/банки внешних провайдеров или подключить ещё одного"
+      "message": "4 из 90 заявок (4.4%) ушли на self-provider spacepayments: внешние провайдеры отсеяны по причинам amount_below_minimum ×8, bank_not_in_list ×2, daily_limit_exceeded ×2 — расширить лимиты/банки внешних провайдеров или подключить ещё одного"
     },
     {
       "severity": "warning",
@@ -876,7 +897,7 @@
       "parameter": "traffic_percentage",
       "current": 25,
       "suggested": 50,
-      "message": "quickpay: доля 51.1% при цели 25% — принимает переток заявок, которые другие провайдеры не прошли (vipay: bank_not_in_list ×41; vipay: amount_exceeds_limit ×10; payflow: daily_limit_exceeded ×40; payflow: amount_exceeds_limit ×23). Либо признать это и поднять traffic_percentage до 50, либо расширить лимиты/банки у остальных"
+      "message": "quickpay: доля 51.1% при цели 25% — принимает переток заявок, которые другие провайдеры не прошли (vipay: bank_not_in_list ×41; vipay: amount_exceeds_limit ×10; payflow: bank_not_in_list ×43; payflow: amount_exceeds_limit ×23). Либо признать это и поднять traffic_percentage до 50, либо расширить лимиты/банки у остальных"
     },
     {
       "severity": "info",

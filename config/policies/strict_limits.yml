@@ -27,12 +27,12 @@ hard_constraints:
   - currency
   - traffic_enabled
   - amount_range
+  - bank_filter
   - daily_limit_reserved   # вместо daily_limit: оборот + in-progress + amount <= daily_amount_limit
   - in_progress_count
   - in_progress_amount
   - requisites
   - margin
-  - bank_filter
   - rate_limit
   - daily_turnover_max
   - circuit_breaker

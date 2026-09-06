@@ -18,12 +18,12 @@ hard_constraints:
   - currency             # валюта заявки совпадает с валютой провайдера/шлюза (RUB_SBP_WITHDRAW → RUB)
   - traffic_enabled        # traffic_percentage > 0 (0 = выведен из ротации)
   - amount_range           # limit_amount_min <= amount <= limit_amount_max
+  - bank_filter            # banks / exclude_banks
   - daily_limit            # daily_approved_amount + amount <= daily_amount_limit
   - in_progress_count      # in_progress_count + 1 <= in_progress_count_limit
   - in_progress_amount     # in_progress_amount + amount <= in_progress_amount_limit
   - requisites             # available_requisites > 0
   - margin                 # provider_margin_pct <= merchant_margin_pct (или allow_negative_agreement)
-  - bank_filter            # banks / exclude_banks
   - rate_limit             # requests_per_minute_limit за скользящую минуту
   - daily_turnover_max     # фин. обязательство «не более X ₽/сутки»
   - circuit_breaker        # провайдер в карантине после серии отказов (см. circuit_breaker ниже)
