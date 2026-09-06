@@ -7,7 +7,7 @@
 
 | Команда | Что ожидать |
 |---|---|
-| `bundle exec rake` | 243 спека зелёные, RuboCop без замечаний |
+| `bundle exec rake` | 244 спека зелёные, RuboCop без замечаний |
 | `bundle exec rake validate` | таблица распределения vipay 4 / payflow 3 / quickpay 3, затем скрипт организаторов: `Пройдено: 29, Ошибок: 0` и наш валидатор `ошибок 0` |
 | `pr strategies` | 14 hard-правил, 13 целей, 3 декларативных типа, 10 пресетов |
 
@@ -93,6 +93,6 @@
 
 | Команда | Что ожидать |
 |---|---|
-| `pr bench --operations 50000` | ≈5 с, ≈10 600 заявок/с на машине демо (на ноутбуке разработки ≈15 с, ≈2 700/с) |
+| `pr bench --operations 50000` | ≈5 с, ≈10 600 заявок/с на машине демо (на ноутбуке разработки ≈8.6 с, ≈5 800/с) |
 | скопировать `data/operations_queue_10.json` в `data/operations_queue_test.json`, `bundle exec rake submit` | в корне `routing_decisions_test.json` и `routing_report_test.json`, валидатор 0 ошибок |
 | `docker build -t payout_router . && docker run --rm payout_router route` | тот же результат без установленного Ruby |

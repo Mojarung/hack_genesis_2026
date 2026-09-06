@@ -53,7 +53,10 @@ module PayoutRouter
 
         operation
       rescue InputError => e
-        raise if @on_invalid == :fail
+        if @on_invalid == :fail
+          e.skippable = true
+          raise
+        end
 
         @rejected << Rejected.new(index: index, operation_id: raw.is_a?(Hash) ? raw["operation_id"] : nil,
                                   message: e.message)

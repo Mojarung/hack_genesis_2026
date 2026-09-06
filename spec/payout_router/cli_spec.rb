@@ -77,6 +77,18 @@ RSpec.describe PayoutRouter::CLI do
     expect(result.stderr).to include("ошибка: файл не найден")
   end
 
+  # Подсказка про карантин относится к отдельной заявке. На «нет файла» она уводит по ложному
+  # следу: --on-invalid skip там не поможет ни с очередью, ни со снимком провайдеров.
+  it "не советует --on-invalid skip там, где он не поможет" do
+    missing_queue = run_cli("route", "--out", out, "--queue", "missing.json")
+    expect(missing_queue.stderr).not_to include("--on-invalid skip")
+
+    missing_providers = run_cli("route", "--out", out, "--queue", queue, "--providers", "missing.json")
+    expect(missing_providers.status).to eq(2)
+    expect(missing_providers.stderr).to include("ошибка: файл не найден")
+    expect(missing_providers.stderr).not_to include("--on-invalid skip")
+  end
+
   it "битая заявка: по умолчанию останавливает прогон с подсказкой, с --on-invalid skip уходит в карантин" do
     broken = File.join(out, "broken.json")
     rows = JSON.parse(File.read(queue))
