@@ -52,9 +52,20 @@ module PayoutRouter
         def headline
           "Онлайн-роутинг взял #{score_vs_optimum.round(1)}% от точного оптимума этой очереди " \
             "(#{ours.round(2)} из #{free_optimum.round(2)} ожидаемых одобрений; оптимум посчитан " \
-            "min-cost flow по всей очереди сразу). Из отставания в #{(free_optimum - ours).round(2)} " \
-            "одобрения #{share_loss.round(2)} — цена обязательства держать целевые доли, " \
-            "и #{online_loss.round(2)} — цена решений по одной заявке без знания следующих."
+            "min-cost flow по всей очереди сразу). #{decomposition}"
+        end
+
+        # Отрицательный online_loss — роутер обошёл квотный оптимум: доли у него мягкая цель.
+        def decomposition
+          gap = (free_optimum - ours).round(2)
+          if online_loss.negative?
+            "Отставание #{gap} одобрения — цена обязательства держать целевые доли; квотный оптимум " \
+              "(доли как жёсткое правило) даёт #{quota_optimum.round(2)}, роутер обошёл его на " \
+              "#{(-online_loss).round(2)} одобрения, держа доли мягко."
+          else
+            "Из отставания в #{gap} одобрения #{share_loss.round(2)} — цена обязательства держать " \
+              "целевые доли, и #{online_loss.round(2)} — цена решений по одной заявке без знания следующих."
+          end
         end
 
         def serialize
@@ -90,12 +101,14 @@ module PayoutRouter
         @fallback = snapshot.fallback&.name
       end
 
+      # Группа задачи — банк × набор допустимых провайдеров именно этой заявки: одна проба на банк
+      # вычёркивала бы провайдера для всех заявок банка из-за одной крупной суммы, и граница
+      # опускалась ниже фактического результата роутера.
       def call
-        grouped = @operations.group_by(&:bank)
-        banks = grouped.transform_values(&:size)
-        @probes = grouped.transform_values(&:first)
         providers = @snapshot.external.map(&:name) + [@fallback].compact
-        build(banks, providers, gain_matrix(banks.keys, providers), quota_counts(@snapshot.external.map(&:name)))
+        grouped = @operations.group_by { |operation| [operation.bank, eligible_set(operation, providers)] }
+        groups = grouped.transform_values(&:size)
+        build(groups, providers, gain_matrix(groups.keys, providers), quota_counts(@snapshot.external.map(&:name)))
       end
 
       private
@@ -103,7 +116,7 @@ module PayoutRouter
       def build(banks, providers, gains, quotas)
         free = capacities(quotas.keys.to_h { |name| [name, @operations.size] })
         Result.new(operations: @operations.size, ours: ours,
-                   all_to_self: banks.sum { |bank, count| count * self_probability(bank) },
+                   all_to_self: banks.sum { |(bank, _eligible), count| count * self_probability(bank) },
                    free_optimum: solve(banks, providers, gains, free),
                    quota_optimum: solve(banks, providers, gains, capacities(quotas)),
                    worst: solve(banks, providers, gains, free, minimize: true),
@@ -128,15 +141,20 @@ module PayoutRouter
       # Вероятность одобрения пары «банк × провайдер», nil — пара недопустима. Допустимость
       # по правилам, не зависящим от загрузки: остальное требует состояния, которого у статической
       # задачи нет. Дополнительные правила только сузили бы пул, то есть опустили бы границу.
-      def gain_matrix(banks, providers)
-        pipeline = Constraints::Pipeline.new(@policy.hard_constraints & Constraints::Registry::STATIC)
-        ledger = State::Ledger.new(@snapshot)
+      def gain_matrix(groups, providers)
+        groups.product(providers).to_h do |group, provider|
+          bank, eligible = group
+          [[group, provider], eligible.include?(provider) ? @model.probability(provider, bank) : nil]
+        end
+      end
+
+      def eligible_set(operation, providers)
+        @pipeline ||= Constraints::Pipeline.new(@policy.hard_constraints & Constraints::Registry::STATIC)
+        @ledger ||= State::Ledger.new(@snapshot)
         now = @snapshot.snapshot_at || Time.now
-        banks.product(providers).to_h do |bank, provider|
-          probe = @probes.fetch(bank)
-          candidate = Routing::Candidate.new(state: ledger.state(provider))
-          allowed = pipeline.evaluate(candidate, probe, now).eligible?
-          [[bank, provider], allowed ? @model.probability(provider, bank) : nil]
+        providers.select do |provider|
+          candidate = Routing::Candidate.new(state: @ledger.state(provider))
+          @pipeline.evaluate(candidate, operation, now).eligible?
         end
       end
 
