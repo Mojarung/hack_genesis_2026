@@ -38,8 +38,31 @@ module PayoutRouter
           span.abs < 1e-9 ? 1.0 : ((ours - worst) / span).clamp(0.0, 1.0)
         end
 
+        # Доля точного оптимума, которую взял роутер. Знаменатель — free_optimum: наше распределение
+        # заведомо допустимо в его задаче, поэтому это настоящая верхняя граница и величина не может
+        # превысить 100%. quota_optimum на эту роль не годится — он решает более стеснённую задачу
+        # (доли как жёсткое ограничение), а у роутера доли мягкая цель, и он законно его обходит.
+        def score_vs_optimum = free_optimum.zero? ? 100.0 : ours * 100.0 / free_optimum
+
+        # Разложение отставания. Отрицательный online_loss — роутер сознательно отступил от целевых
+        # долей ради одобрений: он не обязан держать их жёстко, в отличие от quota_optimum.
+        def share_loss = share_cost
+        def online_loss = quota_optimum - ours
+
+        def headline
+          "Онлайн-роутинг взял #{score_vs_optimum.round(1)}% от точного оптимума этой очереди " \
+            "(#{ours.round(2)} из #{free_optimum.round(2)} ожидаемых одобрений; оптимум посчитан " \
+            "min-cost flow по всей очереди сразу). Из отставания в #{(free_optimum - ours).round(2)} " \
+            "одобрения #{share_loss.round(2)} — цена обязательства держать целевые доли, " \
+            "и #{online_loss.round(2)} — цена решений по одной заявке без знания следующих."
+        end
+
         def serialize
           {
+            "headline" => headline,
+            "score_vs_optimum_pct" => score_vs_optimum.round(2),
+            "approvals_lost_to_share_targets" => share_loss.round(2),
+            "approvals_lost_to_online_decisions" => online_loss.round(2),
             "operations" => operations, "expected_approvals_ours" => ours.round(2),
             "optimum_same_self_provider_budget" => free_optimum.round(2),
             "optimum_with_target_shares" => quota_optimum.round(2),
@@ -68,10 +91,16 @@ module PayoutRouter
       end
 
       def call
-        banks = @operations.group_by(&:bank).transform_values(&:size)
+        grouped = @operations.group_by(&:bank)
+        banks = grouped.transform_values(&:size)
+        @probes = grouped.transform_values(&:first)
         providers = @snapshot.external.map(&:name) + [@fallback].compact
-        gains = gain_matrix(banks.keys, providers)
-        quotas = quota_counts(@snapshot.external.map(&:name))
+        build(banks, providers, gain_matrix(banks.keys, providers), quota_counts(@snapshot.external.map(&:name)))
+      end
+
+      private
+
+      def build(banks, providers, gains, quotas)
         free = capacities(quotas.keys.to_h { |name| [name, @operations.size] })
         Result.new(operations: @operations.size, ours: ours,
                    all_to_self: banks.sum { |bank, count| count * self_probability(bank) },
@@ -81,8 +110,6 @@ module PayoutRouter
                    quotas: quotas, self_budget: self_budget,
                    eligible_pairs: gains.count { |_pair, gain| !gain.nil? })
       end
-
-      private
 
       # Эталону разрешено ровно столько self-provider, сколько использовал наш роутер: иначе
       # «отправить всё себе» выигрывает у любой стратегии и сравнивать становится нечего.
@@ -106,7 +133,7 @@ module PayoutRouter
         ledger = State::Ledger.new(@snapshot)
         now = @snapshot.snapshot_at || Time.now
         banks.product(providers).to_h do |bank, provider|
-          probe = @operations.find { |operation| operation.bank == bank }
+          probe = @probes.fetch(bank)
           candidate = Routing::Candidate.new(state: ledger.state(provider))
           allowed = pipeline.evaluate(candidate, probe, now).eligible?
           [[bank, provider], allowed ? @model.probability(provider, bank) : nil]

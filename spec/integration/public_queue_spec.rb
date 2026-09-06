@@ -104,6 +104,30 @@ RSpec.describe "публичная очередь организаторов" do
     expect(report["provider_capacity"].keys).to include("spacepayments")
   end
 
+  it "отчёт несёт сравнение с точным оптимумом очереди — и цифра согласована с решениями" do
+    block = run.report["optimality"]
+
+    expect(block).to include("headline", "score_vs_optimum_pct", "method")
+    expect(block["operations"]).to eq(run.decisions.size)
+    expect(block["score_vs_optimum_pct"]).to be_between(0.0, 100.0)
+    # Тот же результат достаёт CLI-команда bound — считаем один раз, показываем в двух местах.
+    expect(run.optimality.serialize).to eq(block)
+  end
+
+  it "эталон в отчёте — верхняя граница: роутер лежит между худшим назначением и оптимумом" do
+    block = run.report["optimality"]
+
+    expect(block["expected_approvals_ours"]).to be <= block["optimum_same_self_provider_budget"] + 1e-9
+    expect(block["expected_approvals_ours"]).to be >= block["worst_feasible"] - 1e-9
+  end
+
+  it "сводка для терминала называет отставание от оптимума" do
+    line = PayoutRouter::Output::Summary.new(run).optimality_lines.first
+
+    expect(line).to include("Против оптимума", run.optimality.score_vs_optimum.round(2).to_s,
+                            run.optimality.share_loss.round(2).to_s)
+  end
+
   it "плотная очередь (все заявки в одну секунду) не оставляет заявок без маршрута и проходит валидатор" do
     raw = PayoutRouter::Inputs::JSONFile.read(data_path("operations_queue_10.json"))
     dense = (1..4).flat_map do |copy|

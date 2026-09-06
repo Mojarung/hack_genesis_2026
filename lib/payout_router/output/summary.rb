@@ -41,6 +41,18 @@ module PayoutRouter
         lines
       end
 
+      # Сколько роутинг взял от точного оптимума очереди — главная цифра прогона.
+      def optimality_lines
+        block = @report["optimality"]
+        return [] if block.nil?
+
+        ["Против оптимума: взято #{block["score_vs_optimum_pct"]}% " \
+         "(#{block["expected_approvals_ours"]} из #{block["optimum_same_self_provider_budget"]} ожидаемых " \
+         "одобрений у точного решения всей очереди), из них " \
+         "#{block["approvals_lost_to_share_targets"]} потеряно на удержании целевых долей и " \
+         "#{block["approvals_lost_to_online_decisions"]} — на решениях без знания будущего"]
+      end
+
       def recommendation_lines
         details = @report["recommendation_details"]
         return ["Рекомендации: нет — распределение в норме"] if details.empty?

@@ -4,8 +4,9 @@ module PayoutRouter
   # Сценарий «загрузить входы → отроутить очередь → собрать отчёт». CLI лишь оборачивает его.
   class Runner
     # cascade — Analytics::CascadeDemo::Result или nil: второй прогон с отказами, когда сдаваемый шёл в optimistic.
+    # optimality — Analytics::AssignmentBound::Result: наш онлайн-роутинг против точного оптимума очереди.
     Run = Data.define(:snapshot, :policy, :operations, :decisions, :ledger, :report,
-                      :history_stats, :simulation, :warnings, :cascade) do
+                      :history_stats, :simulation, :warnings, :cascade, :optimality) do
       def decision(operation_id) = decisions.find { |decision| decision.operation_id == operation_id }
       def serialized_decisions = decisions.map(&:serialize)
 
@@ -71,12 +72,13 @@ module PayoutRouter
       result = Routing::BatchRouter.new(snapshot: snapshot, policy: policy, simulator: simulator,
                                         history: history_stats).call(operations)
       cascade = cascade_demo(operations)
+      optimality = assignment_bound(operations, result.decisions)
       report = Analytics::ReportBuilder.new(decisions: result.decisions, ledger: result.ledger, snapshot: snapshot,
                                             policy: policy, history_stats: history_stats, simulation: simulation,
-                                            cascade: cascade).build
+                                            cascade: cascade, optimality: optimality).build
       Run.new(snapshot: snapshot, policy: policy, operations: operations, decisions: result.decisions,
               ledger: result.ledger, report: report, history_stats: history_stats, simulation: simulation,
-              warnings: warnings, cascade: cascade)
+              warnings: warnings, cascade: cascade, optimality: optimality)
     end
 
     # Стресс-прогон: сценарии строятся от сырого снимка — политика накладывается внутри каталога.
@@ -89,11 +91,16 @@ module PayoutRouter
       Analytics::Backtest.new(records: history_records, snapshot: snapshot, policy: policy, history: history_stats).call
     end
 
-    # Эталонное распределение очереди: наш роутинг против оптимального назначения.
-    def bound(operations)
-      result = route(operations)
+    # Эталонное распределение очереди: наш роутинг против оптимального назначения. Считается
+    # в каждом прогоне и лежит в отчёте, так что отдельная команда просто достаёт готовый результат.
+    def bound(operations) = route(operations).optimality
+
+    # Пустая очередь эталона не имеет: сравнивать нечего, а min-cost flow на нуле банков вырождается.
+    def assignment_bound(operations, decisions)
+      return nil if operations.empty?
+
       Analytics::AssignmentBound.new(snapshot: snapshot, policy: policy, history: history_stats,
-                                     operations: operations, decisions: result.decisions).call
+                                     operations: operations, decisions: decisions).call
     end
 
     def comparison(operations)

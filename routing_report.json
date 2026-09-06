@@ -338,6 +338,30 @@
       }
     }
   },
+  "optimality": {
+    "headline": "Онлайн-роутинг взял 83.8% от точного оптимума этой очереди (6.54 из 7.8 ожидаемых одобрений; оптимум посчитан min-cost flow по всей очереди сразу). Из отставания в 1.26 одобрения 1.09 — цена обязательства держать целевые доли, и 0.18 — цена решений по одной заявке без знания следующих.",
+    "score_vs_optimum_pct": 83.82,
+    "approvals_lost_to_share_targets": 1.09,
+    "approvals_lost_to_online_decisions": 0.18,
+    "operations": 10,
+    "expected_approvals_ours": 6.54,
+    "optimum_same_self_provider_budget": 7.8,
+    "optimum_with_target_shares": 6.72,
+    "worst_feasible": 5.44,
+    "baseline_all_to_self_provider": 9.5,
+    "gap_to_optimum_pct": 16.18,
+    "gap_to_quota_pct": 2.61,
+    "share_compliance_cost_approvals": 1.09,
+    "capture_of_attainable": 0.467,
+    "self_provider_budget": 0,
+    "quotas": {
+      "vipay": 4,
+      "payflow": 4,
+      "quickpay": 2
+    },
+    "eligible_pairs": 17,
+    "method": "transportation problem bank × provider solved exactly as min-cost flow; static hard rules only, no capacity, requisite or rate limits; the reference knows the whole queue in advance and may use the self-provider at most as many times as our router did"
+  },
   "examples": {
     "note": "разобранные примеры: кого выбрали, почему отсеяли остальных и что происходит при отказе. У каждого примера source — где в коде принимается это решение. Полный трейс по всем заявкам — в routing_decisions.json",
     "choice_among_several": {
