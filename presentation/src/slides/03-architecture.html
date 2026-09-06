@@ -1,0 +1,58 @@
+<section class="slide dark" data-name="S03Architecture" data-title="Как устроено">
+  <p class="eyebrow anim">Как устроено</p>
+  <h1 class="anim">Два этапа и запасной ход</h1>
+  <div style="position: absolute; right: 72px; top: 84px; display: flex; gap: 10px;">
+    <span class="chip flat anim d1">Ruby 4.0</span>
+    <span class="chip flat anim d2">без нейросетей</span>
+  </div>
+
+  <div style="position: absolute; left: 72px; top: 170px; width: 1136px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; align-items: stretch;">
+    <div class="card primary anim d1" style="padding: 24px 22px; border-radius: 28px;">
+      <div class="big" style="font-size: 44px;">14</div>
+      <p style="font-weight: 600; font-size: 19px; margin-top: 10px;">жёстких правил</p>
+      <p class="small muted" style="margin-top: 8px;">Можно ли отдать заявку этому провайдеру. Да или нет.</p>
+    </div>
+    <div class="card lime anim d2" style="padding: 24px 22px; border-radius: 28px;">
+      <div class="big" style="font-size: 44px;">13</div>
+      <p style="font-weight: 600; font-size: 19px; margin-top: 10px;">целей с весами</p>
+      <p class="small muted" style="margin-top: 8px;">Кто из допущенных лучше. Считаем баллы.</p>
+    </div>
+    <div class="card tone anim d3" style="padding: 24px 22px; border-radius: 28px;">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h15"></path><path d="M13 6l6 6-6 6"></path></svg>
+      <p style="font-weight: 600; font-size: 19px; margin-top: 10px;">отправка</p>
+      <p class="small muted" style="margin-top: 8px;">Пока провайдер не ответил, его лимит и реквизит заняты.</p>
+    </div>
+    <div class="card tone anim d4" style="padding: 24px 22px; border-radius: 28px;">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.5-5.8"></path><path d="M20 4v5h-5"></path></svg>
+      <p style="font-weight: 600; font-size: 19px; margin-top: 10px;">отказ — следующий</p>
+      <p class="small muted" style="margin-top: 8px;">Отказал или молчит — идём к следующему по баллам.</p>
+    </div>
+    <div class="card coral anim d5" style="padding: 24px 22px; border-radius: 28px;">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11l8-7 8 7"></path><path d="M6 10v10h12V10"></path><path d="M10 20v-6h4v6"></path></svg>
+      <p style="font-weight: 600; font-size: 19px; margin-top: 10px;">свой канал</p>
+      <p class="small muted" style="margin-top: 8px;">Когда внешних не осталось.</p>
+    </div>
+  </div>
+
+  <div class="anim d6" style="position: absolute; left: 72px; top: 442px; width: 800px;">
+    <p class="lead">Правила и цели — разные слои. Правило отвечает «можно?», цель — «насколько хотим». Новое правило: один класс и строка в YAML.</p>
+    <div style="display: flex; gap: 10px; margin-top: 24px; flex-wrap: wrap;">
+      <span class="chip flat mono">inputs</span>
+      <span class="chip flat mono">constraints</span>
+      <span class="chip flat mono">strategies</span>
+      <span class="chip flat mono">scoring</span>
+      <span class="chip flat mono">routing</span>
+      <span class="chip flat mono">state</span>
+      <span class="chip flat mono">analytics</span>
+      <span class="chip flat mono">output</span>
+      <span class="chip flat mono">server</span>
+    </div>
+    <p class="small muted" style="margin-top: 14px;">Каждый слой — своя папка. Состояние меняется только в state, остальное неизменяемо.</p>
+  </div>
+
+  <div class="blob anim-pop d6" style="right: 74px; top: 438px; width: 282px; height: 282px;"></div>
+  <div class="cat anim-pop d7" style="right: 100px; top: 470px; width: 230px; height: 160px; transform: rotate(-3deg);">
+    <img src="{{img:cat_cook}}" alt="Кот у кастрюли">
+  </div>
+  <span class="chip lime cat-label anim d8" style="right: 112px; top: 596px; transform: rotate(-3deg);">здесь всё и варится</span>
+</section>

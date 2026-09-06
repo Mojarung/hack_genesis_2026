@@ -1,0 +1,47 @@
+Hard-правила (14):
+provider_active       status == active
+traffic_enabled       traffic_percentage > 0 (0 — провайдер выведен из ротации)
+currency              валюта заявки совпадает с валютой провайдера/шлюза (если обе заданы)
+amount_range          limit_amount_min <= amount <= limit_amount_max
+daily_limit           daily_approved_amount + amount <= daily_amount_limit (формула ТЗ)
+daily_limit_reserved  оборот + in-progress + amount <= daily_amount_limit (строже ТЗ: лимит резервируется под неотвеченные заявки)
+in_progress_count     in_progress_count + 1 <= in_progress_count_limit
+in_progress_amount    in_progress_amount + amount <= in_progress_amount_limit
+requisites            available_requisites > 0
+margin                provider_margin_pct <= merchant_margin_pct или allow_negative_agreement
+bank_filter           банк заявки проходит banks / exclude_banks
+rate_limit            не больше requests_per_minute_limit отправок за скользящую минуту
+daily_turnover_max    оборот с учётом in-progress + amount <= daily_turnover_max
+circuit_breaker       провайдер не в карантине после серии отказов подряд
+Цели скоринга (13):
+traffic_share     стратегия 1: целевая доля по числу заявок (traffic_percentage); недобор поднимает оценку
+volume_share      стратегия 2: целевая доля по объёму (volume_share_pct); база — оборот дня + сессия
+cascade_priority  стратегия 3: очередь в каскаде по priority; первый — 1.0, последний — 0.0
+amount_band       стратегия 4: предпочтительный провайдер для диапазона суммы (amount_bands)
+conversion        стратегия 5: conversion_24h, откалиброванная по истории (заявленная ≈ 10 наблюдений)
+load              загрузка лимитов: чем ближе к дневному/in-progress лимиту, тем ниже оценка
+turnover_min      стратегия 7: фин. обязательство «не менее X ₽/сутки» — недобор поднимает оценку
+rate_headroom     стратегия 6: запас по интенсивности (requests_per_minute_limit)
+latency           скорость ответа: самый медленный — 0, мгновенный — 1
+margin            стоимость: чем меньше провайдер откусывает от маржи мерчанта, тем выше
+bank_affinity     конверсия пары провайдер × банк по истории, усаженная к провайдеру (без истории — 0.5)
+expected_value    ожидаемая маржа: конверсия × (маржа мерчанта − маржа провайдера)
+share_deficit     стратегия 1 в заявках: недобор = цель × обработано − выдано; доли сходятся точнее
+Декларативные цели (custom_goals в YAML, без кода):
+field       оценка по числовому полю провайдера, нормированная min–max (direction: higher | lower)
+table       явные оценки по провайдерам: scores: { vipay: 1.0 }, default для остальных
+bank_table  оценки провайдер × банк заявки: scores: { alfa: { quickpay: 1.0 } }, default
+Политика balanced: weighted (pool): traffic_share 0.3, volume_share 0.1, cascade_priority 0.1, amount_band 0.1, conversion 0.1, bank_affinity 0.05, load 0.15, turnover_min 0.05, rate_headroom 0.05
+  плагины: нет
+  свои цели: нет
+Пресеты (config/policies):
+attainable_shares    weighted  Целевые доли трафика и объёма пересчитываются на допустимых кандидатов каждой заявки — отв
+bank_affinity_first  weighted  Приоритет паре «провайдер × банк» по истории: куда именно этот банк проходит лучше. Заявле
+cascade              weighted  Последовательный обход провайдеров по priority; отказ — переход к следующему.
+conversion_first     weighted  Приоритет провайдерам с высокой конверсией и свободной ёмкостью; доли — фоном.
+custom_strategy      chain     Демонстрация расширения: плагин requisites_headroom и три декларативные цели (по полю пров
+profit_first         weighted  Роутинг по ожидаемой марже с учётом конверсии по банку из истории; доли — второстепенно.
+strategy_chain       chain     Каскад стратегий: диапазон суммы → обязательство по обороту → целевая доля → вероятность о
+strict_limits        weighted  Дневной лимит резервируется под заявки в обработке: перебор дневного максимума невозможен 
+turnover_pressure    weighted  Конфликт целей из ТЗ: максимум оборота vipay против минимума оборота quickpay — обязательс
+volume_balance       weighted  Целевые доли по объёму и обязательства по обороту; число заявок — второстепенно.

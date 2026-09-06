@@ -1,0 +1,27 @@
+op_106 · 52 000 ₽ · sberbank · 2026-07-30 09:07:30
+  - payflow        amount_exceeds_limit             сумма больше максимального чека
+      52000 > limit_amount_max 50000
+  - vipay          provider_timeout                 провайдер не ответил вовремя — идём к следующему
+      dispatched, simulated result: expired after 567s (score 0.775; decisive: traffic_share (+0.3), volume_share (+0.1))
+      traffic_share      0.500 → 1.000 × 0.30 = 0.3000   count share 40.0% vs target 40.0% (+0.0 pp)
+      volume_share       0.547 → 1.000 × 0.10 = 0.1000   volume share 45.3% vs target 50.0% (+4.7 pp)
+      cascade_priority   1.000 × 0.10 = 0.1000   priority 1 (1 of 3)
+      amount_band        1.000 × 0.10 = 0.1000   preferred for amounts 50001..100000
+      conversion         0.798 → 1.000 × 0.10 = 0.1000   conversion_24h 0.87, history 41 ops → calibrated 0.798
+      bank_affinity      0.845 → 1.000 × 0.05 = 0.0500   sberbank via vipay: 8 in history, approval 84.5%
+      load               0.357 → 0.000 × 0.15 = 0.0000   utilization 64.3% (daily 64.3%, in_progress 50.0%/40.5%)
+      turnover_min       0.500 × 0.05 = 0.0250   no daily_turnover_min
+      rate_headroom      0.933 → 0.000 × 0.05 = 0.0000   1/15 requests in last 60s
+  + quickpay       fallback_after_failure           выбран после отказа предыдущего провайдера
+      retry #1 after failure; score 0.225; decisive: load (+0.15), rate_headroom (+0.05)
+      traffic_share      0.350 → 0.000 × 0.30 = 0.0000   count share 40.0% vs target 25.0% (-15.0 pp)
+      volume_share       0.537 → 0.000 × 0.10 = 0.0000   volume share 16.3% vs target 20.0% (+3.7 pp)
+      cascade_priority   0.000 × 0.10 = 0.0000   priority 3 (3 of 3)
+      amount_band        0.000 × 0.10 = 0.0000   amounts 50001..100000 prefer vipay
+      conversion         0.698 → 0.000 × 0.10 = 0.0000   conversion_24h 0.79, history 40 ops → calibrated 0.698
+      bank_affinity      0.449 → 0.000 × 0.05 = 0.0000   sberbank via quickpay: 5 in history, approval 44.9%
+      load               0.843 → 1.000 × 0.15 = 0.1500   utilization 15.7% (daily 15.7%, in_progress 6.7%/2.5%)
+      turnover_min       0.500 × 0.05 = 0.0250   no daily_turnover_min
+      rate_headroom      1.000 × 0.05 = 0.0500   0/15 requests in last 60s
+
+  => quickpay: approved за 29 с, после 1 неудачных попыток

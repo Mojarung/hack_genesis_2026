@@ -1,0 +1,90 @@
+ruby -Ilib bin/payout_router route --queue data/operations_queue_10.json --out out
+Заявок: 10 · маршрутизировано: 10 · fallback: 0 · без маршрута: 0 · политика: balanced · симуляция: optimistic
+провайдер  заявок  доля   цель  откл.  дост.цель  откл.дост  объём   доля_объёма  загрузка_дня
+vipay           4  40.0%  40%   +0.0   22.5%      +17.5      102000  26.4%        66.0%
+payflow         3  30.0%  35%   -5.0   25.2%      +4.8        88800  23.0%        99.6%
+quickpay        3  30.0%  25%   +5.0   52.4%      -22.4      195000  50.5%        16.2%
+Исходы: approved 10, rejected 0, expired 0; попыток на заявку: 3.0, повторов после отказа: 0
+Причины отсева: bank_not_in_list ×8, amount_exceeds_limit ×3, amount_below_minimum ×2
+Рекомендации:
+  1. [critical] payflow: дневной лимит использован на 99.6% (2 988 800 ₽ из 3 000 000 ₽) — снизить traffic_percentage с 35 до 20 или поднять daily_amount_limit до 3 800 000 ₽
+  2. [warning] payflow: заявленная conversion_24h 0.91 лежит вне 95% интервала по истории [0.273, 0.683] (19 операций, факт 0.47) — метрика завышена, скоринг по конверсии переоценивает провайдера. Проверить источник conversion_24h или использовать наблюдаемое значение 0.47
+  3. [info] quickpay: самая низкая конверсия в пуле (0.79) при доле 30.0% (цель 25%) — примерно 0.1 лишних отказов на 10 заявок. Поднять вес conversion с 0.1 до 0.2 или расширить лимиты провайдеров с конверсией 0.91
+  4. [info] payflow: в истории 36.8% заявок истекли по таймауту (средняя задержка 631 с) — включить latency в скоринг (вес 0.1) или снизить traffic_percentage с 35 до 25
+  5. [info] quickpay: в истории 15.0% заявок истекли по таймауту (средняя задержка 539 с) — включить latency в скоринг (вес 0.1) или снизить traffic_percentage с 25 до 15
+  6. [info] цель turnover_min (вес 0.05) не различила кандидатов ни в одной из 6 конкурентных заявок — на этой очереди не работает и лишь размывает остальные веса. Снять вес (goals.turnover_min: 0) или изменить её параметры
+решения: out/routing_decisions.json
+отчёт:   out/routing_report.json
+дашборд: out/routing_report.html
+каскад:  out/routing_cascade_demo.json
+ruby scripts/validate_10.rb out/routing_decisions.json
+=== Проверка routing_decisions.json ===
+Заявок в очереди: 10
+Решений в файле:  10
+
+✅ Все заявки из очереди покрыты
+✅ Структура JSON корректна
+✅ op_103: корректно выбран quickpay
+✅ op_104: корректно выбран quickpay
+✅ op_107: корректно выбран payflow
+✅ op_108: корректно выбран quickpay
+✅ op_101: vipay в списке допустимых [vipay, payflow, quickpay, spacepayments]
+✅ op_102: payflow в списке допустимых [payflow, quickpay, spacepayments]
+✅ op_103: quickpay в списке допустимых [quickpay, spacepayments]
+✅ op_104: quickpay в списке допустимых [quickpay, spacepayments]
+✅ op_105: vipay в списке допустимых [vipay, quickpay, spacepayments]
+✅ op_106: vipay в списке допустимых [vipay, quickpay, spacepayments]
+✅ op_107: payflow в списке допустимых [payflow, spacepayments]
+✅ op_108: quickpay в списке допустимых [quickpay, spacepayments]
+✅ op_109: vipay в списке допустимых [vipay, quickpay, spacepayments]
+✅ op_110: payflow в списке допустимых [payflow, quickpay, spacepayments]
+✅ op_102: vipay корректно skipped (bank_not_in_list)
+✅ op_103: vipay корректно skipped (amount_exceeds_limit)
+✅ op_103: payflow корректно skipped (amount_exceeds_limit)
+✅ op_104: vipay корректно skipped (bank_not_in_list)
+✅ op_104: payflow корректно skipped (bank_not_in_list)
+✅ op_105: payflow корректно skipped (bank_not_in_list)
+✅ op_106: payflow корректно skipped (amount_exceeds_limit)
+✅ op_107: vipay корректно skipped (amount_below_minimum)
+✅ op_107: quickpay корректно skipped (amount_below_minimum)
+✅ op_108: vipay корректно skipped (bank_not_in_list)
+✅ op_108: payflow корректно skipped (bank_not_in_list)
+✅ op_109: payflow корректно skipped (bank_not_in_list)
+✅ op_110: vipay корректно skipped (bank_not_in_list)
+
+=== Итого ===
+✅ Пройдено: 29
+❌ Ошибок:   0
+⚠️  Предупр.: 0
+ruby -Ilib bin/payout_router validate out/routing_decisions.json --reference data/reference_decisions.json
+OK   все 10 заявок из очереди покрыты
+OK   структура JSON корректна
+OK   трейс попыток согласован с selected_provider
+OK   op_101: vipay допустим [vipay, payflow, quickpay, spacepayments]
+OK   op_102: payflow допустим [payflow, quickpay, spacepayments]
+OK   op_103: quickpay допустим [quickpay, spacepayments]
+OK   op_104: quickpay допустим [quickpay, spacepayments]
+OK   op_105: vipay допустим [vipay, quickpay, spacepayments]
+OK   op_106: vipay допустим [vipay, quickpay, spacepayments]
+OK   op_107: payflow допустим [payflow, spacepayments]
+OK   op_108: quickpay допустим [quickpay, spacepayments]
+OK   op_109: vipay допустим [vipay, quickpay, spacepayments]
+OK   op_110: payflow допустим [payflow, quickpay, spacepayments]
+OK   op_103: эталон quickpay совпал
+OK   op_104: эталон quickpay совпал
+OK   op_107: эталон payflow совпал
+OK   op_108: эталон quickpay совпал
+OK   op_102: vipay skipped (bank_not_in_list)
+OK   op_103: vipay skipped (amount_exceeds_limit)
+OK   op_103: payflow skipped (amount_exceeds_limit)
+OK   op_104: vipay skipped (bank_not_in_list)
+OK   op_104: payflow skipped (bank_not_in_list)
+OK   op_105: payflow skipped (bank_not_in_list)
+OK   op_106: payflow skipped (amount_exceeds_limit)
+OK   op_107: vipay skipped (amount_below_minimum)
+OK   op_107: quickpay skipped (amount_below_minimum)
+OK   op_108: vipay skipped (bank_not_in_list)
+OK   op_108: payflow skipped (bank_not_in_list)
+OK   op_109: payflow skipped (bank_not_in_list)
+OK   op_110: vipay skipped (bank_not_in_list)
+итого: пройдено 30, ошибок 0, предупреждений 0

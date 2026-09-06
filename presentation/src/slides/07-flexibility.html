@@ -1,0 +1,58 @@
+<section class="slide dark" data-name="S07Flexibility" data-title="Гибкость">
+  <div class="bgword" style="right: -40px; bottom: -60px; font-size: 260px;">YAML</div>
+  <p class="eyebrow anim">Гибкость</p>
+  <h1 class="anim">Одна строка в YAML — другой баланс</h1>
+
+  <div class="term anim-pop d1" style="position: absolute; left: 72px; top: 156px; width: 556px;">
+    <div class="bar"><div class="dots"><i></i><i></i><i></i></div><div class="title">config/policy.yml</div></div>
+    <pre><span class="hl">goals:</span>
+  traffic_share:    <span class="cmd">0.30</span>   <span class="dim"># доля по числу заявок</span>
+  volume_share:     <span class="cmd">0.10</span>   <span class="dim"># доля по объёму</span>
+  cascade_priority: <span class="cmd">0.10</span>   <span class="dim"># очередь в каскаде</span>
+  amount_band:      <span class="cmd">0.10</span>   <span class="dim"># диапазон суммы</span>
+  conversion:       <span class="cmd">0.10</span>   <span class="dim"># конверсия</span>
+  bank_affinity:    <span class="cmd">0.05</span>   <span class="dim"># конверсия по банку</span>
+  load:             <span class="cmd">0.15</span>   <span class="dim"># загрузка лимитов</span>
+  turnover_min:     <span class="cmd">0.05</span>   <span class="dim"># обязательство по обороту</span>
+  rate_headroom:    <span class="cmd">0.05</span>   <span class="dim"># запас по интенсивности</span></pre>
+  </div>
+
+  <div class="card anim d2" style="position: absolute; left: 72px; top: 470px; width: 556px; padding: 20px 26px;">
+    <p style="font-weight: 600; font-size: 21px;">Новый провайдер — запись в providers.json</p>
+    <p class="small muted" style="margin-top: 8px;">Проверили: четвёртый провайдер попал в роутинг и в отчёт без правки кода.</p>
+  </div>
+
+  <div class="card anim d3" style="position: absolute; left: 660px; top: 156px; width: 548px; padding: 22px 26px 14px;">
+    <table class="tbl" style="font-size: 19px;">
+      <tr>
+        <th>политика</th>
+        <th class="n">промах<br>по долям, п.п.</th>
+        <th class="n">одобрений<br>из 10</th>
+      </tr>
+      <tr class="win">
+        <td><b>balanced</b> <span class="muted">— сдаём</span></td>
+        <td class="n">10,0</td>
+        <td class="n">6,54</td>
+      </tr>
+      <tr>
+        <td><b>conversion_first</b></td>
+        <td class="n">70,0</td>
+        <td class="n">7,19</td>
+      </tr>
+      <tr>
+        <td><b>turnover_pressure</b></td>
+        <td class="n">110,0</td>
+        <td class="n">6,65</td>
+      </tr>
+      <tr>
+        <td><b>profit_first</b></td>
+        <td class="n">130,0</td>
+        <td class="n">6,26</td>
+      </tr>
+    </table>
+  </div>
+
+  <p class="lead anim d5" style="position: absolute; left: 660px; top: 470px; width: 548px; font-size: 24px;">Первым и по долям, и по одобрениям быть нельзя: это разные цели. Роутер показывает цену каждого варианта, выбирает бизнес.</p>
+
+  <p class="small muted anim d6" style="position: absolute; left: 72px; top: 620px; width: 1136px;">Промах — сумма отклонений от обещанных долей в процентных пунктах. Ожидаемые одобрения — по конверсии из истории операций. Всего в <span class="mono">config/policies/</span> лежит десять готовых политик.</p>
+</section>

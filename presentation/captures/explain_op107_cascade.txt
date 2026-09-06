@@ -1,0 +1,20 @@
+op_107 · 800 ₽ · sberbank · 2026-07-30 09:08:00
+  - vipay          amount_below_minimum             сумма меньше минимального чека
+      800 < limit_amount_min 1000
+  - quickpay       amount_below_minimum             сумма меньше минимального чека
+      800 < limit_amount_min 1000
+  - payflow        provider_timeout                 провайдер не ответил вовремя — идём к следующему
+      dispatched, simulated result: expired after 631s (score 0.5683; decisive: traffic_share (+0.205), amount_band (+0.1))
+      traffic_share      0.683 × 0.30 = 0.2050   count share 16.7% vs target 35.0% (+18.3 pp)
+      volume_share       0.421 × 0.10 = 0.0421   volume share 37.9% vs target 30.0% (-7.9 pp)
+      cascade_priority   0.500 × 0.10 = 0.0500   priority 2 (2 of 3)
+      amount_band        1.000 × 0.10 = 0.1000   preferred for amounts 500..50000
+      conversion         0.624 × 0.10 = 0.0624   conversion_24h 0.91, history 19 ops → calibrated 0.624
+      bank_affinity      0.624 × 0.05 = 0.0312   sberbank via payflow: 3 in history (< 5), using provider overall: 19 ops, approval 62.4%
+      load               0.017 × 0.15 = 0.0026   utilization 98.3% (daily 98.3%, in_progress 25.0%/24.0%)
+      turnover_min       0.500 × 0.05 = 0.0250   daily_turnover_min 2000000 reached (3068000)
+      rate_headroom      1.000 × 0.05 = 0.0500   0/7 requests in last 60s
+  + spacepayments  fallback_self_provider           внешних провайдеров не осталось — self-provider
+      all 1 eligible providers failed: vipay: amount_below_minimum; quickpay: amount_below_minimum; payflow: provider_timeout
+
+  => spacepayments: approved за 15 с (fallback на self-provider), после 1 неудачных попыток

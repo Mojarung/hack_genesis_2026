@@ -1,0 +1,18 @@
+op_105 · 25 000 ₽ · tinkoff · 2026-07-30 09:07:00
+  - payflow        bank_not_in_list                 банк получателя не в списке поддерживаемых
+      tinkoff not in banks [sberbank, alfa]
+  + vipay          best_score                       лучший суммарный скор по активным целям
+      score 0.775; decisive vs quickpay: traffic_share (+0.3), volume_share (+0.1)
+      traffic_share      0.650 → 1.000 × 0.30 = 0.3000   count share 25.0% vs target 40.0% (+15.0 pp)
+      volume_share       0.549 → 1.000 × 0.10 = 0.1000   volume share 45.1% vs target 50.0% (+4.9 pp)
+      cascade_priority   1.000 × 0.10 = 0.1000   priority 1 (1 of 3)
+      amount_band        0.000 → 0.500 × 0.10 = 0.0500   amounts 500..50000 prefer payflow
+      conversion         0.798 → 1.000 × 0.10 = 0.1000   conversion_24h 0.87, history 41 ops → calibrated 0.798
+      bank_affinity      0.817 → 1.000 × 0.05 = 0.0500   tinkoff via vipay: 6 in history, approval 81.7%
+      load               0.357 → 0.000 × 0.15 = 0.0000   utilization 64.3% (daily 64.3%, in_progress 40.0%/38.0%)
+      turnover_min       0.500 × 0.05 = 0.0250   no daily_turnover_min
+      rate_headroom      1.000 × 0.05 = 0.0500   0/15 requests in last 60s
+  - quickpay       lower_score                      допустим, но уступил по скору
+      score 0.225 < 0.775 (vipay)
+
+  => vipay: approved за 38 с

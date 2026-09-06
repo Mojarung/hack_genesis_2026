@@ -1,0 +1,2 @@
+ruby -Ilib bin/payout_router bench --operations 50000
+50000 заявок за 9.24 с — 5414 заявок/с; fallback: 13429, повторов: 6463

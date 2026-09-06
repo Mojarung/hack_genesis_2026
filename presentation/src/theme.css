@@ -1,0 +1,326 @@
+/* PayoutRouter — дека защиты. Material Design 3 Expressive: тональные поверхности,
+   шкала скруглений M3 (12 / 16 / 28 / 40), один яркий primary, один лаймовый акцент. */
+
+:root {
+  --font-display: "Unbounded", "Golos Text", system-ui, sans-serif;
+  --font-body: "Golos Text", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Cascadia Mono", Consolas, "SF Mono", Menlo, monospace;
+
+  --r-sm: 12px;
+  --r-md: 16px;
+  --r-xl: 28px;
+  --r-xxl: 40px;
+
+  /* 12-лепестковая «печенька» M3 Expressive; вставляется сборкой из src/cookie.txt */
+  --m3-cookie: {{cookie}};
+}
+
+/* ---------- цвета: светлая схема ---------- */
+.slide.light {
+  --surface: #fbf8f3;
+  --surface-1: #f2eee6;
+  --surface-2: #e9e4da;
+  --surface-3: #dfd9cc;
+  --on-surface: #1c1b1f;
+  --on-surface-2: #5e5a66;
+  --outline: #cfc8bc;
+
+  --primary: #5b2ee6;
+  --on-primary: #ffffff;
+  --primary-container: #e5dcff;
+  --on-primary-container: #1c0066;
+
+  --secondary: #a8d800;
+  --secondary-container: #e9ff9c;
+  --on-secondary-container: #1e2900;
+
+  --tertiary: #ff5a3c;
+  --tertiary-container: #ffddd6;
+  --on-tertiary-container: #4a0c00;
+
+  --ok: #1f7a3f;
+  --term-bg: #1a1626;
+}
+
+/* ---------- цвета: тёмная схема ---------- */
+.slide.dark {
+  --surface: #141219;
+  --surface-1: #1e1a27;
+  --surface-2: #29243a;
+  --surface-3: #352e49;
+  --on-surface: #efe9f7;
+  --on-surface-2: #b6aec6;
+  --outline: #4a4360;
+
+  --primary: #c9b8ff;
+  --on-primary: #2a0a8a;
+  --primary-container: #4a22cf;
+  --on-primary-container: #ebe3ff;
+
+  --secondary: #d4ff4d;
+  --secondary-container: #3a4a00;
+  --on-secondary-container: #ecffa6;
+
+  --tertiary: #ff8a73;
+  --tertiary-container: #6a1a0c;
+  --on-tertiary-container: #ffddd6;
+
+  --ok: #7ee2a0;
+  --term-bg: #0f0d16;
+}
+
+/* ---------- кадр слайда ---------- */
+.slide {
+  position: relative;
+  width: 1280px;
+  height: 720px;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: 52px 72px 64px;
+  background: var(--surface);
+  color: var(--on-surface);
+  font-family: var(--font-body);
+  font-size: 22px;
+  line-height: 1.35;
+  -webkit-font-smoothing: antialiased;
+}
+.slide * { box-sizing: border-box; }
+.slide a { color: var(--primary); text-decoration: none; }
+.slide a:hover { color: var(--tertiary); }
+
+.slide .num {
+  position: absolute;
+  right: 40px;
+  bottom: 28px;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 16px;
+  color: var(--on-surface-2);
+  letter-spacing: 0.04em;
+}
+
+/* Надпись-рубрика над заголовком: мелкие прописные, как на афише. Помогает жюри держать,
+   о чём сейчас речь, и даёт слайдам общий ритм. */
+.slide .eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--on-surface-2);
+}
+.slide .eyebrow::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  max-width: 120px;
+  background: var(--outline);
+}
+
+/* Огромное слово на фоне: даёт слою глубину, читается как фактура, а не как текст. */
+.slide .bgword {
+  position: absolute;
+  font-family: var(--font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  line-height: 0.82;
+  color: var(--on-surface);
+  opacity: 0.045;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Фигура «печенька» Material 3 Expressive — подложка под фото и числа. */
+.slide .blob {
+  position: absolute;
+  clip-path: var(--m3-cookie);
+  background: var(--primary-container);
+  pointer-events: none;
+}
+.slide .blob.lime { background: var(--secondary-container); }
+.slide .blob.coral { background: var(--tertiary-container); }
+
+/* ---------- типографика ---------- */
+.slide h1, .slide h2, .slide .display, .slide .big {
+  font-family: var(--font-display);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+.slide h1 { font-size: 48px; font-weight: 800; line-height: 1.08; }
+.slide h2 { font-size: 44px; font-weight: 700; line-height: 1.08; }
+.slide .display { font-size: 92px; font-weight: 800; line-height: 0.98; }
+.slide .big { font-weight: 800; line-height: 0.95; }
+.slide p { margin: 0; }
+.slide .lead { font-size: 26px; font-weight: 500; line-height: 1.32; }
+.slide .muted { color: var(--on-surface-2); }
+.slide .small { font-size: 18px; }
+.slide .mono { font-family: var(--font-mono); }
+.slide b { font-weight: 600; }
+.slide .accent { color: var(--primary); }
+.slide .lime { color: var(--secondary); }
+.slide .coral { color: var(--tertiary); }
+
+/* ---------- компоненты M3 ---------- */
+.slide .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: var(--primary-container);
+  color: var(--on-primary-container);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 16px;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.slide .chip.lime { background: var(--secondary-container); color: var(--on-secondary-container); }
+.slide .chip.coral { background: var(--tertiary-container); color: var(--on-tertiary-container); }
+.slide .chip.flat { background: var(--surface-2); color: var(--on-surface); }
+.slide .chip.mono { font-family: var(--font-mono); font-weight: 500; }
+
+.slide .card {
+  background: var(--surface-1);
+  border-radius: var(--r-xl);
+  padding: 28px 32px;
+}
+.slide .card.tone { background: var(--surface-2); }
+.slide .card.primary { background: var(--primary-container); color: var(--on-primary-container); }
+.slide .card.lime { background: var(--secondary-container); color: var(--on-secondary-container); }
+.slide .card.coral { background: var(--tertiary-container); color: var(--on-tertiary-container); }
+.slide .card.primary .muted, .slide .card.lime .muted, .slide .card.coral .muted { color: inherit; opacity: 0.72; }
+
+.slide .row { display: flex; gap: 24px; align-items: stretch; }
+.slide .col { display: flex; flex-direction: column; gap: 16px; }
+
+/* ---------- окно терминала в стиле macOS ---------- */
+.slide .term {
+  background: var(--term-bg);
+  color: #e8e3f2;
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35), 0 2px 0 rgba(255, 255, 255, 0.04) inset;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  line-height: 1.42;
+}
+.slide.light .term { box-shadow: 0 30px 70px rgba(28, 27, 31, 0.28); }
+.slide .term .bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  background: rgba(255, 255, 255, 0.06);
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: rgba(232, 227, 242, 0.6);
+}
+.slide .term .bar .dots { display: flex; gap: 8px; }
+.slide .term .bar .dots i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+.slide .term .bar .dots i:nth-child(1) { background: #ff5f57; }
+.slide .term .bar .dots i:nth-child(2) { background: #febc2e; }
+.slide .term .bar .dots i:nth-child(3) { background: #28c840; }
+.slide .term .bar .title { flex: 1; text-align: center; padding-right: 52px; }
+.slide .term pre {
+  margin: 0;
+  padding: 18px 22px 22px;
+  white-space: pre;
+  overflow: hidden;
+  font: inherit;
+}
+.slide .term .cmd { color: #d4ff4d; }
+.slide .term .prompt { color: #8f86a8; }
+.slide .term .pick { color: #7ee2a0; }
+.slide .term .drop { color: #ff8a73; }
+.slide .term .dim { color: #8f86a8; }
+.slide .term .hl { color: #c9b8ff; }
+.slide .term .warn { color: #febc2e; }
+.slide .term.zoom { font-size: 17px; }
+
+/* ---------- сноски-пояснения к терминалу ---------- */
+.slide .note {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  font-size: 19px;
+  line-height: 1.3;
+}
+.slide .note .dot {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin-top: 7px;
+  border-radius: 50%;
+  background: var(--primary);
+}
+.slide .note .dot.lime { background: var(--secondary); }
+.slide .note .dot.coral { background: var(--tertiary); }
+.slide .note .dot.ok { background: var(--ok); }
+
+/* ---------- изображения ---------- */
+.slide img.shot { display: block; width: 100%; height: auto; border-radius: var(--r-md); }
+.slide .frame { border-radius: var(--r-xl); overflow: hidden; background: var(--surface-2); }
+.slide .photo { object-fit: cover; width: 100%; height: 100%; display: block; }
+
+.slide .qr svg { display: block; width: 100%; height: 100%; }
+
+/* Кот с подписью: фото в скруглённой рамке, поверх — чип. */
+.slide .cat { position: absolute; border-radius: var(--r-xl); overflow: hidden; background: var(--surface-2); box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28); }
+.slide .cat img { object-fit: cover; width: 100%; height: 100%; display: block; }
+.slide .cat-label { position: absolute; z-index: 2; }
+
+/* ---------- движение ----------
+   Анимации проигрываются, когда слайд становится видимым: в index.html он переходит
+   из display:none в block, и браузер запускает их заново. Все укладываются в 1.1 с,
+   поэтому скриншот и печать снимают уже спокойную картинку; для печати они выключены. */
+@keyframes rise { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+@keyframes pop { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: none; } }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes type { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes caret { 50% { opacity: 0; } }
+
+.slide .anim { animation: rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.slide .anim-pop { animation: pop 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.slide .anim-fade { animation: fade 0.5s ease both; }
+.slide .d1 { animation-delay: 0.06s; }
+.slide .d2 { animation-delay: 0.12s; }
+.slide .d3 { animation-delay: 0.18s; }
+.slide .d4 { animation-delay: 0.26s; }
+.slide .d5 { animation-delay: 0.34s; }
+.slide .d6 { animation-delay: 0.42s; }
+.slide .d7 { animation-delay: 0.5s; }
+.slide .d8 { animation-delay: 0.58s; }
+.slide .d9 { animation-delay: 0.66s; }
+.slide .d10 { animation-delay: 0.78s; }
+.slide .d11 { animation-delay: 0.9s; }
+
+/* Команда набирается по буквам, следом мигает курсор — как в живом терминале. */
+.slide .term .type { display: inline-block; animation: type 0.6s steps(30, end) both; }
+.slide .term .cur { display: inline-block; width: 0.6em; height: 1em; vertical-align: -0.15em; background: #d4ff4d; animation: fade 0.01s 0.6s both, caret 0.9s 0.6s step-end infinite; }
+/* Строки трассы появляются по очереди — видно сам каскад: отказ → следующий → fallback. */
+.slide .term .ln { animation: fade 0.28s ease both; }
+
+@media print {
+  .slide .anim, .slide .anim-pop, .slide .anim-fade,
+  .slide .term .type, .slide .term .cur, .slide .term .ln { animation: none !important; opacity: 1 !important; transform: none !important; clip-path: none !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .slide .anim, .slide .anim-pop, .slide .anim-fade,
+  .slide .term .type, .slide .term .cur, .slide .term .ln { animation: none !important; opacity: 1 !important; transform: none !important; clip-path: none !important; }
+}
+
+/* ---------- таблица ---------- */
+.slide table.tbl { border-collapse: collapse; width: 100%; font-size: 20px; }
+.slide table.tbl th { text-align: left; font-weight: 600; font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--on-surface-2); padding: 0 16px 12px 0; }
+.slide table.tbl td { padding: 14px 16px 14px 0; border-top: 1px solid var(--outline); vertical-align: middle; }
+.slide table.tbl td.n, .slide table.tbl th.n { text-align: right; font-family: var(--font-display); font-weight: 700; }
+.slide table.tbl tr.win td { background: var(--secondary-container); color: var(--on-secondary-container); }
+.slide table.tbl tr.win td:first-child { border-radius: 14px 0 0 14px; padding-left: 16px; }
+.slide table.tbl tr.win td:last-child { border-radius: 0 14px 14px 0; padding-right: 16px; }

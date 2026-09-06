@@ -1,0 +1,37 @@
+<section class="slide dark" data-name="S05Cascade" data-title="Отказ и переход">
+  <p class="eyebrow anim">Отказ и переход</p>
+  <h1 class="anim">Провайдер молчит — заявка идёт дальше</h1>
+
+  <div class="term anim-pop d1" style="position: absolute; left: 72px; top: 150px; width: 800px;">
+    <div class="bar"><div class="dots"><i></i><i></i><i></i></div><div class="title">payout_router — explain · conversion</div></div>
+    <pre><span class="ln d1"><span class="prompt">$</span> <span class="cmd">payout_router explain op_107 --simulation conversion --seed 46</span></span>
+<span class="ln d2">op_107 · 800 ₽ · sberbank · 2026-07-30 09:08:00</span>
+<span class="ln d3">  <span class="drop">- vipay</span>          amount_below_minimum    800 &lt; limit_amount_min 1000</span>
+<span class="ln d4">  <span class="drop">- quickpay</span>       amount_below_minimum    800 &lt; limit_amount_min 1000</span>
+<span class="ln d5">  <span class="warn">- payflow</span>        provider_timeout        <span class="dim">не ответил вовремя — идём к следующему</span>
+      dispatched, simulated result: <span class="warn">expired after 631s</span></span>
+<span class="ln d7">  <span class="pick">+ spacepayments</span>  fallback_self_provider  <span class="dim">внешних не осталось — self-provider</span></span>
+<span class="ln d9">
+  <span class="pick">=> spacepayments: approved за 15 с</span> <span class="dim">(fallback), после 1 неудачной попытки</span></span></pre>
+  </div>
+
+  <div class="term anim-pop d9" style="position: absolute; left: 72px; top: 466px; width: 800px;">
+    <div class="bar"><div class="dots"><i></i><i></i><i></i></div><div class="title">payout_router — explain · conversion</div></div>
+    <pre><span class="prompt">$</span> <span class="cmd">payout_router explain op_106 --simulation conversion --seed 46</span>
+  <span class="drop">- payflow</span>    amount_exceeds_limit    52000 &gt; limit_amount_max 50000
+  <span class="warn">- vipay</span>      provider_timeout        <span class="warn">expired after 567s</span>
+  <span class="pick">+ quickpay</span>   fallback_after_failure  <span class="dim">выбран после отказа предыдущего</span>
+  <span class="pick">=> quickpay: approved за 29 с</span></pre>
+  </div>
+
+  <div class="col" style="position: absolute; left: 906px; top: 158px; width: 302px; gap: 20px;">
+    <div class="note anim d2"><span class="dot"></span><p>Каждая попытка записана: кто, почему, чем кончилось.</p></div>
+    <div class="note anim d4"><span class="dot coral"></span><p>Пока провайдер молчит, его лимит и реквизит заняты. Ответ приходит позже — мы это учитываем.</p></div>
+    <div class="note anim d6"><span class="dot lime"></span><p>Рядом со сдачей лежит <span class="mono small">routing_cascade_demo</span> с такими же цепочками.</p></div>
+  </div>
+
+  <div class="cat anim-pop d10" style="right: 72px; bottom: 56px; width: 302px; height: 196px;">
+    <img src="{{img:cat_sleep}}" alt="Спящий кот">
+  </div>
+  <span class="chip coral cat-label anim d11" style="right: 90px; bottom: 216px;">провайдер молчит</span>
+</section>

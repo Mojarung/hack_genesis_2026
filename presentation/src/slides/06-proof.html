@@ -1,0 +1,31 @@
+<section class="slide light" data-name="S06Proof" data-title="Доказательство">
+  <p class="eyebrow anim">Доказательство</p>
+  <h1 class="anim">Цели по долям работают. Проверили.</h1>
+
+  <div class="row" style="position: absolute; left: 72px; top: 150px; width: 1136px; gap: 20px;">
+    <div class="card lime anim-pop d1" style="width: 330px; padding: 28px 30px 26px;">
+      <div class="big" style="font-size: 108px;">0,0</div>
+      <p style="font-weight: 600; font-size: 20px; margin-top: 10px;">промах по долям, пунктов</p>
+      <p class="small muted">цели по долям включены</p>
+    </div>
+    <div class="card coral anim-pop d3" style="width: 330px; padding: 28px 30px 26px;">
+      <div class="big" style="font-size: 108px;">68,7</div>
+      <p style="font-weight: 600; font-size: 20px; margin-top: 10px;">промах по долям, пунктов</p>
+      <p class="small muted">цели по долям выключены</p>
+    </div>
+    <div class="col anim d5" style="flex: 1; gap: 14px; justify-content: center;">
+      <p class="lead">2 000 заявок, где все три провайдера подходят под каждую.</p>
+      <p style="font-size: 20px;">Включили цели по долям — попали в 40 / 35 / 25 точно. Выключили — промах 68,7 пункта.</p>
+    </div>
+  </div>
+
+  <div class="term anim-pop d6" style="position: absolute; left: 72px; top: 452px; width: 1136px;">
+    <div class="bar"><div class="dots"><i></i><i></i><i></i></div><div class="title">payout_router — stress</div></div>
+    <pre><span class="prompt">$</span> <span class="cmd">payout_router stress --scenario open_field open_field_no_shares</span>
+сценарий              заявок  с_выбором%  без_маршрута  fallback%  Σ|откл|  инварианты
+<span class="ln d9">open_field              2000       100.0             0        0.0      <span class="pick">0.0</span>  ок</span>
+<span class="ln d10">open_field_no_shares    2000       100.0             0        0.0     <span class="drop">68.7</span>  ок</span></pre>
+  </div>
+
+  <p class="small muted anim d11" style="position: absolute; left: 72px; bottom: 30px; width: 1000px;">На обычных данных выбора почти нет: у 98% заявок после правил остаётся один кандидат. Поэтому вклад стратегии меряем на очереди с выбором.</p>
+</section>

@@ -13,3 +13,10 @@ __pycache__/
 
 # Исходная выгрузка организаторов лежит рядом с репозиторием — в git попадают её копии из data/ и docs/case/
 /СТАРТ ХАКАТОНА*/
+
+# Презентация: рендеры и собранный канвас пересобираются из presentation/src (node presentation/build.mjs)
+/presentation/render/
+/presentation/payout-router-misis-mojarung.html
+/presentation/render-poster/
+/presentation/payout-router-poster-misis-mojarung.html
+/presentation/canvas/

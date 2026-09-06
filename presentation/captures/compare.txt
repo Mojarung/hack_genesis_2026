@@ -1,0 +1,13 @@
+политика             распределение                                                                              Σ|откл|  fallback  ожид_одобр  ожид_конв  ожид_маржа_₽  задержка
+balanced             vipay 4 (40.0/40%), payflow 3 (30.0/35%), quickpay 3 (30.0/25%)                               10.0         0        6.54      0.654          1137      39.5
+attainable_shares    vipay 4 (40.0/40%), payflow 3 (30.0/35%), quickpay 3 (30.0/25%)                               10.0         0        6.54      0.654          1137      39.5
+bank_affinity_first  vipay 3 (30.0/40%), payflow 1 (10.0/35%), quickpay 6 (60.0/25%)                               70.0         0        7.19      0.719          1421      34.0
+cascade              vipay 4 (40.0/40%), payflow 3 (30.0/35%), quickpay 3 (30.0/25%)                               10.0         0        6.54      0.654          1137      39.5
+conversion_first     vipay 3 (30.0/40%), payflow 1 (10.0/35%), quickpay 6 (60.0/25%)                               70.0         0        7.19      0.719          1421      34.0
+custom_strategy      vipay 3 (30.0/40%), payflow 2 (20.0/35%), quickpay 5 (50.0/25%)                               50.0         0        6.88      0.688          1394      36.3
+profit_first         vipay 0 (0.0/40%), payflow 1 (10.0/35%), quickpay 9 (90.0/25%)                               130.0         0        6.26      0.626          1519      31.3
+strategy_chain       vipay 3 (30.0/40%), payflow 3 (30.0/35%), quickpay 4 (40.0/25%)                               30.0         0         6.6       0.66          1259      38.6
+strict_limits        vipay 4 (40.0/40%), payflow 0 (0.0/35%), quickpay 5 (50.0/25%), spacepayments 1 (10.0/0%)     60.0         1        7.43      0.743          1390      31.2
+turnover_pressure    vipay 1 (10.0/40%), payflow 1 (10.0/35%), quickpay 8 (80.0/25%)                              110.0         0        6.65      0.665          1488      32.2
+volume_balance       vipay 4 (40.0/40%), payflow 1 (10.0/35%), quickpay 5 (50.0/25%)                               50.0         0         7.1       0.71          1385      34.9
+отчёт: out/compare_report.json

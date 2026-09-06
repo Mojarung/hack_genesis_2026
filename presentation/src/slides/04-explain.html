@@ -1,0 +1,33 @@
+<section class="slide light" data-name="S04Explain" data-title="Объяснимость">
+  <p class="eyebrow anim">Объяснимость</p>
+  <h1 class="anim">Почему выбран vipay: одна команда</h1>
+
+  <div class="term anim-pop d1" style="position: absolute; left: 72px; top: 150px; width: 790px;">
+    <div class="bar"><div class="dots"><i></i><i></i><i></i></div><div class="title">payout_router — explain</div></div>
+    <pre><span class="prompt">$</span> <span class="cmd type">payout_router explain op_105</span><span class="cur"></span>
+<span class="ln d8">op_105 · 25 000 ₽ · tinkoff · 2026-07-30 09:07:00
+  <span class="drop">- payflow</span>    bank_not_in_list   <span class="dim">банк получателя не в списке</span>
+      tinkoff not in banks [sberbank, alfa]
+  <span class="pick">+ vipay</span>      best_score         <span class="dim">лучший суммарный скор</span>
+      score 0.775; <span class="hl">decisive vs quickpay: traffic_share (+0.3)</span>
+      traffic_share  0.650 → 1.000 × 0.30 = 0.3000  <span class="dim">share 25.0% vs target 40.0%</span>
+      conversion     0.798 → 1.000 × 0.10 = 0.1000  <span class="dim">0.87 → calibrated 0.798</span>
+      load           0.357 → 0.000 × 0.15 = 0.0000  <span class="dim">utilization 64.3%</span>
+      <span class="dim">…</span>
+  <span class="drop">- quickpay</span>   lower_score        <span class="dim">допустим, но уступил по скору</span>
+      score 0.225 &lt; 0.775 (vipay)
+
+  <span class="pick">=> vipay: approved за 38 с</span></span></pre>
+  </div>
+
+  <div class="col" style="position: absolute; left: 900px; top: 160px; width: 308px; gap: 24px;">
+    <div class="note anim d9"><span class="dot coral"></span><p>Минус — провайдер выбыл. Рядом причина и число.</p></div>
+    <div class="note anim d10"><span class="dot ok"></span><p>Плюс — победитель. Ниже — из чего сложились баллы: оценка цели, место среди кандидатов, вес.</p></div>
+    <div class="note anim d11"><span class="dot"></span><p><b>decisive</b> — чем именно победитель обошёл второго. Здесь vipay недобирает свою долю, и это перевесило.</p></div>
+  </div>
+
+  <div class="card tone anim d11" style="position: absolute; left: 72px; top: 578px; width: 1136px; padding: 16px 24px; display: flex; align-items: center; gap: 16px;">
+    <p class="small" style="flex: none; font-weight: 600;">Те же коды причин</p>
+    <p class="small muted">в терминале, в файле решений и в отчёте: <span class="mono">bank_not_in_list · lower_score · provider_timeout · fallback_self_provider</span>. Ответ про одного провайдера — флаг <span class="mono">--why-not payflow</span></p>
+  </div>
+</section>
