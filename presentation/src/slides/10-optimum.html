@@ -1,0 +1,36 @@
+<section class="slide dark" data-name="S10Optimum" data-title="Близость к идеалу">
+  <div class="bgword" style="left: -30px; bottom: -56px; font-size: 230px;">Предел</div>
+  <p class="eyebrow anim">Предел</p>
+  <h1 class="anim">Знаем, насколько близки к идеалу</h1>
+
+  <div class="term anim-pop d1" style="position: absolute; left: 72px; top: 150px; width: 700px; font-size: 14px;">
+    <div class="bar"><div class="dots"><i></i><i></i><i></i></div><div class="title">payout_router — bound</div></div>
+    <pre><span class="prompt">$</span> <span class="cmd">payout_router bound</span>
+назначение                       одобрений  комментарий
+оптимум                                <span class="hl">7.8</span>  знает всю очередь заранее
+<span class="pick">наш роутинг                           6.54</span>  онлайн, по одной заявке
+худшее допустимое                     5.44  нижняя точка отсчёта
+— оптимум, если ещё держать доли      6.72  другая задача: никто выше своей доли
+
+<span class="pick">Онлайн-роутинг взял 83.8% от точного оптимума этой очереди.</span>
+Из отставания в 1.26 одобрения <span class="warn">1.09</span> — цена обязательства держать
+целевые доли, и <span class="warn">0.18</span> — цена решений по одной заявке.</pre>
+  </div>
+
+  <div class="card lime anim-pop d2" style="position: absolute; left: 812px; top: 150px; width: 396px; padding: 24px 28px;">
+    <div class="big" style="font-size: 76px;">83,8%</div>
+    <p style="font-weight: 600; font-size: 20px; margin-top: 8px;">от точного оптимума</p>
+    <p class="small muted" style="margin-top: 6px;">на публичной очереди; на тысяче заявок — 96,4%</p>
+  </div>
+
+  <div class="card anim d4" style="position: absolute; left: 812px; top: 356px; width: 396px; padding: 22px 28px;">
+    <p style="font-weight: 600; font-size: 20px;">Отставание разложено</p>
+    <p class="small muted" style="margin-top: 8px;">1,09 одобрения — цена обязательства держать доли партнёров. 0,18 — цена того, что решаем по одной заявке, не зная следующих.</p>
+  </div>
+
+  <div class="card tone anim d6" style="position: absolute; left: 812px; top: 512px; width: 396px; padding: 20px 28px;">
+    <p class="small">Оптимум считается точным min-cost flow по всей очереди сразу и лежит в каждом отчёте блоком <span class="mono">optimality</span>.</p>
+  </div>
+
+  <p class="small muted anim d8" style="position: absolute; left: 72px; bottom: 30px; width: 700px;">Наше распределение допустимо в задаче эталона — значит это настоящая верхняя граница, накрутить её нельзя.</p>
+</section>
