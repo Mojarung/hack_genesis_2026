@@ -23,8 +23,15 @@ loader.setup
 #   Analytics    распределение, загрузка лимитов, рекомендации
 module PayoutRouter
   class Error < StandardError; end
+
   # Некорректные входные данные: файл не найден, битый JSON/CSV, невалидные поля.
-  class InputError < Error; end
+  class InputError < Error
+    # true — ошибка относится к одной заявке очереди, и её можно увести в карантин
+    # (--on-invalid skip). У «файл не найден» и «невалидный JSON» этот флаг не поднимается:
+    # советовать там --on-invalid skip значит посылать по ложному следу.
+    attr_accessor :skippable
+  end
+
   # Ошибка в политике маршрутизации (config/policy.yml).
   class PolicyError < Error; end
 

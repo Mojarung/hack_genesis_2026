@@ -8,6 +8,8 @@ module PayoutRouter
     package_name "payout_router"
 
     DEFAULT_QUEUE = "data/operations_queue_10.json"
+    SKIP_HINT = "если заявка в очереди неожиданного формата, а файл решений нужен всё равно — " \
+                "повторите с --on-invalid skip: битые заявки уйдут в предупреждения, остальные отроутятся"
 
     def self.exit_on_failure? = true
 
@@ -36,8 +38,7 @@ module PayoutRouter
       print_summary(run) unless options[:quiet]
       written.each { |label, path| say "#{label} #{path}", :green }
     rescue PayoutRouter::InputError => e
-      fail_with(e, hint: "если заявка в очереди неожиданного формата, а файл решений нужен всё равно — " \
-                         "повторите с --on-invalid skip: битые заявки уйдут в предупреждения, остальные отроутятся")
+      fail_with(e, hint: e.skippable && SKIP_HINT)
     rescue PayoutRouter::Error => e
       fail_with(e)
     end
